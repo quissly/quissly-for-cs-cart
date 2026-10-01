@@ -1,0 +1,18 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: tygh\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language-Team: Georgian\n"
+"Language: ka\n"
+
+# Storefront-facing strings (shopper sees these). Admin/settings strings fall back
+# to the English pack on install.
+
+msgctxt "Languages::sort_by_quissly_relevance_asc"
+msgid "Relevance"
+msgstr "რელევანტურობა"
+
+msgctxt "Languages::quissly_search.search_temporarily_unavailable"
+msgid "Search is temporarily unavailable. Please try again."
+msgstr "ძიება დროებით მიუწვდომელია. გთხოვთ, სცადოთ თავიდან."

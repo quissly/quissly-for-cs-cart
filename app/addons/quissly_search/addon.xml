@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<addon scheme="3.0">
+    <id>quissly_search</id>
+    <version>1.0.0</version>
+    <priority>2000</priority>
+    <position>0</position>
+    <status>active</status>
+    <default_language>en</default_language>
+    <supplier>Quissly</supplier>
+    <supplier_link>https://quissly.com</supplier_link>
+
+    <!--
+        Settings: the status block, then the storefront feature switches - the same
+        six as the WooCommerce plugin and the Magento plugin, with their defaults
+        (QSearch and the overlay on, the rest off). lib/Features.php lists them and
+        says which are built. Credentials are NOT settings: config.local.php or
+        one-click Connect. search_interception keeps its original id.
+    -->
+    <settings edition_type="ROOT">
+        <sections>
+            <section id="general">
+                <items>
+                    <item id="status">
+                        <type>info</type>
+                        <handler>fn_quissly_search_status_handler</handler>
+                    </item>
+                    <item id="features_header">
+                        <type>header</type>
+                    </item>
+                    <item id="search_interception">
+                        <type>checkbox</type>
+                        <default_value>Y</default_value>
+                    </item>
+                    <item id="enable_overlay">
+                        <type>checkbox</type>
+                        <default_value>Y</default_value>
+                    </item>
+                    <item id="overlay_mount_selector">
+                        <type>input</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="enable_quick">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <!-- the Magento plugin's quick_style, same values: read it with
+                         Features::quickStyle() when Quick is built here. -->
+                    <item id="quick_style">
+                        <type>selectbox</type>
+                        <default_value>rows</default_value>
+                        <variants>
+                            <item id="rows"></item>
+                            <item id="carousel"></item>
+                        </variants>
+                    </item>
+                    <item id="enable_voice">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <item id="enable_image">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <item id="enable_qchat">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <!-- Search bar suggestions (the Shopify app's): kept in Quissly, drawn by
+                         the handler, saved by controllers/backend/addons.pre.php. -->
+                    <item id="suggestions_header">
+                        <type>header</type>
+                    </item>
+                    <item id="search_suggestions">
+                        <type>info</type>
+                        <handler>fn_quissly_search_suggestions_handler</handler>
+                    </item>
+                    <!-- Catalog data (the Magento plugin's): the checklist is drawn by the
+                         handler and saved by controllers/backend/addons.pre.php. -->
+                    <item id="catalog_header">
+                        <type>header</type>
+                    </item>
+                    <item id="catalog_features">
+                        <type>info</type>
+                        <handler>fn_quissly_search_catalog_handler</handler>
+                    </item>
+                </items>
+            </section>
+        </sections>
+    </settings>
+
+    <!-- One-row health record so a storefront 401/402/403 (which happens in the
+         shopper's session) can be surfaced to the merchant on the admin page. -->
+    <queries>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_health` (
+                `lock_id` tinyint(1) unsigned NOT NULL DEFAULT '1',
+                `last_status` smallint(5) NOT NULL DEFAULT '0',
+                `last_message` varchar(255) NOT NULL DEFAULT '',
+                `last_failure_at` int(11) unsigned NOT NULL DEFAULT '0',
+                `last_success_at` int(11) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`lock_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_queue` (
+                `product_id` int(11) unsigned NOT NULL,
+                `operation` varchar(10) NOT NULL DEFAULT 'upsert',
+                `created_at` int(11) unsigned NOT NULL DEFAULT '0',
+                `attempts` smallint(5) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`product_id`),
+                KEY `created_at` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_synced` (
+                `product_id` int(11) unsigned NOT NULL,
+                `synced_at` int(11) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`product_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_operations` (
+                `operation_id` varchar(64) NOT NULL,
+                `kind` varchar(10) NOT NULL,
+                `product_ids` mediumtext NOT NULL,
+                `sent_at` int(11) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`operation_id`),
+                KEY `sent_at` (`sent_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_state` (
+                `name` varchar(64) NOT NULL,
+                `value` mediumtext NOT NULL,
+                PRIMARY KEY (`name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_log` (
+                `log_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+                `created_at` int(11) unsigned NOT NULL DEFAULT '0',
+                `message` varchar(1000) NOT NULL DEFAULT '',
+                PRIMARY KEY (`log_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_tokens` (
+                `token` char(36) NOT NULL,
+                `product_ids` text NOT NULL,
+                `created_at` int(11) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`token`),
+                KEY `created_at` (`created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_rate` (
+                `bucket` char(40) NOT NULL,
+                `window_start` int(11) unsigned NOT NULL DEFAULT '0',
+                `hits` int(11) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`bucket`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_ids` (
+                `quissly_id` char(36) NOT NULL,
+                `product_id` int(11) unsigned NOT NULL,
+                PRIMARY KEY (`quissly_id`),
+                KEY `product_id` (`product_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        </item>
+        <item for="uninstall">
+            DROP TABLE IF EXISTS `?:quissly_search_health`;
+        </item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_tokens`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_ids`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_rate`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_queue`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_synced`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_operations`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_state`;</item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_log`;</item>
+    </queries>
+</addon>
