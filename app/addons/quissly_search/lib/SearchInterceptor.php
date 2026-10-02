@@ -205,8 +205,55 @@ final class SearchInterceptor
             return false;
         }
 
+        // A shopper refinement (a sidebar filter, a category, a price range...): CS-Cart's own
+        // search answers. The interception replaces the whole WHERE condition, so it would
+        // silently drop the refinement while the sidebar still showed it as active.
+        $refinement = self::refinement($_REQUEST);
+        if ($refinement !== null) {
+            SearchSignal::recordSkip('filter:' . $refinement);
+
+            return false;
+        }
+
         return true;
     }
+
+    /**
+     * The first refinement the shopper's request carries, null when there is none. Read from
+     * the request (what the shopper sent), not from fn_get_products' params, which CS-Cart
+     * fills itself. Empty values - '', '0', 'N', [] - are no refinement: the theme's search
+     * form sends cid=0.
+     *
+     * @param array<string, mixed> $request
+     */
+    public static function refinement(array $request): ?string
+    {
+        foreach (self::REFINEMENTS as $name) {
+            $value = $request[$name] ?? null;
+            if (is_array($value)) {
+                $value = array_filter($value, static fn ($v): bool => $v !== '' && $v !== null);
+                if ($value !== []) {
+                    return $name;
+                }
+                continue;
+            }
+            $value = trim((string) $value);
+            if ($value !== '' && $value !== '0' && $value !== 'N') {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /** Request parameters that narrow fn_get_products' results - the shopper's refinements. */
+    private const REFINEMENTS = [
+        'features_hash', 'filter_variants', 'feature_variants', 'variant_id',
+        'cid', 'category_id',
+        'price_from', 'price_to', 'weight_from', 'weight_to', 'amount_from', 'amount_to',
+        'popularity_from', 'popularity_to',
+        'pcode', 'company_id', 'free_shipping',
+    ];
 
     /** The voice/image token on this request, '' when it is a typed search. */
     private static function mediaToken(): string
@@ -391,7 +438,7 @@ final class SearchInterceptor
     }
 
     /**
-     * 401/402/403 alert: persist a flag the admin status page reads (Stage 3) and
+     * 401/402/403 alert: persist a flag the admin status page reads and
      * log it. Never blocks the storefront.
      */
     private static function recordAuthAlert(AuthException $e): void

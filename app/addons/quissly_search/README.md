@@ -230,9 +230,11 @@ like defects:
   nothing. The per-page count selector and the grid/list layout toggle remain
   available as usual. (Category and other non-search pages keep their full sort
   controls.)
-- **Interface strings:** the relevance label and the "temporarily unavailable" notice are
-  translated (English, Georgian, Russian). The **overlay, voice and image UI strings ship
-  in English only** for now — a Georgian or Russian shopper sees those in English.
+- **Interface strings:** every admin and storefront string ships in English, Georgian and
+  Russian.
+- **Filtered searches use CS-Cart's own search.** When a shopper has applied a filter, a
+  category, a price range, a product code or a vendor, the add-on steps aside so the
+  refinement is honoured; `?quissly_debug=1` shows `filter:<name>` as the reason.
 - **Product titles, descriptions, and prices** are rendered by CS-Cart itself in the
   shopper's language, exactly as on any other page — the add-on only changes which
   products appear and their order.

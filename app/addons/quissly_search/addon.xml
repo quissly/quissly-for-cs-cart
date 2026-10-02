@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <priority>2000</priority>
     <position>0</position>
     <status>active</status>

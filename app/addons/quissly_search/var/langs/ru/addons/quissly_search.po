@@ -6,13 +6,658 @@ msgstr ""
 "Language-Team: Russian\n"
 "Language: ru\n"
 
-# Storefront-facing strings (shopper sees these). Admin/settings strings fall back
-# to the English pack on install.
+msgctxt "Addons::name::quissly_search"
+msgid "Quissly search"
+msgstr "Quissly search"
+
+msgctxt "Addons::description::quissly_search"
+msgid "Replaces native product search with Quissly QSearch. A thin proxy: Quissly returns product IDs, the store's theme renders them, with native-search fallback on failure. Credentials live in config.local.php."
+msgstr "Заменяет встроенный поиск товаров на Quissly QSearch. Quissly возвращает ID товаров, тема магазина их показывает; при сбое работает встроенный поиск. Учётные данные хранятся в config.local.php или задаются подключением в один клик."
+
+msgctxt "SettingsSections::quissly_search::general"
+msgid "General"
+msgstr "Общие"
+
+msgctxt "SettingsOptions::quissly_search::search_interception"
+msgid "QSearch: Quissly answers storefront search"
+msgstr "QSearch: поиск в магазине выполняет Quissly"
+
+msgctxt "SettingsTooltips::quissly_search::search_interception"
+msgid "When off, the storefront uses native CS-Cart search. Credentials and catalog sync are unaffected."
+msgstr "Если выключено, магазин использует встроенный поиск CS-Cart. Подключение и синхронизация каталога не затрагиваются."
+
+msgctxt "SettingsOptions::quissly_search::status"
+msgid "Status"
+msgstr "Статус"
+
+msgctxt "Languages::quissly_search.active"
+msgid "Active"
+msgstr "Активно"
+
+msgctxt "Languages::quissly_search.inactive"
+msgid "Inactive"
+msgstr "Неактивно"
+
+msgctxt "Languages::quissly_search.interception_status"
+msgid "Search interception"
+msgstr "Перехват поиска"
+
+msgctxt "Languages::quissly_search.inactive_reason"
+msgid "Reason"
+msgstr "Причина"
+
+msgctxt "Languages::quissly_search.reason_master_toggle_off"
+msgid "Master toggle is off"
+msgstr "Главный переключатель выключен"
+
+msgctxt "Languages::quissly_search.reason_credentials_not_configured"
+msgid "Credentials are not configured in config.local.php"
+msgstr "Учётные данные не заданы в config.local.php"
+
+msgctxt "Languages::quissly_search.reason_auth_error"
+msgid "Authorization or plan error from Quissly"
+msgstr "Ошибка авторизации или тарифа от Quissly"
+
+msgctxt "Languages::quissly_search.credentials"
+msgid "Credentials"
+msgstr "Учётные данные"
+
+msgctxt "Languages::quissly_search.configured"
+msgid "Configured"
+msgstr "Заданы"
+
+msgctxt "Languages::quissly_search.not_configured"
+msgid "Not configured in config.local.php"
+msgstr "Не заданы в config.local.php"
+
+msgctxt "Languages::quissly_search.environment"
+msgid "Environment"
+msgstr "Окружение"
+
+msgctxt "Languages::quissly_search.last_auth_error"
+msgid "Last authorization error"
+msgstr "Последняя ошибка авторизации"
+
+msgctxt "Languages::quissly_search.never"
+msgid "Never"
+msgstr "Никогда"
+
+msgctxt "Languages::quissly_search.test_connection"
+msgid "Test connection"
+msgstr "Проверить подключение"
+
+msgctxt "Languages::quissly_search.test_connection_ok"
+msgid "Quissly connection OK ([count] results for a test query)."
+msgstr "Подключение к Quissly в порядке ([count] результатов по тестовому запросу)."
+
+msgctxt "Languages::quissly_search.test_connection_auth_fail"
+msgid "Quissly authorization failed (HTTP [status]). Check the bearer token, private key, and environment in config.local.php."
+msgstr "Авторизация в Quissly не удалась (HTTP [status]). Проверьте bearer-токен, закрытый ключ и окружение в config.local.php."
+
+msgctxt "Languages::quissly_search.test_connection_fail"
+msgid "Quissly connection failed (HTTP [status])."
+msgstr "Не удалось подключиться к Quissly (HTTP [status])."
+
+msgctxt "Languages::quissly_search.search_temporarily_unavailable"
+msgid "Search is temporarily unavailable. Please try again."
+msgstr "Поиск временно недоступен. Пожалуйста, попробуйте снова."
 
 msgctxt "Languages::sort_by_quissly_relevance_asc"
 msgid "Relevance"
 msgstr "Релевантность"
 
-msgctxt "Languages::quissly_search.search_temporarily_unavailable"
-msgid "Search is temporarily unavailable. Please try again."
-msgstr "Поиск временно недоступен. Пожалуйста, попробуйте снова."
+msgctxt "Languages::quissly_admin_panel"
+msgid "Quissly Admin Panel"
+msgstr "Панель администратора Quissly"
+
+msgctxt "Languages::quissly_search.panel_title"
+msgid "Quissly panel"
+msgstr "Панель Quissly"
+
+msgctxt "Languages::quissly_search.panel_not_connected"
+msgid "This store is not connected to Quissly yet. The panel will load here once it is."
+msgstr "Этот магазин ещё не подключён к Quissly. После подключения панель загрузится здесь."
+
+msgctxt "Languages::quissly_search.panel_go_to_settings"
+msgid "Connect to Quissly"
+msgstr "Подключиться к Quissly"
+
+msgctxt "Languages::quissly_search.panel_missing_account"
+msgid "The panel can't sign you in automatically: config.local.php has no quissly_project_id or quissly_account_email for this store. Open it in a new tab and sign in with your Quissly account."
+msgstr "Панель не может выполнить вход автоматически: в config.local.php для этого магазина нет quissly_project_id или quissly_account_email. Откройте её в новой вкладке и войдите в свой аккаунт Quissly."
+
+msgctxt "Languages::quissly_search.panel_rejected"
+msgid "Quissly refused the sign-in at [host]. Check that this store's account email and project id belong to that Quissly environment - the account Quissly created for this store, not a personal login."
+msgstr "Quissly отклонил вход на [host]. Проверьте, что email аккаунта магазина и ID проекта относятся к этому окружению Quissly - это должен быть аккаунт, который Quissly создал для магазина, а не личный."
+
+msgctxt "Languages::quissly_search.panel_platform_unsupported"
+msgid "Quissly can't sign CS-Cart stores in to the panel automatically yet. Open it in a new tab and sign in with your Quissly account."
+msgstr "Quissly пока не умеет автоматически входить в панель для магазинов CS-Cart. Откройте её в новой вкладке и войдите в свой аккаунт Quissly."
+
+msgctxt "Languages::quissly_search.panel_unreachable"
+msgid "Could not reach Quissly at [host]. Check the connection and try again."
+msgstr "Не удалось связаться с Quissly по адресу [host]. Проверьте подключение и попробуйте снова."
+
+msgctxt "Languages::quissly_search.panel_unavailable"
+msgid "The panel is unavailable right now. Try again in a moment."
+msgstr "Панель сейчас недоступна. Попробуйте чуть позже."
+
+msgctxt "Languages::quissly_search.panel_open_new_tab"
+msgid "Open the Quissly panel in a new tab"
+msgstr "Открыть панель Quissly в новой вкладке"
+
+msgctxt "Languages::quissly_dashboard"
+msgid "Quissly Dashboard"
+msgstr "Панель управления Quissly"
+
+msgctxt "Languages::quissly_menu_dashboard"
+msgid "Dashboard"
+msgstr "Панель управления"
+
+msgctxt "Languages::quissly_search.setup_title"
+msgid "Quissly connection"
+msgstr "Подключение к Quissly"
+
+msgctxt "Languages::quissly_search.reason_initial_sync_pending"
+msgid "The first catalog sync hasn't been confirmed by Quissly yet, so the store uses native CS-Cart search until it is."
+msgstr "Quissly ещё не подтвердил первую синхронизацию каталога, поэтому до этого магазин использует встроенный поиск CS-Cart."
+
+msgctxt "Languages::quissly_search.yes"
+msgid "Yes"
+msgstr "Да"
+
+msgctxt "Languages::quissly_search.dash_search_status"
+msgid "Search status"
+msgstr "Статус поиска"
+
+msgctxt "Languages::quissly_search.dash_search_active"
+msgid "Storefront search is answered by Quissly."
+msgstr "Поиск в магазине выполняет Quissly."
+
+msgctxt "Languages::quissly_search.dash_search_inactive"
+msgid "Storefront search uses native CS-Cart search, because:"
+msgstr "Магазин использует встроенный поиск CS-Cart, потому что:"
+
+msgctxt "Languages::quissly_search.dash_connection"
+msgid "Connection"
+msgstr "Подключение"
+
+msgctxt "Languages::quissly_search.dash_not_connected"
+msgid "This store is not connected to Quissly yet."
+msgstr "Этот магазин ещё не подключён к Quissly."
+
+msgctxt "Languages::quissly_search.dash_connected"
+msgid "Connected"
+msgstr "Подключено"
+
+msgctxt "Languages::quissly_search.dash_environment"
+msgid "Quissly environment"
+msgstr "Окружение Quissly"
+
+msgctxt "Languages::quissly_search.dash_catalog_sync"
+msgid "Catalog sync"
+msgstr "Синхронизация каталога"
+
+msgctxt "Languages::quissly_search.dash_refused"
+msgid "Quissly is refusing catalog updates (HTTP [code]). This usually means there is no active Quissly plan or trial, or the store credentials are no longer accepted. Your products stay queued and nothing is lost: the sync resumes once this is resolved."
+msgstr "Quissly не принимает обновления каталога (HTTP [code]). Обычно это значит, что нет активного тарифа или пробного периода Quissly либо учётные данные магазина больше не принимаются. Товары остаются в очереди, ничего не теряется: синхронизация продолжится, как только это будет решено."
+
+msgctxt "Languages::quissly_search.dash_gate_blocked"
+msgid "The last full sync finished without Quissly confirming any product, so search stays on native CS-Cart search. Check the sync log for the cause, then sync again."
+msgstr "Последняя полная синхронизация завершилась без подтверждения хотя бы одного товара от Quissly, поэтому поиск остаётся встроенным поиском CS-Cart. Найдите причину в журнале синхронизации и запустите синхронизацию снова."
+
+msgctxt "Languages::quissly_search.dash_waiting"
+msgid "[count] products were accepted by Quissly [since] but it has not confirmed them yet. They are checked again on every sync run, and count as synced only once Quissly confirms them."
+msgstr "Quissly принял [count] товаров [since], но ещё не подтвердил их. Они проверяются заново при каждом запуске синхронизации и считаются синхронизированными только после подтверждения Quissly."
+
+msgctxt "Languages::quissly_search.dash_in_quissly"
+msgid "Products in Quissly"
+msgstr "Товары в Quissly"
+
+msgctxt "Languages::quissly_search.dash_of_active"
+msgid "[synced] of [active] active products"
+msgstr "[synced] из [active] активных товаров"
+
+msgctxt "Languages::quissly_search.dash_queued"
+msgid "Changes queued for sync"
+msgstr "Изменения в очереди на синхронизацию"
+
+msgctxt "Languages::quissly_search.dash_waiting_label"
+msgid "Waiting for Quissly to confirm"
+msgstr "Ожидают подтверждения Quissly"
+
+msgctxt "Languages::quissly_search.dash_last_run"
+msgid "Last sync run"
+msgstr "Последний запуск синхронизации"
+
+msgctxt "Languages::quissly_search.dash_last_run_value"
+msgid "[ago] ([source]): [confirmed] confirmed, [waiting] waiting, [failed] failed"
+msgstr "[ago] ([source]): подтверждено [confirmed], ожидает [waiting], ошибок [failed]"
+
+msgctxt "Languages::quissly_search.dash_progress"
+msgid "Full sync in progress: [done] of [total] products done ([failed] failed)."
+msgstr "Идёт полная синхронизация: обработано [done] из [total] товаров (ошибок: [failed])."
+
+msgctxt "Languages::quissly_search.dash_start_sync"
+msgid "Start initial sync"
+msgstr "Запустить первую синхронизацию"
+
+msgctxt "Languages::quissly_search.dash_resync"
+msgid "Sync all products again"
+msgstr "Синхронизировать все товары заново"
+
+msgctxt "Languages::quissly_search.dash_send_queued"
+msgid "Send queued changes now"
+msgstr "Отправить изменения из очереди сейчас"
+
+msgctxt "Languages::quissly_search.dash_check_again"
+msgid "Check with Quissly again"
+msgstr "Проверить в Quissly ещё раз"
+
+msgctxt "Languages::quissly_search.dash_auto_sync"
+msgid "Automatic sync"
+msgstr "Автоматическая синхронизация"
+
+msgctxt "Languages::quissly_search.dash_cron_running"
+msgid "Running"
+msgstr "Работает"
+
+msgctxt "Languages::quissly_search.dash_cron_last"
+msgid "last run [ago]"
+msgstr "последний запуск [ago]"
+
+msgctxt "Languages::quissly_search.dash_cron_missing"
+msgid "Automatic sync is not running. Product changes are queued, but they are only sent when you press a sync button above. To send them automatically, add this line to the server's crontab (every 5 minutes):"
+msgstr "Автоматическая синхронизация не работает. Изменения товаров ставятся в очередь, но отправляются, только когда вы нажимаете кнопку синхронизации выше. Чтобы отправлять их автоматически, добавьте эту строку в crontab сервера (каждые 5 минут):"
+
+msgctxt "Languages::quissly_search.dash_recent_log"
+msgid "Sync log"
+msgstr "Журнал синхронизации"
+
+msgctxt "Languages::quissly_search.dash_open_settings"
+msgid "Add-on settings"
+msgstr "Настройки модуля"
+
+msgctxt "Languages::quissly_search.dash_open_panel"
+msgid "Open the Quissly Admin Panel"
+msgstr "Открыть панель администратора Quissly"
+
+msgctxt "Languages::quissly_search.log_empty"
+msgid "Nothing has been synced yet."
+msgstr "Пока ничего не синхронизировано."
+
+msgctxt "Languages::quissly_search.ago_seconds"
+msgid "[n] s ago"
+msgstr "[n] с назад"
+
+msgctxt "Languages::quissly_search.ago_minutes"
+msgid "[n] min ago"
+msgstr "[n] мин назад"
+
+msgctxt "Languages::quissly_search.ago_hours"
+msgid "[n] h ago"
+msgstr "[n] ч назад"
+
+msgctxt "Languages::quissly_search.ago_days"
+msgid "[n] days ago"
+msgstr "[n] дн. назад"
+
+msgctxt "Languages::quissly_search.run_summary"
+msgid "Quissly sync: [confirmed] products confirmed, [waiting] waiting for Quissly to confirm, [failed] failed, [queued] still queued."
+msgstr "Синхронизация Quissly: подтверждено товаров [confirmed], ожидают подтверждения Quissly [waiting], ошибок [failed], ещё в очереди [queued]."
+
+msgctxt "Languages::quissly_settings"
+msgid "Configuration"
+msgstr "Настройки"
+
+msgctxt "Languages::quissly_search.dash_features"
+msgid "Features"
+msgstr "Функции"
+
+msgctxt "Languages::quissly_search.feature_qsearch"
+msgid "QSearch (storefront search)"
+msgstr "QSearch (поиск в магазине)"
+
+msgctxt "Languages::quissly_search.feature_on"
+msgid "On"
+msgstr "Вкл."
+
+msgctxt "Languages::quissly_search.feature_off"
+msgid "Off"
+msgstr "Выкл."
+
+msgctxt "Languages::quissly_search.feature_change"
+msgid "Change these in Quissly Settings"
+msgstr "Изменить это можно в настройках Quissly"
+
+msgctxt "Languages::quissly_search.setup_intro"
+msgid "Connect this store to Quissly in one step. Enter the email for the store's Quissly account and press Connect:"
+msgstr "Подключите этот магазин к Quissly за один шаг. Введите email для аккаунта Quissly этого магазина и нажмите «Подключить»:"
+
+msgctxt "Languages::quissly_search.setup_step_account"
+msgid "Quissly creates the account for this store (you will use this email to sign in to the Quissly panel)."
+msgstr "Quissly создаёт аккаунт для этого магазина (с этим email вы будете входить в панель Quissly)."
+
+msgctxt "Languages::quissly_search.setup_step_key"
+msgid "The add-on generates the store's signing key and registers it with Quissly. The keys are stored encrypted; you never need to copy or paste one."
+msgstr "Модуль создаёт ключ подписи магазина и регистрирует его в Quissly. Ключи хранятся в зашифрованном виде; ничего копировать или вставлять не нужно."
+
+msgctxt "Languages::quissly_search.setup_step_sync"
+msgid "Your active products start syncing to Quissly right away. Storefront search switches to Quissly once Quissly has confirmed them."
+msgstr "Ваши активные товары сразу начинают синхронизироваться с Quissly. Поиск в магазине переключится на Quissly, как только Quissly их подтвердит."
+
+msgctxt "Languages::quissly_search.setup_email"
+msgid "Email"
+msgstr "Email"
+
+msgctxt "Languages::quissly_search.setup_email_hint"
+msgid "Use an address that does not already have a Quissly account."
+msgstr "Используйте адрес, для которого ещё нет аккаунта Quissly."
+
+msgctxt "Languages::quissly_search.setup_connect"
+msgid "Connect to Quissly"
+msgstr "Подключиться к Quissly"
+
+msgctxt "Languages::quissly_search.setup_connect_hint"
+msgid "Creating the account can take a minute or two."
+msgstr "Создание аккаунта может занять минуту-другую."
+
+msgctxt "Languages::quissly_search.setup_connected"
+msgid "This store is connected to Quissly as [email] (environment: [env])."
+msgstr "Этот магазин подключён к Quissly как [email] (окружение: [env])."
+
+msgctxt "Languages::quissly_search.setup_connected_config"
+msgid "This store is connected to Quissly with credentials set in config.local.php (environment: [env]). One-click Connect is not needed."
+msgstr "Этот магазин подключён к Quissly с учётными данными из config.local.php (окружение: [env]). Подключение в один клик не нужно."
+
+msgctxt "Languages::quissly_search.setup_undecryptable"
+msgid "This store was connected to Quissly, but its stored credentials can no longer be read: the crypt_key in config.local.php has changed since. Restore the previous crypt_key. Connecting again would create a second Quissly account, so it is not offered here - contact Quissly support if the old key is lost."
+msgstr "Этот магазин был подключён к Quissly, но сохранённые учётные данные больше не читаются: crypt_key в config.local.php с тех пор изменился. Верните прежний crypt_key. Повторное подключение создало бы второй аккаунт Quissly, поэтому здесь оно не предлагается - если старый ключ утерян, обратитесь в поддержку Quissly."
+
+msgctxt "Languages::quissly_search.connect_email_invalid"
+msgid "Enter the email address for this store's Quissly account."
+msgstr "Введите email для аккаунта Quissly этого магазина."
+
+msgctxt "Languages::quissly_search.connect_already"
+msgid "This store is already connected to Quissly. Connecting again would create a second account and abandon the products already synced to this one."
+msgstr "Этот магазин уже подключён к Quissly. Повторное подключение создало бы второй аккаунт и бросило бы товары, уже синхронизированные с этим."
+
+msgctxt "Languages::quissly_search.connect_no_domain"
+msgid "Could not work out this store's domain."
+msgstr "Не удалось определить домен этого магазина."
+
+msgctxt "Languages::quissly_search.connect_unreachable"
+msgid "Could not reach Quissly at [host]. Check the connection and try again."
+msgstr "Не удалось связаться с Quissly по адресу [host]. Проверьте подключение и попробуйте снова."
+
+msgctxt "Languages::quissly_search.connect_failed"
+msgid "Could not connect to Quissly: [detail]"
+msgstr "Не удалось подключиться к Quissly: [detail]"
+
+msgctxt "Languages::quissly_search.connect_ok"
+msgid "Connected to Quissly."
+msgstr "Подключено к Quissly."
+
+msgctxt "SettingsOptions::quissly_search::features_header"
+msgid "Features"
+msgstr "Функции"
+
+msgctxt "SettingsOptions::quissly_search::enable_overlay"
+msgid "Search overlay takes over the theme's search box"
+msgstr "Окно поиска заменяет поле поиска темы"
+
+msgctxt "SettingsTooltips::quissly_search::enable_overlay"
+msgid "Clicking the theme's search box opens Quissly's full-screen search bar over the page. A theme with no search box gets it either way, so the shop can always be searched. Shown only once Quissly search is live."
+msgstr "Нажатие на поле поиска темы открывает полноэкранную строку поиска Quissly поверх страницы. Если в теме нет поля поиска, она появляется в любом случае, чтобы в магазине всегда можно было искать. Показывается только после того, как поиск Quissly заработает."
+
+msgctxt "SettingsOptions::quissly_search::overlay_mount_selector"
+msgid "Search button mount point"
+msgstr "Место кнопки поиска"
+
+msgctxt "SettingsTooltips::quissly_search::overlay_mount_selector"
+msgid "Only used when your theme has no search box. A CSS selector for an existing header control - your cart, account or language switcher - and the search button is placed just to its left. Leave empty to auto-detect: the cart, then the account link, then the language switcher, else a floating button at the bottom-left. Example: .ty-cart-content"
+msgstr "Используется, только если в теме нет поля поиска. CSS-селектор существующего элемента в шапке - корзины, аккаунта или переключателя языка - и кнопка поиска встанет слева от него. Оставьте пустым для автоопределения: корзина, затем ссылка на аккаунт, затем переключатель языка, иначе плавающая кнопка внизу слева. Пример: .ty-cart-content"
+
+msgctxt "SettingsOptions::quissly_search::enable_quick"
+msgid "Quick Recommendations"
+msgstr "Быстрые рекомендации"
+
+msgctxt "SettingsTooltips::quissly_search::enable_quick"
+msgid "Product suggestions as the shopper types. Saved now; it takes effect once the feature ships in this add-on."
+msgstr "Подсказки товаров, пока покупатель печатает. Сохраняется уже сейчас; заработает, когда функция появится в этом модуле."
+
+msgctxt "SettingsOptions::quissly_search::quick_style"
+msgid "Quick Recommendations style"
+msgstr "Стиль быстрых рекомендаций"
+
+msgctxt "SettingsTooltips::quissly_search::quick_style"
+msgid "A compact list of names, or larger cards with images and prices. Saved now; it takes effect once Quick Recommendations ships in this add-on."
+msgstr "Компактный список названий или крупные карточки с изображениями и ценами. Сохраняется уже сейчас; заработает, когда быстрые рекомендации появятся в этом модуле."
+
+msgctxt "SettingsVariants::quissly_search::quick_style::rows"
+msgid "List - thumbnail, name and price per row"
+msgstr "Список - миниатюра, название и цена в каждой строке"
+
+msgctxt "SettingsVariants::quissly_search::quick_style::carousel"
+msgid "Carousel - large cards you can scroll through"
+msgstr "Карусель - крупные карточки, которые можно листать"
+
+msgctxt "SettingsOptions::quissly_search::enable_voice"
+msgid "Voice search"
+msgstr "Голосовой поиск"
+
+msgctxt "SettingsTooltips::quissly_search::enable_voice"
+msgid "A microphone button in the search bar: the shopper speaks for up to 5 seconds and sees matching products. Needs https. Shown only once Quissly search is live."
+msgstr "Кнопка микрофона в строке поиска: покупатель говорит до 5 секунд и видит подходящие товары. Требуется https. Показывается только после того, как поиск Quissly заработает."
+
+msgctxt "SettingsOptions::quissly_search::enable_image"
+msgid "Image search"
+msgstr "Поиск по изображению"
+
+msgctxt "SettingsTooltips::quissly_search::enable_image"
+msgid "A camera button in the search bar (or paste an image): the shopper sends a photo and sees similar products. Shown only once Quissly search is live."
+msgstr "Кнопка камеры в строке поиска (или вставка изображения): покупатель отправляет фото и видит похожие товары. Показывается только после того, как поиск Quissly заработает."
+
+msgctxt "SettingsOptions::quissly_search::enable_qchat"
+msgid "QChat assistant"
+msgstr "Ассистент QChat"
+
+msgctxt "SettingsTooltips::quissly_search::enable_qchat"
+msgid "Quissly's shopping assistant chat on every storefront page. Uses the chat agent Quissly created for this store's account (checked on the Quissly Dashboard)."
+msgstr "Чат помощника по покупкам Quissly на каждой странице магазина. Использует чат-агента, которого Quissly создал для аккаунта этого магазина (проверяется на панели управления Quissly)."
+
+msgctxt "Languages::quissly_search.feature_overlay"
+msgid "Search overlay"
+msgstr "Окно поиска"
+
+msgctxt "Languages::quissly_search.feature_quick"
+msgid "Quick Recommendations"
+msgstr "Быстрые рекомендации"
+
+msgctxt "Languages::quissly_search.feature_voice"
+msgid "Voice search"
+msgstr "Голосовой поиск"
+
+msgctxt "Languages::quissly_search.feature_image"
+msgid "Image search"
+msgstr "Поиск по изображению"
+
+msgctxt "Languages::quissly_search.feature_qchat"
+msgid "QChat assistant"
+msgstr "Ассистент QChat"
+
+msgctxt "Languages::quissly_search.feature_not_built"
+msgid "not built into the CS-Cart add-on yet: saved, but has no effect until it ships"
+msgstr "в модуле CS-Cart пока нет: сохраняется, но ни на что не влияет, пока не появится"
+
+msgctxt "Languages::quissly_search.feature_waits_for_search"
+msgid "appears on the storefront once Quissly search is live"
+msgstr "появится в магазине, когда заработает поиск Quissly"
+
+msgctxt "Languages::quissly_search.qchat_agent_ok"
+msgid "on the storefront, using this account's chat agent"
+msgstr "в магазине, с чат-агентом этого аккаунта"
+
+msgctxt "Languages::quissly_search.qchat_agent_missing"
+msgid "not shown yet: Quissly has no chat agent for this account ([error]). Check the Quissly Admin Panel."
+msgstr "пока не показывается: у Quissly нет чат-агента для этого аккаунта ([error]). Проверьте в панели администратора Quissly."
+
+msgctxt "Languages::quissly_search.media_expired"
+msgid "This voice or image search has expired. Please search again."
+msgstr "Срок этого голосового поиска или поиска по изображению истёк. Пожалуйста, выполните поиск снова."
+
+msgctxt "Languages::quissly_search.sf_placeholder"
+msgid "Search products…"
+msgstr "Поиск товаров…"
+
+msgctxt "Languages::quissly_search.sf_voice"
+msgid "Voice search"
+msgstr "Голосовой поиск"
+
+msgctxt "Languages::quissly_search.sf_image"
+msgid "Search by image"
+msgstr "Поиск по изображению"
+
+msgctxt "Languages::quissly_search.sf_listening"
+msgid "Listening…"
+msgstr "Слушаю…"
+
+msgctxt "Languages::quissly_search.sf_searching"
+msgid "Searching…"
+msgstr "Ищем…"
+
+msgctxt "Languages::quissly_search.sf_mic_unsupported"
+msgid "Voice search is not supported in this browser."
+msgstr "Голосовой поиск не поддерживается в этом браузере."
+
+msgctxt "Languages::quissly_search.sf_mic_insecure"
+msgid "Voice search needs a secure (https) connection."
+msgstr "Для голосового поиска нужно защищённое (https) соединение."
+
+msgctxt "Languages::quissly_search.sf_mic_denied"
+msgid "Microphone unavailable."
+msgstr "Микрофон недоступен."
+
+msgctxt "Languages::quissly_search.sf_failed"
+msgid "Search is unavailable right now. Please try again."
+msgstr "Поиск сейчас недоступен. Пожалуйста, попробуйте снова."
+
+msgctxt "Languages::quissly_search.sf_voice_fallback"
+msgid "your voice search"
+msgstr "ваш голосовой поиск"
+
+msgctxt "Languages::quissly_search.sf_image_fallback"
+msgid "your image search"
+msgstr "ваш поиск по изображению"
+
+msgctxt "Languages::quissly"
+msgid "Quissly"
+msgstr "Quissly"
+
+msgctxt "SettingsOptions::quissly_search::catalog_header"
+msgid "Catalog data"
+msgstr "Данные каталога"
+
+msgctxt "SettingsOptions::quissly_search::catalog_features"
+msgid "Product attributes sent to Quissly"
+msgstr "Атрибуты товаров, отправляемые в Quissly"
+
+msgctxt "Languages::quissly_search.catalog_none"
+msgid "Your products have no features yet."
+msgstr "У ваших товаров пока нет характеристик."
+
+msgctxt "Languages::quissly_search.catalog_hidden"
+msgid "hidden on the storefront"
+msgstr "скрыто в магазине"
+
+msgctxt "Languages::quissly_search.catalog_variation"
+msgid "a variation option - always sent on those products"
+msgstr "параметр вариации - на этих товарах отправляется всегда"
+
+msgctxt "Languages::quissly_search.catalog_help"
+msgid "Each ticked feature travels with every product as metadata, which Quissly searches, so \"linen\", \"merino\" or a brand name match even when the description never says so. Pre-ticked: the features your storefront shows (Active, and shown on the product page, the catalog or the product header). Variation options (such as Color and Size in a variation group) always go - they tell the variants apart. Saving a changed list re-sends your whole catalog so existing products pick it up - allow the sync a few minutes on a large store."
+msgstr "Каждая отмеченная характеристика передаётся с каждым товаром как метаданные, по которым ищет Quissly, поэтому \"лён\", \"мериносовая шерсть\" или название бренда находятся, даже если в описании их нет. Заранее отмечены характеристики, которые показывает ваш магазин (активные и показанные на странице товара, в каталоге или в заголовке товара). Параметры вариаций (например, цвет и размер в группе вариаций) отправляются всегда - они различают варианты. Сохранение изменённого списка заново отправляет весь каталог, чтобы существующие товары получили изменения, - в большом магазине дайте синхронизации несколько минут."
+
+msgctxt "Languages::quissly_search.catalog_resync"
+msgid "The features sent to Quissly changed, so your whole catalog is queued to be sent again - see the Quissly Dashboard for progress."
+msgstr "Характеристики, отправляемые в Quissly, изменились, поэтому весь каталог поставлен в очередь на повторную отправку - ход процесса смотрите на панели управления Quissly."
+
+msgctxt "Languages::quissly_search.origin_quissly"
+msgid "Results by Quissly"
+msgstr "Результаты от Quissly"
+
+msgctxt "Languages::quissly_search.origin_native"
+msgid "Results by CS-Cart search"
+msgstr "Результаты поиска CS-Cart"
+
+msgctxt "Languages::quissly_search.origin_skipped"
+msgid "Quissly skipped this search: [reason]"
+msgstr "Quissly пропустил этот поиск: [reason]"
+
+msgctxt "SettingsOptions::quissly_search::suggestions_header"
+msgid "Search bar suggestions"
+msgstr "Подсказки в строке поиска"
+
+msgctxt "SettingsOptions::quissly_search::search_suggestions"
+msgid "Typing suggestions"
+msgstr "Подсказки с печатью"
+
+msgctxt "Languages::quissly_search.suggestions_intro"
+msgid "Example searches the search overlay types, letter by letter, into its empty search bar, in random order, so shoppers see what they can ask. They stop the moment a shopper starts typing."
+msgstr "Окно поиска по буквам печатает примеры запросов в пустую строку поиска, в случайном порядке, чтобы покупатели видели, что можно спросить. Останавливается, как только покупатель начинает печатать."
+
+msgctxt "Languages::quissly_search.suggestions_unavailable"
+msgid "Available once the store is connected and its first catalog sync has created search in Quissly - or Quissly could not be reached just now; reload to try again."
+msgstr "Станет доступно, когда магазин подключится и первая синхронизация каталога создаст поиск в Quissly - или Quissly сейчас был недоступен; обновите страницу и попробуйте снова."
+
+msgctxt "Languages::quissly_search.suggestions_enabled"
+msgid "Show typing suggestions"
+msgstr "Показывать подсказки с печатью"
+
+msgctxt "Languages::quissly_search.suggestions_placeholder"
+msgid "e.g. waterproof jacket under $100"
+msgstr "напр. непромокаемая куртка до $100"
+
+msgctxt "Languages::quissly_search.suggestions_hint"
+msgid "One per line, each under [length] characters. With none, the bar keeps its plain placeholder."
+msgstr "По одной в строке, каждая короче [length] символов. Если их нет, в строке остаётся обычная подсказка."
+
+msgctxt "Languages::quissly_search.suggestions_too_many"
+msgid "Up to [count] search bar suggestions."
+msgstr "Не больше [count] подсказок в строке поиска."
+
+msgctxt "Languages::quissly_search.suggestions_too_long"
+msgid "Keep each search bar suggestion under [length] characters."
+msgstr "Каждая подсказка в строке поиска должна быть короче [length] символов."
+
+msgctxt "Languages::quissly_search.suggestions_no_service"
+msgid "Search isn't set up for this store in Quissly yet, so there is nowhere to save search bar suggestions."
+msgstr "Поиск для этого магазина в Quissly ещё не настроен, поэтому сохранить подсказки в строке поиска пока негде."
+
+msgctxt "Languages::quissly_search.suggestions_signin_failed"
+msgid "Couldn't sign in to Quissly to save the search bar suggestions. Please try again."
+msgstr "Не удалось войти в Quissly, чтобы сохранить подсказки в строке поиска. Пожалуйста, попробуйте снова."
+
+msgctxt "Languages::quissly_search.suggestions_save_failed"
+msgid "Couldn't save the search bar suggestions. Please try again."
+msgstr "Не удалось сохранить подсказки в строке поиска. Пожалуйста, попробуйте снова."
+
+msgctxt "Languages::quissly_search.suggestions_use_generated"
+msgid "Replace the list with the suggestions generated from your catalog:"
+msgstr "Заменить список подсказками, созданными по вашему каталогу:"
+
+msgctxt "Languages::quissly_search.suggestions_generated_pending"
+msgid "Left empty, suggestions are generated from your catalog after the first catalog sync - each one checked to find products."
+msgstr "Если оставить пустым, подсказки будут созданы по вашему каталогу после первой синхронизации - каждая проверяется, что находит товары."
+
+msgctxt "Languages::quissly_search.klaro_cookies_title"
+msgid "Quissly search"
+msgstr "Quissly search"
+
+msgctxt "Languages::quissly_search.klaro_cookies_description"
+msgid "Recognises a returning visitor in search analytics, so searches from the same browser count as one visitor (cookie quissly_uid, 1 year)."
+msgstr "Узнаёт вернувшегося посетителя в аналитике поиска, чтобы поиски из одного браузера считались одним посетителем (cookie quissly_uid, 1 год)."
+
+msgctxt "Languages::quissly_search.suggestions_count"
+msgid "[count] of [max]. 10 is usually more than enough, but you can add up to [max]."
+msgstr "[count] из [max]. Обычно 10 более чем достаточно, но можно добавить до [max]."
