@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <priority>2000</priority>
     <position>0</position>
     <status>active</status>
@@ -180,4 +180,8 @@
         <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_state`;</item>
         <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_log`;</item>
     </queries>
+    <functions>
+        <!-- The automatic update's work folder (its last backup) goes with the add-on. -->
+        <item for="uninstall">fn_quissly_search_uninstall</item>
+    </functions>
 </addon>

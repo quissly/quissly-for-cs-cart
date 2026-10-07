@@ -55,6 +55,22 @@ function fn_quissly_search_dispatch_before_display()
     if (AREA === 'C' && $value !== null && \Quissly\Search\SearchOrigin::asked($_REQUEST) && !headers_sent()) {
         header('X-Quissly-Search: ' . $value);
     }
+    // The daily update check, for a store whose cron is not set up: at the end of an admin
+    // page, once the page is built (the cron dispatch runs it too; lib/Update/).
+    if (AREA === 'A') {
+        register_shutdown_function(static function () {
+            \Quissly\Search\Update\Updater::runIfDue(new DbSyncStore(), time());
+        });
+    }
+}
+
+/**
+ * Uninstall: the automatic update's work folder (lib/Update/Updater) holds the last
+ * version's files as a backup; it goes with the add-on.
+ */
+function fn_quissly_search_uninstall()
+{
+    fn_rm(rtrim((string) \Tygh\Registry::get('config.dir.var'), '/') . '/quissly_search_update');
 }
 
 /**
@@ -188,6 +204,30 @@ function fn_quissly_search_tools_change_status($params, $result)
 {
     if ($result) {
         Sync::statusChanged((array) $params);
+    }
+}
+
+/**
+ * Multi-Vendor: a vendor's status is about to change (suspend, activate...). Its products
+ * are queued now; the worker reads the vendor's status when it sends, so it removes
+ * them from Quissly or sends them again accordingly.
+ */
+function fn_quissly_search_change_company_status_pre($company_id, $status_to, $reason, $status_from, $skip_query, $notify)
+{
+    if ($status_to !== $status_from) {
+        Sync::vendorChanged((int) $company_id);
+    }
+}
+
+/**
+ * A vendor saved from its edit form, where the status can change too.
+ *
+ * @param array<string, mixed> $company_data
+ */
+function fn_quissly_search_update_company($company_data, $company_id, $lang_code, $action)
+{
+    if ($action === 'update' && isset($company_data['status'])) {
+        Sync::vendorChanged((int) $company_id);
     }
 }
 

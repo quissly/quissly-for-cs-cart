@@ -106,11 +106,9 @@ msgctxt "Languages::sort_by_quissly_relevance_asc"
 msgid "Relevance"
 msgstr "Relevance"
 
-
 msgctxt "Languages::quissly_admin_panel"
 msgid "Quissly Admin Panel"
 msgstr "Quissly Admin Panel"
-
 
 msgctxt "Languages::quissly_search.panel_title"
 msgid "Quissly panel"
@@ -209,8 +207,8 @@ msgid "The last full sync finished without Quissly confirming any product, so se
 msgstr "The last full sync finished without Quissly confirming any product, so search stays on native CS-Cart search. Check the sync log for the cause, then sync again."
 
 msgctxt "Languages::quissly_search.dash_waiting"
-msgid "[count] products were accepted by Quissly [since] but it has not confirmed them yet. They are checked again on every sync run, and count as synced only once Quissly confirms them."
-msgstr "[count] products were accepted by Quissly [since] but it has not confirmed them yet. They are checked again on every sync run, and count as synced only once Quissly confirms them."
+msgid "[count] products from an earlier sync [since] are waiting to be sent again; the next sync run sends them."
+msgstr "[count] products from an earlier sync [since] are waiting to be sent again; the next sync run sends them."
 
 msgctxt "Languages::quissly_search.dash_in_quissly"
 msgid "Products in Quissly"
@@ -663,3 +661,951 @@ msgstr "Recognises a returning visitor in search analytics, so searches from the
 msgctxt "Languages::quissly_search.suggestions_count"
 msgid "[count] of [max]. 10 is usually more than enough, but you can add up to [max]."
 msgstr "[count] of [max]. 10 is usually more than enough, but you can add up to [max]."
+
+msgctxt "Languages::quissly_search.su_title"
+msgid "Quissly Setup"
+msgstr "Quissly Setup"
+
+msgctxt "Languages::quissly_search.su_band_title"
+msgid "Let's get Quissly running on your store"
+msgstr "Let's get Quissly running on your store"
+
+msgctxt "Languages::quissly_search.su_band_sub"
+msgid "Three short steps. Nothing reaches your storefront until you go live."
+msgstr "Three short steps. Nothing reaches your storefront until you go live."
+
+msgctxt "Languages::quissly_search.su_progress"
+msgid "Setup progress"
+msgstr "Setup progress"
+
+msgctxt "Languages::quissly_search.su_progress_count"
+msgid "[done] of [total]"
+msgstr "[done] of [total]"
+
+msgctxt "Languages::quissly_search.su_step_details"
+msgid "Your details"
+msgstr "Your details"
+
+msgctxt "Languages::quissly_search.su_step_plan"
+msgid "Choose a plan"
+msgstr "Choose a plan"
+
+msgctxt "Languages::quissly_search.su_step_golive"
+msgid "Go live"
+msgstr "Go live"
+
+msgctxt "Languages::quissly_search.su_step_of"
+msgid "Step [n] of [total]"
+msgstr "Step [n] of [total]"
+
+msgctxt "Languages::quissly_search.su_details_desc"
+msgid "We use this email for your Quissly account and billing notifications."
+msgstr "We use this email for your Quissly account and billing notifications."
+
+msgctxt "Languages::quissly_search.su_email"
+msgid "Email"
+msgstr "Email"
+
+msgctxt "Languages::quissly_search.su_connected_help"
+msgid "Your store is connected to this Quissly account."
+msgstr "Your store is connected to this Quissly account."
+
+msgctxt "Languages::quissly_search.su_email_help"
+msgid "Account and billing emails go here. This can't be changed later."
+msgstr "Account and billing emails go here. This can't be changed later."
+
+msgctxt "Languages::quissly_search.su_store_name"
+msgid "Store name"
+msgstr "Store name"
+
+msgctxt "Languages::quissly_search.su_store_name_help"
+msgid "Letters, numbers, spaces and hyphens. Your Quissly workspace is named after it; left empty, it is named after [domain]."
+msgstr "Letters, numbers, spaces and hyphens. Your Quissly workspace is named after it; left empty, it is named after [domain]."
+
+msgctxt "Languages::quissly_search.su_next"
+msgid "What happens next"
+msgstr "What happens next"
+
+msgctxt "Languages::quissly_search.su_next_plan"
+msgid "Pick a plan"
+msgstr "Pick a plan"
+
+msgctxt "Languages::quissly_search.su_next_plan_text"
+msgid "Start free, or try a paid plan for 14 days."
+msgstr "Start free, or try a paid plan for 14 days."
+
+msgctxt "Languages::quissly_search.su_next_sync"
+msgid "Your catalog syncs"
+msgstr "Your catalog syncs"
+
+msgctxt "Languages::quissly_search.su_next_sync_text"
+msgid "Your products are sent to Quissly in the background."
+msgstr "Your products are sent to Quissly in the background."
+
+msgctxt "Languages::quissly_search.su_next_golive_text"
+msgid "Switch Quissly search on once your catalog is ready."
+msgstr "Switch Quissly search on once your catalog is ready."
+
+msgctxt "Languages::quissly_search.su_side_foot"
+msgid "Nothing is charged and nothing is published until you say so."
+msgstr "Nothing is charged and nothing is published until you say so."
+
+msgctxt "Languages::quissly_search.su_connected_note"
+msgid "Connected to Quissly."
+msgstr "Connected to Quissly."
+
+msgctxt "Languages::quissly_search.su_connect_note"
+msgid "One click creates your Quissly account and connects this store."
+msgstr "One click creates your Quissly account and connects this store."
+
+msgctxt "Languages::quissly_search.su_continue"
+msgid "Continue"
+msgstr "Continue"
+
+msgctxt "Languages::quissly_search.su_connect"
+msgid "Connect & continue"
+msgstr "Connect & continue"
+
+msgctxt "Languages::quissly_search.su_connecting"
+msgid "Creating your Quissly account..."
+msgstr "Creating your Quissly account..."
+
+msgctxt "Languages::quissly_search.su_saving"
+msgid "Saving..."
+msgstr "Saving..."
+
+msgctxt "Languages::quissly_search.su_going_live"
+msgid "Going live..."
+msgstr "Going live..."
+
+msgctxt "Languages::quissly_search.su_pick_plan"
+msgid "Pick a plan to continue"
+msgstr "Pick a plan to continue"
+
+msgctxt "Languages::quissly_search.su_save_year"
+msgid "Save %1/yr"
+msgstr "Save %1/yr"
+
+msgctxt "Languages::quissly_search.su_save_pct"
+msgid "Save [pct]%"
+msgstr "Save [pct]%"
+
+msgctxt "Languages::quissly_search.su_pay_timeout"
+msgid "We have not seen the payment yet. Finish it in the other tab, then press \"I have paid\"."
+msgstr "We have not seen the payment yet. Finish it in the other tab, then press \"I have paid\"."
+
+msgctxt "Languages::quissly_search.su_pay_not_yet"
+msgid "Payment not received yet."
+msgstr "Payment not received yet."
+
+msgctxt "Languages::quissly_search.su_error"
+msgid "Could not reach the server. Try again in a minute."
+msgstr "Could not reach the server. Try again in a minute."
+
+msgctxt "Languages::quissly_search.su_billing"
+msgid "Billing"
+msgstr "Billing"
+
+msgctxt "Languages::quissly_search.su_monthly"
+msgid "Monthly"
+msgstr "Monthly"
+
+msgctxt "Languages::quissly_search.su_monthly_sub"
+msgid "Pay as you go"
+msgstr "Pay as you go"
+
+msgctxt "Languages::quissly_search.su_annual"
+msgid "Annual"
+msgstr "Annual"
+
+msgctxt "Languages::quissly_search.su_plans_unavailable"
+msgid "Quissly's plans could not be loaded just now. You can carry on and choose a plan later in the Quissly Admin Panel."
+msgstr "Quissly's plans could not be loaded just now. You can carry on and choose a plan later in the Quissly Admin Panel."
+
+msgctxt "Languages::quissly_search.su_current_plan"
+msgid "Your store is on [plan]. You can change plans any time in the Quissly Admin Panel."
+msgstr "Your store is on [plan]. You can change plans any time in the Quissly Admin Panel."
+
+msgctxt "Languages::quissly_search.su_billing_closed"
+msgid "Paid plans open soon. Start on the free plan now and upgrade any time."
+msgstr "Paid plans open soon. Start on the free plan now and upgrade any time."
+
+msgctxt "Languages::quissly_search.su_tab_search"
+msgid "Search"
+msgstr "Search"
+
+msgctxt "Languages::quissly_search.su_tab_chat"
+msgid "Chat"
+msgstr "Chat"
+
+msgctxt "Languages::quissly_search.su_plans"
+msgid "Plans"
+msgstr "Plans"
+
+msgctxt "Languages::quissly_search.su_opens_soon"
+msgid "Opens soon"
+msgstr "Opens soon"
+
+msgctxt "Languages::quissly_search.su_popular"
+msgid "Most popular"
+msgstr "Most popular"
+
+msgctxt "Languages::quissly_search.su_per_month"
+msgid "/mo"
+msgstr "/mo"
+
+msgctxt "Languages::quissly_search.su_pay_waiting"
+msgid "Finish the payment in the tab that opened. This page moves on by itself once Quissly has it."
+msgstr "Finish the payment in the tab that opened. This page moves on by itself once Quissly has it."
+
+msgctxt "Languages::quissly_search.su_pay_open"
+msgid "Open the payment page again"
+msgstr "Open the payment page again"
+
+msgctxt "Languages::quissly_search.su_paid"
+msgid "I have paid"
+msgstr "I have paid"
+
+msgctxt "Languages::quissly_search.su_back"
+msgid "Back"
+msgstr "Back"
+
+msgctxt "Languages::quissly_search.su_no_plan"
+msgid "Continue without a plan"
+msgstr "Continue without a plan"
+
+msgctxt "Languages::quissly_search.su_golive_desc"
+msgid "Your catalog is on its way to Quissly. Once it is ready, Finish Setup switches Quissly search on for your shoppers - or save now and switch it on later."
+msgstr "Your catalog is on its way to Quissly. Once it is ready, Finish Setup switches Quissly search on for your shoppers - or save now and switch it on later."
+
+msgctxt "Languages::quissly_search.su_live_search"
+msgid "Quissly answers your store's search"
+msgstr "Quissly answers your store's search"
+
+msgctxt "Languages::quissly_search.su_live_search_text"
+msgid "Your theme still shows the results, as it does today."
+msgstr "Your theme still shows the results, as it does today."
+
+msgctxt "Languages::quissly_search.su_live_safety"
+msgid "Your own search stays as the safety net"
+msgstr "Your own search stays as the safety net"
+
+msgctxt "Languages::quissly_search.su_live_safety_text"
+msgid "If Quissly ever cannot answer, CS-Cart's search does."
+msgstr "If Quissly ever cannot answer, CS-Cart's search does."
+
+msgctxt "Languages::quissly_search.su_live_config"
+msgid "Everything else is in Configuration"
+msgstr "Everything else is in Configuration"
+
+msgctxt "Languages::quissly_search.su_live_config_text"
+msgid "Chat, voice and image search, and the search bar."
+msgstr "Chat, voice and image search, and the search bar."
+
+msgctxt "Languages::quissly_search.su_account_setup"
+msgid "Quissly account setup"
+msgstr "Quissly account setup"
+
+msgctxt "Languages::quissly_search.su_setting_up"
+msgid "Setting up..."
+msgstr "Setting up..."
+
+msgctxt "Languages::quissly_search.su_background"
+msgid "Running in the background. Finish Setup unlocks when it is done - you can keep working on the left."
+msgstr "Running in the background. Finish Setup unlocks when it is done - you can keep working on the left."
+
+msgctxt "Languages::quissly_search.su_waiting"
+msgid "Waiting"
+msgstr "Waiting"
+
+msgctxt "Languages::quissly_search.su_done"
+msgid "Done"
+msgstr "Done"
+
+msgctxt "Languages::quissly_search.su_running"
+msgid "Running"
+msgstr "Running"
+
+msgctxt "Languages::quissly_search.su_failed"
+msgid "Failed"
+msgstr "Failed"
+
+msgctxt "Languages::quissly_search.su_ready"
+msgid "Ready"
+msgstr "Ready"
+
+msgctxt "Languages::quissly_search.su_needs_attention"
+msgid "Needs attention"
+msgstr "Needs attention"
+
+msgctxt "Languages::quissly_search.su_retry"
+msgid "Start the sync again"
+msgstr "Start the sync again"
+
+msgctxt "Languages::quissly_search.su_usually"
+msgid "Usually a few minutes. This page updates itself - no refresh needed."
+msgstr "Usually a few minutes. This page updates itself - no refresh needed."
+
+msgctxt "Languages::quissly_search.su_golive_note"
+msgid "Finish Setup unlocks when background setup completes."
+msgstr "Finish Setup unlocks when background setup completes."
+
+msgctxt "Languages::quissly_search.su_tier_free"
+msgid "Free"
+msgstr "Free"
+
+msgctxt "Languages::quissly_search.su_tier_basic"
+msgid "Basic"
+msgstr "Basic"
+
+msgctxt "Languages::quissly_search.su_tier_starter"
+msgid "Starter"
+msgstr "Starter"
+
+msgctxt "Languages::quissly_search.su_tier_growth"
+msgid "Growth"
+msgstr "Growth"
+
+msgctxt "Languages::quissly_search.su_tier_scale"
+msgid "Scale"
+msgstr "Scale"
+
+msgctxt "Languages::quissly_search.su_human_only"
+msgid "Human agents only"
+msgstr "Human agents only"
+
+msgctxt "Languages::quissly_search.su_no_ai"
+msgid "no AI messages"
+msgstr "no AI messages"
+
+msgctxt "Languages::quissly_search.su_ai_messages"
+msgid "AI messages / mo"
+msgstr "AI messages / mo"
+
+msgctxt "Languages::quissly_search.su_searches"
+msgid "searches / mo"
+msgstr "searches / mo"
+
+msgctxt "Languages::quissly_search.su_extra_price"
+msgid "[price] per [count]"
+msgstr "[price] per [count]"
+
+msgctxt "Languages::quissly_search.su_extra"
+msgid "extra requests"
+msgstr "extra requests"
+
+msgctxt "Languages::quissly_search.su_none"
+msgid "None"
+msgstr "None"
+
+msgctxt "Languages::quissly_search.su_free_forever"
+msgid "Free forever - no card"
+msgstr "Free forever - no card"
+
+msgctxt "Languages::quissly_search.su_trial"
+msgid "[days]-day free trial"
+msgstr "[days]-day free trial"
+
+msgctxt "Languages::quissly_search.su_billed_monthly"
+msgid "billed monthly"
+msgstr "billed monthly"
+
+msgctxt "Languages::quissly_search.su_billed_yearly"
+msgid "billed [price] yearly"
+msgstr "billed [price] yearly"
+
+msgctxt "Languages::quissly_search.su_start_free"
+msgid "Start the free plan"
+msgstr "Start the free plan"
+
+msgctxt "Languages::quissly_search.su_continue_with"
+msgid "Continue with [plan]"
+msgstr "Continue with [plan]"
+
+msgctxt "Languages::quissly_search.su_note_free"
+msgid "[plan] · free"
+msgstr "[plan] · free"
+
+msgctxt "Languages::quissly_search.su_note_monthly"
+msgid "[plan] · [price]/mo · billed monthly"
+msgstr "[plan] · [price]/mo · billed monthly"
+
+msgctxt "Languages::quissly_search.su_note_annual"
+msgid "[plan] · [price]/mo · billed yearly"
+msgstr "[plan] · [price]/mo · billed yearly"
+
+msgctxt "Languages::quissly_search.su_products_sent"
+msgid "[count] products sent."
+msgstr "[count] products sent."
+
+msgctxt "Languages::quissly_search.su_products_progress"
+msgid "[sent] of [total] products sent."
+msgstr "[sent] of [total] products sent."
+
+msgctxt "Languages::quissly_search.su_sync_refused"
+msgid "Quissly is refusing catalog updates (HTTP [status])."
+msgstr "Quissly is refusing catalog updates (HTTP [status])."
+
+msgctxt "Languages::quissly_search.su_sync_nothing"
+msgid "No products reached Quissly. Check the sync log on the Dashboard, then start the sync again."
+msgstr "No products reached Quissly. Check the sync log on the Dashboard, then start the sync again."
+
+msgctxt "Languages::quissly_search.su_starting"
+msgid "Starting..."
+msgstr "Starting..."
+
+msgctxt "Languages::quissly_search.su_sync_waits"
+msgid "Starts as soon as the search service is ready."
+msgstr "Starts as soon as the search service is ready."
+
+msgctxt "Languages::quissly_search.su_service_building"
+msgid "Quissly is building your search service."
+msgstr "Quissly is building your search service."
+
+msgctxt "Languages::quissly_search.su_billing_401"
+msgid "Quissly did not recognise this store. Check the connection in Configuration."
+msgstr "Quissly did not recognise this store. Check the connection in Configuration."
+
+msgctxt "Languages::quissly_search.su_billing_403"
+msgid "Paid plans are not on sale yet. You can start on the free plan now."
+msgstr "Paid plans are not on sale yet. You can start on the free plan now."
+
+msgctxt "Languages::quissly_search.su_billing_502"
+msgid "The payment provider did not answer. Try again in a minute."
+msgstr "The payment provider did not answer. Try again in a minute."
+
+msgctxt "Languages::quissly_search.su_billing_503"
+msgid "Billing is not available right now. Try again later."
+msgstr "Billing is not available right now. Try again later."
+
+msgctxt "Languages::quissly_search.su_billing_unreachable"
+msgid "Could not reach Quissly. Try again in a minute."
+msgstr "Could not reach Quissly. Try again in a minute."
+
+msgctxt "Languages::quissly_search.su_connect_first"
+msgid "Connect the store first."
+msgstr "Connect the store first."
+
+msgctxt "Languages::quissly_search.su_not_ready"
+msgid "Your catalog is still on its way to Quissly. Finish Setup unlocks when it is ready."
+msgstr "Your catalog is still on its way to Quissly. Finish Setup unlocks when it is ready."
+
+msgctxt "Languages::quissly_search.su_live_now"
+msgid "Quissly search is live on your store."
+msgstr "Quissly search is live on your store."
+
+msgctxt "Languages::quissly_search.su_description"
+msgid "Description"
+msgstr "Description"
+
+msgctxt "Languages::quissly_search.su_optional"
+msgid "(optional)"
+msgstr "(optional)"
+
+msgctxt "Languages::quissly_search.su_description_help"
+msgid "Drafted from your store. A short note on what you sell, so Quissly and your team recognise this workspace."
+msgstr "Drafted from your store. A short note on what you sell, so Quissly and your team recognise this workspace."
+
+msgctxt "Languages::quissly_search.su_preview"
+msgid "Preview"
+msgstr "Preview"
+
+msgctxt "Languages::quissly_search.su_workspace"
+msgid "Workspace"
+msgstr "Workspace"
+
+msgctxt "Languages::quissly_search.su_no_description"
+msgid "No description yet."
+msgstr "No description yet."
+
+msgctxt "Languages::quissly_search.su_finish"
+msgid "Finish Setup"
+msgstr "Finish Setup"
+
+msgctxt "Languages::quissly_search.su_save_changes"
+msgid "Save changes"
+msgstr "Save changes"
+
+msgctxt "Languages::quissly_search.su_compare"
+msgid "Compare all features"
+msgstr "Compare all features"
+
+msgctxt "Languages::quissly_search.su_compare_back"
+msgid "← Back to plan cards"
+msgstr "← Back to plan cards"
+
+msgctxt "Languages::quissly_search.su_compare_plans"
+msgid "Compare plans"
+msgstr "Compare plans"
+
+msgctxt "Languages::quissly_search.su_row_store"
+msgid "Store identity"
+msgstr "Store identity"
+
+msgctxt "Languages::quissly_search.su_row_organization"
+msgid "Organization"
+msgstr "Organization"
+
+msgctxt "Languages::quissly_search.su_row_project"
+msgid "Project"
+msgstr "Project"
+
+msgctxt "Languages::quissly_search.su_row_qsearch"
+msgid "QSearch service"
+msgstr "QSearch service"
+
+msgctxt "Languages::quissly_search.su_row_qchat"
+msgid "QChat service"
+msgstr "QChat service"
+
+msgctxt "Languages::quissly_search.su_row_import"
+msgid "Catalog import"
+msgstr "Catalog import"
+
+msgctxt "Languages::quissly_search.su_searches_month"
+msgid "Searches / month"
+msgstr "Searches / month"
+
+msgctxt "Languages::quissly_search.su_ai_messages_month"
+msgid "AI messages / month"
+msgstr "AI messages / month"
+
+msgctxt "Languages::quissly_search.su_extra_requests"
+msgid "Extra requests"
+msgstr "Extra requests"
+
+msgctxt "Languages::quissly_search.su_billed_yearly_row"
+msgid "Billed yearly"
+msgstr "Billed yearly"
+
+msgctxt "Languages::quissly_search.su_free_trial_row"
+msgid "Free trial"
+msgstr "Free trial"
+
+msgctxt "Languages::quissly_search.su_free_plan"
+msgid "Free plan"
+msgstr "Free plan"
+
+msgctxt "Languages::quissly_search.su_days"
+msgid "[days] days"
+msgstr "[days] days"
+
+msgctxt "Languages::quissly_search.su_chat_not_found"
+msgid "Not found yet - chat can still be switched on later."
+msgstr "Not found yet - chat can still be switched on later."
+
+msgctxt "Languages::quissly_search.su_saved_later"
+msgid "Setup saved. Quissly search stays off until you switch it on in Configuration, once your catalog has synced."
+msgstr "Setup saved. Quissly search stays off until you switch it on in Configuration, once your catalog has synced."
+
+msgctxt "Languages::quissly_search.su_still_building"
+msgid "Quissly is still building your services. Try again in a minute."
+msgstr "Quissly is still building your services. Try again in a minute."
+
+msgctxt "Languages::quissly_search.su_email_required"
+msgid "Email is required."
+msgstr "Email is required."
+
+msgctxt "Languages::quissly_search.su_email_invalid"
+msgid "Enter a valid email address, like name@example.com."
+msgstr "Enter a valid email address, like name@example.com."
+
+msgctxt "Languages::quissly_search.su_email_too_long"
+msgid "Email address is too long."
+msgstr "Email address is too long."
+
+msgctxt "Languages::quissly_search.su_email_public"
+msgid "Use an address on a real, public domain."
+msgstr "Use an address on a real, public domain."
+
+msgctxt "Languages::quissly_search.su_name_invalid"
+msgid "Use letters, numbers, spaces and hyphens in the store name."
+msgstr "Use letters, numbers, spaces and hyphens in the store name."
+
+msgctxt "Languages::quissly_billing"
+msgid "Billing"
+msgstr "Billing"
+
+msgctxt "Languages::quissly_search.bi_title"
+msgid "Quissly Billing"
+msgstr "Quissly Billing"
+
+msgctxt "Languages::quissly_search.bi_search"
+msgid "Search"
+msgstr "Search"
+
+msgctxt "Languages::quissly_search.bi_chat"
+msgid "Chat"
+msgstr "Chat"
+
+msgctxt "Languages::quissly_search.bi_plan_kicker"
+msgid "[product] plan"
+msgstr "[product] plan"
+
+msgctxt "Languages::quissly_search.bi_no_plan"
+msgid "No plan selected"
+msgstr "No plan selected"
+
+msgctxt "Languages::quissly_search.bi_no_search"
+msgid "Quissly search needs a plan to answer your shoppers."
+msgstr "Quissly search needs a plan to answer your shoppers."
+
+msgctxt "Languages::quissly_search.bi_no_chat"
+msgid "Add the Quissly chat assistant to your store."
+msgstr "Add the Quissly chat assistant to your store."
+
+msgctxt "Languages::quissly_search.bi_status_trial"
+msgid "Trial"
+msgstr "Trial"
+
+msgctxt "Languages::quissly_search.bi_status_active"
+msgid "Active"
+msgstr "Active"
+
+msgctxt "Languages::quissly_search.bi_status_past_due"
+msgid "Payment failed"
+msgstr "Payment failed"
+
+msgctxt "Languages::quissly_search.bi_free_meta"
+msgid "Free · no card needed"
+msgstr "Free · no card needed"
+
+msgctxt "Languages::quissly_search.bi_per_month"
+msgid "[price] / month"
+msgstr "[price] / month"
+
+msgctxt "Languages::quissly_search.bi_per_year"
+msgid "[price] / year"
+msgstr "[price] / year"
+
+msgctxt "Languages::quissly_search.bi_per_mo"
+msgid "/mo"
+msgstr "/mo"
+
+msgctxt "Languages::quissly_search.bi_renews"
+msgid "renews [date]"
+msgstr "renews [date]"
+
+msgctxt "Languages::quissly_search.bi_trial_ends"
+msgid "trial ends [date]"
+msgstr "trial ends [date]"
+
+msgctxt "Languages::quissly_search.bi_ends"
+msgid "ends [date]"
+msgstr "ends [date]"
+
+msgctxt "Languages::quissly_search.bi_in_trial"
+msgid "You are in a free trial. Charges begin when it ends, on [date]."
+msgstr "You are in a free trial. Charges begin when it ends, on [date]."
+
+msgctxt "Languages::quissly_search.bi_past_due"
+msgid "Your last payment failed. Update your card to keep the plan."
+msgstr "Your last payment failed. Update your card to keep the plan."
+
+msgctxt "Languages::quissly_search.bi_plan_ends"
+msgid "Your plan ends on [date]. Nothing more is charged."
+msgstr "Your plan ends on [date]. Nothing more is charged."
+
+msgctxt "Languages::quissly_search.bi_plan_changes"
+msgid "Your plan changes to [plan] on [date]. You keep your current plan until then."
+msgstr "Your plan changes to [plan] on [date]. You keep your current plan until then."
+
+msgctxt "Languages::quissly_search.bi_promo"
+msgid "Promo [code]: [amount] off each payment."
+msgstr "Promo [code]: [amount] off each payment."
+
+msgctxt "Languages::quissly_search.bi_keep_plan"
+msgid "Keep my plan"
+msgstr "Keep my plan"
+
+msgctxt "Languages::quissly_search.bi_undo_change"
+msgid "Undo the change"
+msgstr "Undo the change"
+
+msgctxt "Languages::quissly_search.bi_update_card"
+msgid "Update card"
+msgstr "Update card"
+
+msgctxt "Languages::quissly_search.bi_choose_plan"
+msgid "Choose a plan"
+msgstr "Choose a plan"
+
+msgctxt "Languages::quissly_search.bi_upgrade_plan"
+msgid "Upgrade plan"
+msgstr "Upgrade plan"
+
+msgctxt "Languages::quissly_search.bi_change_plan"
+msgid "Change plan"
+msgstr "Change plan"
+
+msgctxt "Languages::quissly_search.bi_cancel_subscription"
+msgid "Cancel subscription"
+msgstr "Cancel subscription"
+
+msgctxt "Languages::quissly_search.bi_cancel_summary"
+msgid "Your plan stays until the end of the paid period, then ends. Nothing is refunded, and you can keep it any time before then."
+msgstr "Your plan stays until the end of the paid period, then ends. Nothing is refunded, and you can keep it any time before then."
+
+msgctxt "Languages::quissly_search.bi_cadence"
+msgid "Billing cadence"
+msgstr "Billing cadence"
+
+msgctxt "Languages::quissly_search.bi_annual_saves"
+msgid "Annual saves [pct]%"
+msgstr "Annual saves [pct]%"
+
+msgctxt "Languages::quissly_search.bi_most_popular"
+msgid "Most popular"
+msgstr "Most popular"
+
+msgctxt "Languages::quissly_search.bi_same_plan"
+msgid "This is the plan you are on. Pick a different one to change it."
+msgstr "This is the plan you are on. Pick a different one to change it."
+
+msgctxt "Languages::quissly_search.bi_confirm_plan"
+msgid "Confirm plan"
+msgstr "Confirm plan"
+
+msgctxt "Languages::quissly_search.bi_cancel"
+msgid "Cancel"
+msgstr "Cancel"
+
+msgctxt "Languages::quissly_search.bi_includes_qsearch"
+msgid "Includes QSearch"
+msgstr "Includes QSearch"
+
+msgctxt "Languages::quissly_search.bi_includes_qchat"
+msgid "Includes QChat"
+msgstr "Includes QChat"
+
+msgctxt "Languages::quissly_search.bi_human_only"
+msgid "Human agents only - no AI messages"
+msgstr "Human agents only - no AI messages"
+
+msgctxt "Languages::quissly_search.bi_search_month"
+msgid "[count] search requests / month"
+msgstr "[count] search requests / month"
+
+msgctxt "Languages::quissly_search.bi_ai_month"
+msgid "[count] AI messages / month"
+msgstr "[count] AI messages / month"
+
+msgctxt "Languages::quissly_search.bi_extra_line"
+msgid "Extra requests: [price] per [count]"
+msgstr "Extra requests: [price] per [count]"
+
+msgctxt "Languages::quissly_search.bi_carry_over"
+msgid "Unused extra requests carry over"
+msgstr "Unused extra requests carry over"
+
+msgctxt "Languages::quissly_search.bi_no_extra"
+msgid "No extra requests"
+msgstr "No extra requests"
+
+msgctxt "Languages::quissly_search.bi_free_forever"
+msgid "Free forever - no card required"
+msgstr "Free forever - no card required"
+
+msgctxt "Languages::quissly_search.bi_billed_monthly"
+msgid "Billed monthly"
+msgstr "Billed monthly"
+
+msgctxt "Languages::quissly_search.bi_billed_yearly"
+msgid "Billed yearly"
+msgstr "Billed yearly"
+
+msgctxt "Languages::quissly_search.bi_billed_save"
+msgid "[price]/mo billed monthly · save [saving]/yr"
+msgstr "[price]/mo billed monthly · save [saving]/yr"
+
+msgctxt "Languages::quissly_search.bi_usage"
+msgid "Usage"
+msgstr "Usage"
+
+msgctxt "Languages::quissly_search.bi_left"
+msgid "[count] left"
+msgstr "[count] left"
+
+msgctxt "Languages::quissly_search.bi_used_up"
+msgid "This month's requests are used up. Buy extra requests to keep answering."
+msgstr "This month's requests are used up. Buy extra requests to keep answering."
+
+msgctxt "Languages::quissly_search.bi_near"
+msgid "Approaching your included requests for this period."
+msgstr "Approaching your included requests for this period."
+
+msgctxt "Languages::quissly_search.bi_window"
+msgid "Current window: [from] → [to]"
+msgstr "Current window: [from] → [to]"
+
+msgctxt "Languages::quissly_search.bi_extra_requests"
+msgid "Extra requests"
+msgstr "Extra requests"
+
+msgctxt "Languages::quissly_search.bi_block"
+msgid "[product] · [count] extra requests"
+msgstr "[product] · [count] extra requests"
+
+msgctxt "Languages::quissly_search.bi_extra_month"
+msgid "[product] extra this month"
+msgstr "[product] extra this month"
+
+msgctxt "Languages::quissly_search.bi_carry_hint"
+msgid "Unused ones carry over"
+msgstr "Unused ones carry over"
+
+msgctxt "Languages::quissly_search.bi_extra_text"
+msgid "Extra requests are bought in blocks and charged to your card at once. They carry over to next month while your plan continues."
+msgstr "Extra requests are bought in blocks and charged to your card at once. They carry over to next month while your plan continues."
+
+msgctxt "Languages::quissly_search.bi_buy_more"
+msgid "Buy [count] more for [price]"
+msgstr "Buy [count] more for [price]"
+
+msgctxt "Languages::quissly_search.bi_invoices"
+msgid "Invoices"
+msgstr "Invoices"
+
+msgctxt "Languages::quissly_search.bi_invoices_failed"
+msgid "Invoices could not be loaded just now."
+msgstr "Invoices could not be loaded just now."
+
+msgctxt "Languages::quissly_search.bi_no_payments"
+msgid "No payments yet."
+msgstr "No payments yet."
+
+msgctxt "Languages::quissly_search.bi_invoice_for"
+msgid "[date] · for [period]"
+msgstr "[date] · for [period]"
+
+msgctxt "Languages::quissly_search.bi_pdf"
+msgid "PDF"
+msgstr "PDF"
+
+msgctxt "Languages::quissly_search.bi_payment_method"
+msgid "Payment method"
+msgstr "Payment method"
+
+msgctxt "Languages::quissly_search.bi_paddle"
+msgid "Payments are processed by Paddle, Quissly's merchant of record. Your card is never stored here."
+msgstr "Payments are processed by Paddle, Quissly's merchant of record. Your card is never stored here."
+
+msgctxt "Languages::quissly_search.bi_card_on_file"
+msgid "Card on file with Paddle"
+msgstr "Card on file with Paddle"
+
+msgctxt "Languages::quissly_search.bi_closed"
+msgid "Paid plans open soon. The free search plan is available now."
+msgstr "Paid plans open soon. The free search plan is available now."
+
+msgctxt "Languages::quissly_search.bi_unreachable"
+msgid "Quissly's billing could not be reached just now. Try again in a minute."
+msgstr "Quissly's billing could not be reached just now. Try again in a minute."
+
+msgctxt "Languages::quissly_search.bi_working"
+msgid "Working..."
+msgstr "Working..."
+
+msgctxt "Languages::quissly_search.bi_pay_waiting"
+msgid "Finish the payment in the tab that opened. This page updates by itself once Quissly has it."
+msgstr "Finish the payment in the tab that opened. This page updates by itself once Quissly has it."
+
+msgctxt "Languages::quissly_search.bi_pay_timeout"
+msgid "We have not seen the payment yet. Reload this page once you have paid."
+msgstr "We have not seen the payment yet. Reload this page once you have paid."
+
+msgctxt "Languages::quissly_search.bi_close"
+msgid "Close"
+msgstr "Close"
+
+msgctxt "Languages::quissly_search.bi_title_change"
+msgid "Change your plan"
+msgstr "Change your plan"
+
+msgctxt "Languages::quissly_search.bi_title_topup"
+msgid "Buy extra requests"
+msgstr "Buy extra requests"
+
+msgctxt "Languages::quissly_search.bi_title_cancel"
+msgid "Cancel your plan?"
+msgstr "Cancel your plan?"
+
+msgctxt "Languages::quissly_search.bi_title_pay"
+msgid "Waiting for the payment"
+msgstr "Waiting for the payment"
+
+msgctxt "Languages::quissly_search.bi_title_error"
+msgid "Something went wrong"
+msgstr "Something went wrong"
+
+msgctxt "Languages::quissly_search.bi_cancel_plan"
+msgid "Cancel plan"
+msgstr "Cancel plan"
+
+msgctxt "Languages::quissly_search.bi_buy_now"
+msgid "Buy now"
+msgstr "Buy now"
+
+msgctxt "Languages::quissly_search.bi_preview_upgrade"
+msgid "[amount] is charged to your saved card now (the rest of this period), and the new plan starts at once."
+msgstr "[amount] is charged to your saved card now (the rest of this period), and the new plan starts at once."
+
+msgctxt "Languages::quissly_search.bi_preview_downgrade"
+msgid "Nothing is charged or refunded. Your plan changes on [date]."
+msgstr "Nothing is charged or refunded. Your plan changes on [date]."
+
+msgctxt "Languages::quissly_search.bi_preview_trial"
+msgid "Free during your trial. The plan changes now."
+msgstr "Free during your trial. The plan changes now."
+
+msgctxt "Languages::quissly_search.bi_preview_other"
+msgid "Your plan changes."
+msgstr "Your plan changes."
+
+msgctxt "Languages::quissly_search.bi_preview_topup"
+msgid "[count] extra requests for [amount], charged to your saved card now. They carry over to next month while the plan continues."
+msgstr "[count] extra requests for [amount], charged to your saved card now. They carry over to next month while the plan continues."
+
+msgctxt "Languages::quissly_search.bi_free_on"
+msgid "The free plan is on."
+msgstr "The free plan is on."
+
+msgctxt "Languages::quissly_search.bi_paid_on"
+msgid "Payment received - your plan is on."
+msgstr "Payment received - your plan is on."
+
+msgctxt "Languages::quissly_search.bi_done_scheduled"
+msgid "Your plan changes on [date]."
+msgstr "Your plan changes on [date]."
+
+msgctxt "Languages::quissly_search.bi_done_processing"
+msgid "Payment is being confirmed; your new plan starts as soon as it lands."
+msgstr "Payment is being confirmed; your new plan starts as soon as it lands."
+
+msgctxt "Languages::quissly_search.bi_done_changed"
+msgid "Your plan has changed."
+msgstr "Your plan has changed."
+
+msgctxt "Languages::quissly_search.bi_topup_processing"
+msgid "Payment is being confirmed; the extra requests are added as soon as it lands."
+msgstr "Payment is being confirmed; the extra requests are added as soon as it lands."
+
+msgctxt "Languages::quissly_search.bi_topup_added"
+msgid "[count] extra requests added."
+msgstr "[count] extra requests added."
+
+msgctxt "Languages::quissly_search.bi_done_cancel"
+msgid "Your plan is cancelled and ends at the end of the paid period."
+msgstr "Your plan is cancelled and ends at the end of the paid period."
+
+msgctxt "Languages::quissly_search.bi_done_resume"
+msgid "Your plan continues."
+msgstr "Your plan continues."
+
+msgctxt "Languages::quissly_search.bi_done_abort"
+msgid "The scheduled change is undone."
+msgstr "The scheduled change is undone."
+
+msgctxt "Languages::quissly_search.bi_unknown"
+msgid "Unknown request."
+msgstr "Unknown request."

@@ -1,0 +1,397 @@
+/**
+ * Copyright © Quissly. All rights reserved.
+ * See COPYING.txt for license details.
+ *
+ * Quissly Billing - the plans, usage and invoices page, in the Shopify app's Settings
+ * design: its billing column (app/routes/app.settings.tsx) with the rules and values of
+ * app/styles/quissly-brand.css, and Shopify admin's card, button and banner look
+ * (dev-preview/polaris-stubs.ts). The same file ships in quissly-for-woocommerce and
+ * quissly-for-cs-cart; keep the three copies identical.
+ *
+ * Everything is scoped under .q-billing so the host admin's own styles are untouched,
+ * and the host's button styles are reset inside it.
+ */
+.q-billing {
+    --q-cream: #f7f1e4;
+    --q-indigo: #4a4abc;
+    --q-indigo-deep: #3d3d9b;
+    --q-ink: #1d1e1e;
+    --q-lime: #b8d432;
+    --q-amber: #ffcb48;
+    --q-brand: var(--q-indigo);
+    --q-brand-strong: var(--q-indigo-deep);
+    --q-brand-border: #d4d4ef;
+    --q-brand-bg-subtle: #f4f4fb;
+    --q-brand-bg-selected: #f1f1fa;
+    --q-on-brand-fill: var(--q-cream);
+    --q-accent: var(--q-lime);
+    --q-on-accent: var(--q-ink);
+    --q-surface: #fff;
+    --q-border: #e3e3e3;
+    --q-border-strong: #c9c9c9;
+    --q-subdued: #f7f7f7;
+    --q-text: #303030;
+    --q-text-help: #6d6d6d;
+    --q-text-subdued: #616161;
+    --q-critical: #b3261e;
+    --q-critical-text: #8e1f0b;
+    --q-pill-live-bg: #eef8d6;
+    --q-pill-live-fg: #3f4a11;
+    --q-pill-warn-bg: #fff2d9;
+    --q-pill-warn-fg: #6b4a00;
+    --q-radius: 10px;
+    --q-radius-lg: 14px;
+    --q-shadow-brand: 0 0 0 1px var(--q-indigo), 0 4px 16px rgb(74 74 188 / 0.18);
+    --q-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --q-duration: 160ms;
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    color: var(--q-text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    font-size: 13.5px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    container-type: inline-size;
+}
+.q-billing *, .q-billing *::before, .q-billing *::after { box-sizing: border-box; }
+/* :where() keeps the reset at zero weight, so every component rule below wins over it. */
+.q-billing :where(h2, h3, p, ul, li) { margin: 0; padding: 0; }
+.q-billing :where(ul) { list-style: none; }
+.q-billing [hidden] { display: none !important; }
+.q-billing button { font: inherit; cursor: pointer; text-shadow: none; margin: 0; }
+.q-billing button:focus-visible, .q-billing [role="radio"]:focus-visible {
+    outline: 2px solid var(--q-brand);
+    outline-offset: 2px;
+}
+
+/* ---- Shopify admin primitives: the card, the button, the banner, quiet text ---- */
+.q-section {
+    background: var(--q-surface);
+    border: 1px solid var(--q-border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.q-section__heading { font-size: 14px; font-weight: 650; line-height: 1.4; }
+.q-stack { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.q-stack--block { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+.q-stack--large { gap: 20px; }
+.q-text-quiet { color: var(--q-text-subdued); font-size: 13.5px; }
+.q-divider { height: 1px; background: var(--q-border); margin: 4px 0; }
+
+.q-billing .q-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--q-border-strong);
+    background: var(--q-surface);
+    color: var(--q-text);
+    font-size: 13px;
+    font-weight: 550;
+    line-height: 1.4;
+    white-space: nowrap;
+    box-shadow: none;
+    text-decoration: none;
+    transition: background-color var(--q-duration) var(--q-ease);
+}
+.q-billing .q-button:hover:not(:disabled) { background: var(--q-subdued); color: var(--q-text); }
+.q-billing .q-button--primary,
+.q-billing .q-button--primary:focus { background: #303030; border-color: #303030; color: #fff; }
+.q-billing .q-button--primary:hover:not(:disabled) { background: #1a1a1a; color: #fff; }
+.q-billing .q-button--tertiary,
+.q-billing .q-button--tertiary:focus { background: transparent; border-color: transparent; }
+.q-billing .q-button--tertiary:hover:not(:disabled) { background: rgb(0 0 0 / 0.05); }
+.q-billing .q-button--critical,
+.q-billing .q-button--critical:hover:not(:disabled) { color: var(--q-critical-text); }
+.q-billing .q-button:focus { box-shadow: none; }
+.q-billing .q-button:disabled { opacity: 0.5; cursor: default; }
+
+.q-banner {
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+.q-banner--info { background: #eaf4fe; border-color: #b6d9f7; color: #00527c; }
+.q-banner--success { background: #e6f6ec; border-color: #a6dcbb; color: #0c5132; }
+.q-banner--warning { background: #fff5e5; border-color: #ffd79a; color: #7a4a00; }
+.q-banner--critical { background: #fdecec; border-color: #f5b5b5; color: #8e1f0b; }
+
+/* ---- Layout: two columns, one while the plan picker is open ---- */
+.q-settings {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+.q-settings__col {
+    container-type: inline-size;
+    display: grid;
+    gap: 16px;
+    align-items: start;
+    min-width: 0;
+}
+@container (min-width: 760px) {
+    .q-settings { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+}
+.q-settings.is-picking { grid-template-columns: minmax(0, 1fr); }
+
+/* ---- Current plan header ---- */
+.q-kicker {
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--q-brand);
+}
+.q-planhead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.q-planhead__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.q-planhead__name { margin-top: 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; }
+.q-planhead__price { margin-top: 4px; font-size: 13px; color: var(--q-text-help); font-variant-numeric: tabular-nums; }
+
+/* ---- Status chip ---- */
+.q-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+.q-chip.is-running { background: var(--q-brand-bg-selected); color: var(--q-brand-strong); }
+.q-chip.is-done { background: var(--q-pill-live-bg); color: var(--q-pill-live-fg); }
+.q-chip.is-failed { background: var(--q-pill-warn-bg); color: var(--q-pill-warn-fg); }
+.q-chip__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.q-chip.is-running .q-chip__dot { animation: q-pulse 1.6s ease-in-out infinite; }
+@keyframes q-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.8); }
+}
+
+/* ---- Segmented control and pills ---- */
+.q-seg {
+    display: inline-flex;
+    background: var(--q-brand-bg-subtle);
+    border: 1px solid var(--q-brand-border);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.q-seg::-webkit-scrollbar { display: none; }
+.q-billing .q-seg__btn {
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    line-height: 1.2;
+    padding: 7px 15px;
+    border-radius: 999px;
+    white-space: nowrap;
+    color: var(--q-text);
+    opacity: 0.7;
+    box-shadow: none;
+    transition: background-color var(--q-duration) var(--q-ease), color var(--q-duration) var(--q-ease);
+}
+.q-billing .q-seg__btn:hover { opacity: 1; background: transparent; color: var(--q-text); }
+.q-billing .q-seg__btn[aria-checked="true"] {
+    background: var(--q-brand);
+    color: var(--q-on-brand-fill);
+    font-weight: 600;
+    opacity: 1;
+}
+.q-pill {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.q-pill--accent { background: var(--q-accent); color: var(--q-on-accent); }
+.q-pill--brand { background: var(--q-brand-bg-selected); color: var(--q-brand); }
+.q-pill--warn { background: var(--q-pill-warn-bg); color: var(--q-pill-warn-fg); }
+
+/* ---- Plan cards: a radiogroup, the whole card is the control ---- */
+.q-plans {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 12px;
+    padding-top: 10px;
+}
+@container (max-width: 420px) {
+    .q-plans { grid-template-columns: minmax(0, 1fr); }
+}
+@container (min-width: 900px) {
+    .q-plans { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    /* A paid plan's picker leaves out Free; three cards take the row instead of stranding a gap. */
+    .q-plans--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.q-billing .q-plan {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    border: 1.5px solid var(--q-border);
+    border-radius: var(--q-radius-lg);
+    padding: 18px 16px;
+    background: var(--q-surface);
+    text-align: left;
+    color: inherit;
+    width: 100%;
+    box-shadow: none;
+    transition: border-color var(--q-duration) var(--q-ease), box-shadow var(--q-duration) var(--q-ease);
+}
+.q-billing .q-plan:hover { border-color: var(--q-brand-border); background: var(--q-surface); }
+.q-billing .q-plan.is-popular { border-color: var(--q-accent); }
+.q-billing .q-plan[aria-checked="true"] {
+    border-color: var(--q-brand);
+    background: var(--q-brand-bg-subtle);
+    box-shadow: var(--q-shadow-brand);
+}
+.q-billing .q-plan[aria-disabled="true"] { cursor: not-allowed; opacity: 0.55; }
+.q-plan__ribbon {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 3px var(--q-surface);
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+    letter-spacing: 0.01em;
+}
+.q-plan__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.q-plan__name { font-size: 14px; font-weight: 600; }
+.q-plan__radio {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--q-border);
+    background: var(--q-surface);
+    transition: background-color var(--q-duration) var(--q-ease), border-color var(--q-duration) var(--q-ease);
+}
+.q-plan__radio::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--q-on-brand-fill);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.6 9.5 3.6' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 11px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.6 9.5 3.6' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 11px no-repeat;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity var(--q-duration) var(--q-ease), transform var(--q-duration) var(--q-ease);
+}
+.q-plan[aria-checked="true"] .q-plan__radio { border-color: var(--q-brand); background: var(--q-brand); }
+.q-plan[aria-checked="true"] .q-plan__radio::after { opacity: 1; transform: none; }
+.q-plan__price { margin-top: 12px; display: flex; align-items: baseline; gap: 3px; }
+.q-plan__amount { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.q-plan__cadence { font-size: 13px; opacity: 0.65; }
+.q-plan__note { font-size: 11.5px; line-height: 1.35; opacity: 0.7; margin-top: 3px; min-height: 2.7em; }
+.q-plan__feats {
+    margin: 14px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--q-border);
+    display: grid;
+    gap: 7px;
+}
+.q-plan__feat { font-size: 12.5px; line-height: 1.4; opacity: 0.85; padding-left: 18px; position: relative; }
+.q-plan__feat::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 5px;
+    width: 9px;
+    height: 5px;
+    border-left: 1.5px solid var(--q-brand);
+    border-bottom: 1.5px solid var(--q-brand);
+    transform: rotate(-45deg);
+}
+.q-plan__feat.is-lead { font-weight: 600; opacity: 1; }
+
+/* ---- Usage meters ---- */
+.q-usagepanel { display: grid; gap: 18px; }
+.q-usagepanel__meters { display: grid; gap: 18px; }
+@container (min-width: 560px) {
+    .q-usagepanel__meters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.q-usagepanel__window { margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.7; }
+.q-usage { display: grid; gap: 6px; }
+.q-usage__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.q-usage__label { font-size: 13px; font-weight: 550; }
+.q-usage__value { font-size: 13px; font-variant-numeric: tabular-nums; }
+.q-usage__limit { opacity: 0.6; }
+.q-usage__left { font-weight: 550; }
+.q-usage__left.is-out { color: var(--q-critical); }
+.q-usage__track { height: 8px; border-radius: 999px; background: var(--q-brand-bg-selected); overflow: hidden; }
+.q-usage__fill { height: 100%; border-radius: inherit; background: var(--q-brand); transition: width 400ms var(--q-ease); }
+.q-usage__track.is-near .q-usage__fill { background: var(--q-amber); }
+.q-usage__track.is-over .q-usage__fill { background: var(--q-critical); }
+.q-usage__note { margin: 0; font-size: 12px; opacity: 0.75; }
+
+/* ---- Metric tiles ---- */
+.q-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.q-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 13px;
+    border: 1px solid var(--q-border);
+    border-radius: var(--q-radius);
+    background: var(--q-surface);
+}
+.q-metric__value { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.q-metric__label { font-size: 12.5px; opacity: 0.7; }
+.q-metric__hint { font-size: 11.5px; opacity: 0.55; margin-top: 2px; }
+.q-grid > .q-metric:only-child { max-width: 260px; }
+
+/* ---- Row lists (invoices, payment method) ---- */
+.q-list { border: 1px solid var(--q-border); border-radius: var(--q-radius); background: var(--q-surface); overflow: hidden; }
+.q-list__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 9px 14px; min-height: 46px; }
+.q-list__row + .q-list__row { border-top: 1px solid var(--q-border); }
+.q-list__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.q-list__label { font-size: 13.5px; line-height: 1.35; }
+.q-list__note { font-size: 12px; line-height: 1.35; opacity: 0.6; }
+.q-list__aside { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* ---- Confirmation dialog ---- */
+.q-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; background: rgb(0 0 0 / 0.4); padding: 10vh 16px 16px; }
+.q-modal__box { width: 100%; max-width: 460px; background: var(--q-surface); border-radius: 14px; box-shadow: 0 20px 60px rgb(0 0 0 / 0.3); overflow: hidden; }
+.q-modal__title { font-size: 14px; font-weight: 650; padding: 14px 16px; border-bottom: 1px solid var(--q-border); }
+.q-modal__body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.q-modal__body p { font-size: 13.5px; }
+.q-modal__actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--q-border); }
+
+.q-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+    .q-billing * { transition: none !important; animation: none !important; }
+}

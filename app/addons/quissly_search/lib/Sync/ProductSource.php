@@ -38,28 +38,70 @@ final class ProductSource
 
     /**
      * Ids of every product the sync sends: active products that are not a variation
-     * child (children travel inside their parent). Ascending.
+     * child (children travel inside their parent), of an active vendor. Ascending.
      *
      * @return list<int>
      */
     public function activeIds(): array
     {
-        return array_map('intval', db_get_fields('SELECT product_id FROM ?:products WHERE status = ?s AND parent_product_id = 0 ORDER BY product_id', 'A'));
+        return array_map('intval', db_get_fields('SELECT product_id FROM ?:products WHERE status = ?s AND parent_product_id = 0?p ORDER BY product_id', 'A', self::vendorCondition()));
     }
 
     public function countActive(): int
     {
-        return (int) db_get_field('SELECT COUNT(*) FROM ?:products WHERE status = ?s AND parent_product_id = 0', 'A');
+        return (int) db_get_field('SELECT COUNT(*) FROM ?:products WHERE status = ?s AND parent_product_id = 0?p', 'A', self::vendorCondition());
     }
 
     /**
-     * Every active product id, children included (the chat can name either).
+     * Every active product id of an active vendor, children included (the chat can
+     * name either).
      *
      * @return list<int>
      */
     public function allActiveIds(): array
     {
-        return array_map('intval', db_get_fields('SELECT product_id FROM ?:products WHERE status = ?s', 'A'));
+        return array_map('intval', db_get_fields('SELECT product_id FROM ?:products WHERE status = ?s?p', 'A', self::vendorCondition()));
+    }
+
+    /**
+     * Every product of a vendor that the sync would send were the vendor active (to
+     * queue them when the vendor is suspended or reactivated).
+     *
+     * @return list<int>
+     */
+    public function vendorProductIds(int $companyId): array
+    {
+        return array_map('intval', db_get_fields('SELECT product_id FROM ?:products WHERE company_id = ?i AND parent_product_id = 0 ORDER BY product_id', $companyId));
+    }
+
+    /**
+     * Multi-Vendor hides a vendor's products from the storefront unless the vendor is
+     * active (a suspended, pending or disabled vendor's products do not show). The
+     * sync mirrors it, so Quissly never answers with a product the storefront then
+     * hides (an empty results page). Other editions have no vendors: no condition.
+     */
+    private static function vendorCondition(): string
+    {
+        if (!self::isMultiVendor()) {
+            return '';
+        }
+
+        return db_quote(' AND (company_id = 0 OR company_id IN (SELECT company_id FROM ?:companies WHERE status = ?s))', 'A');
+    }
+
+    private static function isMultiVendor(): bool
+    {
+        return function_exists('fn_allowed_for') && fn_allowed_for('MULTIVENDOR');
+    }
+
+    /** Whether the product's vendor lets the storefront show it. */
+    private static function vendorActive(int $companyId): bool
+    {
+        if ($companyId === 0 || !self::isMultiVendor()) {
+            return true;
+        }
+
+        return db_get_field('SELECT status FROM ?:companies WHERE company_id = ?i', $companyId) === 'A';
     }
 
     /** The variation parent of a product, or 0 when it is not a child. */
@@ -97,6 +139,9 @@ final class ProductSource
         return [
             'product_id'           => (int) $p['product_id'],
             'status'               => (string) ($p['status'] ?? ''),
+            // false = a Multi-Vendor vendor that is not active: the storefront hides the
+            // product, so the worker removes it from Quissly like a disabled one.
+            'vendor_active'        => self::vendorActive((int) ($p['company_id'] ?? 0)),
             'parent_product_id'    => (int) ($p['parent_product_id'] ?? 0),
             'options'              => $this->options((int) $p['product_id']),
             'features'             => self::features($p),

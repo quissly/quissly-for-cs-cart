@@ -19,6 +19,17 @@ use Quissly\Search\Sync\Sync;
 
 defined('BOOTSTRAP') or die('Access denied');
 
+// Until Quissly Setup is finished, the menu's Configuration entry opens Setup instead (the
+// Dashboard and the panel redirect in quissly_search.php).
+if (
+    $_SERVER['REQUEST_METHOD'] !== 'POST'
+    && $mode === 'update'
+    && ($_REQUEST['addon'] ?? '') === 'quissly_search'
+    && !(new \Quissly\Search\Setup\Onboarding(new DbSyncStore(), Credentials::fromRegistry()->isConfigured(), time()))->isComplete()
+) {
+    return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.setup'];
+}
+
 // Search bar suggestions: kept in Quissly; written back only when they changed.
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST'

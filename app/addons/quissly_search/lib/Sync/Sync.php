@@ -13,8 +13,6 @@ use Quissly\Search\Credentials;
  */
 final class Sync
 {
-    /** Status polls per operation inside one run (2 x 3 s); unfinished ones are re-checked later. */
-    public const POLLS_PER_RUN = 2;
 
     /** "Sync now" in the admin: an admin waiting on a page. */
     public const ADMIN_BUDGET_SECONDS = 25;
@@ -29,7 +27,7 @@ final class Sync
 
         return new SyncWorker(
             new DbSyncStore(),
-            new CatalogClient($credentials, new LiveTransport(), null, self::POLLS_PER_RUN),
+            new CatalogClient($credentials, new LiveTransport()),
             [$source, 'load']
         );
     }
@@ -86,6 +84,21 @@ final class Sync
         }
         if (($params['table'] ?? '') === 'product_bundles' && !empty($params['id'])) {
             self::bundleChanged((int) $params['id']);
+        }
+        if (($params['table'] ?? '') === 'companies' && !empty($params['id'])) {
+            self::vendorChanged((int) $params['id']);
+        }
+    }
+
+    /**
+     * A Multi-Vendor vendor's status changes (suspended, reactivated...): its products
+     * are queued, and the worker removes them from Quissly or sends them again by the
+     * vendor's status when it runs.
+     */
+    public static function vendorChanged(int $companyId): void
+    {
+        if ($companyId > 0) {
+            self::productsSaved((new ProductSource())->vendorProductIds($companyId));
         }
     }
 

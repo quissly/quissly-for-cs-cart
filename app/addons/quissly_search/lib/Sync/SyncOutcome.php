@@ -8,9 +8,7 @@ namespace Quissly\Search\Sync;
  * What one catalog batch came to. Ids are the string ids that were sent.
  *
  * state:
- *  - done:         Quissly finished; `ok` / `failed` / `alreadyExists` say per item
- *                  (an id the status did not mention is in none of them);
- *  - unconfirmed:  accepted, but the operation did not finish within the poll bound;
+ *  - done:         Quissly accepted the batch (2xx): every id in `ok`;
  *  - refused:      the account is refused (401/402/403+JSON) — stop, alert, keep queued;
  *  - rate_limited: 429 — back off, keep queued;
  *  - transport:    no answer (or an edge 403) — keep queued;
@@ -29,8 +27,6 @@ final class SyncOutcome
     /** @var list<string> */
     public array $pending = [];
     public string $operationId = '';
-    /** @var array<string, string> Quissly's id => our product id, for the items it confirmed */
-    public array $quisslyIds = [];
     public string $detail = '';
 
     private function __construct(string $state)
@@ -49,16 +45,6 @@ final class SyncOutcome
         $o->ok = array_values($ok);
         $o->failed = array_values($failed);
         $o->alreadyExists = array_values($alreadyExists);
-
-        return $o;
-    }
-
-    /** @param list<string> $ids */
-    public static function unconfirmed(array $ids, string $operationId): self
-    {
-        $o = new self('unconfirmed');
-        $o->pending = $ids;
-        $o->operationId = $operationId;
 
         return $o;
     }

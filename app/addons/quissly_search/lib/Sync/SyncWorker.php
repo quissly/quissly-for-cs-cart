@@ -5,38 +5,37 @@ declare(strict_types=1);
 namespace Quissly\Search\Sync;
 
 /**
- * Sends the dirty-product queue to Quissly, and follows up on operations Quissly
- * accepted but had not finished. The same rules as the WooCommerce plugin's
+ * Sends the dirty-product queue to Quissly. The same rules as the WooCommerce plugin's
  * Quissly_Sync_Worker, adapted to CS-Cart (no Action Scheduler: runs from the admin
  * "Sync now" button and from cron, each with a time budget):
  *
- *  - add vs update by whether Quissly already has the product; an "already exists"
- *    answer to an add marks it synced and leaves it queued, so the next batch
- *    re-sends it as an update;
+ *  - settled on the answer to the send (2026-10-07, the Quissly Shopify app's way): a
+ *    2xx is the batch delivered - marked synced, off the queue; the
+ *    operation's status is not read, so nothing waits and nothing is re-checked;
+ *  - add vs update by whether the product was delivered before;
  *  - a failed item is retried up to MAX_ATTEMPTS times, then dropped and logged;
  *  - an account refusal (401/402/403+JSON), a 429, or no answer stops the run with
  *    the batch still queued and no retry used — nothing is lost, the next run resumes;
- *  - a product that is no longer active (or no longer exists) is deleted from Quissly
- *    instead of being sent;
- *  - an operation Quissly has not finished within the poll bound is NOT counted as
- *    synced (the WooCommerce plugin accepts it optimistically): it is recorded and
- *    re-checked on later runs, and the dashboard shows those products as waiting;
+ *  - a product that is no longer active (or no longer exists), or on Multi-Vendor one
+ *    whose vendor is not active, is deleted from Quissly instead of being sent - the
+ *    storefront hides it, and Quissly answering with it gives an empty results page;
+ *  - operations recorded by the earlier status-checking version (accepted, never
+ *    confirmed) are put back on the queue once, so those products are sent again;
  *  - a variation child is sent inside its parent (ProductSource/ProductMapper): a
  *    queued child re-sends the parent, and a full sync deletes whatever Quissly holds
  *    that is no longer sent (children once synced on their own, removed products),
  *    deletes always ahead of updates;
- *  - Quissly's own id for each confirmed product (the id its chat widget uses) is
- *    kept, so the storefront can map the chat's Add to Cart back to our product;
- *  - a full sync completes when the queue is empty and nothing is waiting; the
- *    first-sync gate (which lets storefront search use Quissly) opens only if Quissly
- *    confirmed at least one product, so a sync that delivered nothing never turns on
- *    search against an empty index.
+ *  - a full sync completes when the queue is empty; the first-sync gate (which lets
+ *    storefront search use Quissly) opens only if Quissly accepted at least one
+ *    product, so a sync that delivered nothing never turns on search against an
+ *    empty index.
  */
 final class SyncWorker
 {
     public const BATCH_SIZE = 50;
     public const MAX_ATTEMPTS = 3;
-    public const RECHECK_LIMIT = 20;
+    /** Operations of the earlier status-checking version put back on the queue per run. */
+    public const LEFTOVER_LIMIT = 200;
 
     public const STATE_PROGRESS = 'progress';
     public const STATE_INITIAL_SYNC = 'initial_sync';
@@ -109,8 +108,8 @@ final class SyncWorker
     }
 
     /**
-     * Follow up on waiting operations, then send queued batches until the queue is
-     * empty, a stop condition, or the time budget runs out.
+     * Send queued batches until the queue is empty, a stop condition, or the time
+     * budget runs out.
      *
      * @return array{confirmed:int, failed:int, waiting:int, queued:int, stopped:string} waiting and queued: totals after the run
      */
@@ -121,9 +120,7 @@ final class SyncWorker
         $this->stopReason = '';
         $this->run = ['confirmed' => 0, 'failed' => 0, 'waiting' => 0];
 
-        foreach ($this->store->operations(self::RECHECK_LIMIT) as $operation) {
-            $this->recheck($operation);
-        }
+        $this->requeueLeftovers();
 
         while (!$this->stop && $this->now() < $deadline && $this->store->countQueued() > 0) {
             $this->flushBatch();
@@ -131,7 +128,7 @@ final class SyncWorker
 
         $this->finishIfDone();
 
-        // waiting = everything Quissly has not confirmed yet, not just this run's sends.
+        // waiting: leftover operations of the earlier version not yet put back (normally 0).
         $summary = [
             'confirmed' => $this->run['confirmed'],
             'failed'    => $this->run['failed'],
@@ -167,7 +164,9 @@ final class SyncWorker
                 }
                 continue;
             }
-            $active = $product !== null && ($product['status'] ?? 'A') === 'A';
+            // A disabled product, or (Multi-Vendor) one whose vendor is not active: the
+            // storefront hides it, so Quissly must not answer with it.
+            $active = $product !== null && ($product['status'] ?? 'A') === 'A' && ($product['vendor_active'] ?? true);
 
             if (!$active) {
                 if ($this->store->isSynced($id)) {
@@ -208,18 +207,10 @@ final class SyncWorker
     {
         switch ($outcome->state) {
             case 'done':
-                [$ok, $failed, $already] = self::split($outcome, $ids);
-                $this->confirm($kind, $ok, $already);
-                $this->store->saveQuisslyIds($outcome->quisslyIds);
-                $this->store->remove($kind === 'add' ? $ok : array_merge($ok, $already)); // add + already: stays queued, re-sent as update
-                $this->fail($failed, $attempts, $kind);
-                $this->store->log(sprintf('catalog %s: %d ok, %d failed, %d already in Quissly (of %d).', $kind, count($ok), count($failed), count($already), count($ids)), $this->now());
-                break;
-            case 'unconfirmed':
+                // A 2xx: the whole batch is delivered.
+                $this->confirm($kind, $ids);
                 $this->store->remove($ids);
-                $this->store->addOperation($outcome->operationId, $kind, $ids, $this->now());
-                $this->run['waiting'] += count($ids);
-                $this->store->log(sprintf('catalog %s: %d products accepted by Quissly, not confirmed yet (operation %s); will check again.', $kind, count($ids), $outcome->operationId), $this->now());
+                $this->store->log(sprintf('catalog %s: %d products accepted by Quissly%s.', $kind, count($ids), $outcome->operationId !== '' ? ' (operation ' . $outcome->operationId . ')' : ''), $this->now());
                 break;
             case 'rejected':
                 $this->fail($ids, $attempts, $kind);
@@ -237,43 +228,35 @@ final class SyncWorker
         }
     }
 
-    /** @param array{operation_id:string, kind:string, product_ids:list<int>, sent_at:int} $operation */
-    private function recheck(array $operation): void
+    /**
+     * Operations the earlier status-checking version recorded as accepted-but-unconfirmed:
+     * their products had left the queue to wait for a status that is no longer read, so
+     * they go back on it and are sent again.
+     */
+    private function requeueLeftovers(): void
     {
-        $ids = $operation['product_ids'];
-        $outcome = $this->client->checkStatus($operation['operation_id'], array_map('strval', $ids));
-        if ($outcome === null) {
-            return; // still working (the dashboard shows how long)
-        }
-        [$ok, $failed, $already] = self::split($outcome, $ids);
-        $kind = $operation['kind'];
-        $this->confirm($kind, $ok, $already);
-        $this->store->saveQuisslyIds($outcome->quisslyIds);
-        if ($kind === 'add' && $already !== []) {
-            // In Quissly already, so this add changed nothing: send it as an update.
-            foreach ($already as $id) {
-                $this->store->enqueue($id, SyncStore::OP_UPSERT, $this->now());
+        $count = 0;
+        foreach ($this->store->operations(self::LEFTOVER_LIMIT) as $operation) {
+            foreach ($operation['product_ids'] as $id) {
+                $this->store->enqueue((int) $id, SyncStore::OP_UPSERT, $this->now());
+                $count++;
             }
+            $this->store->removeOperation($operation['operation_id']);
         }
-        if ($failed !== []) {
-            $this->countFailed($failed, $kind);
+        if ($count > 0) {
+            $this->store->log(sprintf('%d products from unconfirmed earlier operations queued to be sent again.', $count), $this->now());
         }
-        $this->store->removeOperation($operation['operation_id']);
-        $this->store->log(sprintf('catalog %s operation %s confirmed: %d ok, %d failed, %d already in Quissly.', $kind, $operation['operation_id'], count($ok), count($failed), count($already)), $this->now());
     }
 
-    /**
-     * @param list<int> $ok
-     * @param list<int> $already
-     */
-    private function confirm(string $kind, array $ok, array $already): void
+    /** @param list<int> $ids delivered */
+    private function confirm(string $kind, array $ids): void
     {
         if ($kind === 'delete') {
-            $this->store->clearSynced(array_merge($ok, $already));
+            $this->store->clearSynced($ids);
         } else {
-            $this->store->markSynced(array_merge($ok, $already), $this->now());
+            $this->store->markSynced($ids, $this->now());
         }
-        $confirmed = count($ok) + ($kind === 'add' ? 0 : count($already));
+        $confirmed = count($ids);
         if ($confirmed > 0) {
             $this->store->setState(self::STATE_REFUSAL, null);
             $this->run['confirmed'] += $confirmed;
@@ -339,24 +322,8 @@ final class SyncWorker
             $this->store->log('Full sync complete; storefront search can now use Quissly.', $this->now());
         } else {
             $this->store->setState(self::STATE_GATE_BLOCKED, ['at' => $this->now(), 'failed' => (int) $progress['failed']]);
-            $this->store->log('Full sync finished WITHOUT Quissly confirming any product (' . (int) $progress['failed'] . ' failed); search stays on native CS-Cart search. Fix the cause and sync again.', $this->now());
+            $this->store->log('Full sync finished WITHOUT Quissly accepting any product (' . (int) $progress['failed'] . ' failed); search stays on native CS-Cart search. Fix the cause and sync again.', $this->now());
         }
-    }
-
-    /**
-     * A finished outcome as int id lists. Ids Quissly's status did not mention count
-     * as ok: the operation finished, and it only itemizes what it looked at.
-     *
-     * @param list<int> $ids
-     * @return array{0:list<int>, 1:list<int>, 2:list<int>} ok, failed, already
-     */
-    private static function split(SyncOutcome $outcome, array $ids): array
-    {
-        $failed = array_map('intval', $outcome->failed);
-        $already = array_map('intval', $outcome->alreadyExists);
-        $ok = array_values(array_diff($ids, $failed, $already));
-
-        return [$ok, array_values(array_intersect($ids, $failed)), array_values(array_intersect($ids, $already))];
     }
 
     private function now(): int

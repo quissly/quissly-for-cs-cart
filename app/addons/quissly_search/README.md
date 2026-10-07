@@ -23,6 +23,11 @@ CS-Cart admin access.
 2. Add the credential lines to `config.local.php` — *or skip both and use one-click
    Connect after the add-on is installed (Step 2 alternative).*
 3. Extract/upload the add-on, activate it, and clear the cache.
+   *One-click route:* open **Add-ons → Quissly**. Until setup is done every entry opens
+   **Quissly Setup** - three steps in the Shopify app's design: your email and store name
+   (**Connect & continue**), a plan (the free search plan starts at once), then **Finish Setup**
+   once the first sync - which starts by itself - has finished. Steps 4-5 below are then
+   already done; install the cron line (step 6).
 4. Open **Add-ons → Quissly → Configuration** → connect if you haven't → click
    **Test connection**.
 5. Open **Add-ons → Quissly → Dashboard** → click **Start initial sync** and wait until
@@ -38,7 +43,7 @@ Each step is detailed below.
 
 - **CS-Cart 4.11.4.SP3**, **PHP 7.4**.
 - SSH/file access to the server **and** CS-Cart admin access.
-- The add-on package: **`quissly_search-1.0.0.tgz`**.
+- The add-on package: **`quissly_search-1.0.1.tgz`** (the version in `addon.xml`).
 - With **one-click Connect** (Step 2 alternative) nothing below this line is needed — the
   add-on generates its own key pair and Quissly issues the token.
 - For the manual setup: your Quissly **bearer token** (provided by Quissly) and your
@@ -52,11 +57,13 @@ Each step is detailed below.
 
 For transparency, installing it:
 
-- adds four directories: `app/addons/quissly_search/` (the add-on itself),
-  `design/backend/templates/addons/quissly_search/` (its admin pages),
-  `js/addons/quissly_search/` (the overlay, voice/image and chat-cart scripts) and
-  `var/themes_repository/responsive/{css,templates}/addons/quissly_search/` (the
-  storefront hook templates + stylesheet);
+- adds its own directories, and nothing else: `app/addons/quissly_search/` (the add-on
+  itself), `design/backend/templates/addons/quissly_search/` (its admin pages),
+  `design/backend/css/addons/quissly_search/` and
+  `design/backend/media/images/addons/quissly_search/` (the Quissly Setup stylesheet and
+  logo), `js/addons/quissly_search/` (the Setup, overlay, voice/image and chat-cart
+  scripts) and `var/themes_repository/responsive/{css,templates}/addons/quissly_search/`
+  (the storefront hook templates + stylesheet);
 - reads up to five `$config[...]` lines in `config.local.php` if you use the manual setup
   (`quissly_bearer_token`, `quissly_private_key_path` *or* `quissly_private_key`,
   `quissly_environment`, `quissly_project_id`, `quissly_account_email`) — **none** with
@@ -64,7 +71,8 @@ For transparency, installing it:
 - creates nine small database tables, all prefixed `cscart_quissly_search_`:
   `health` (single-row connection-alert record), `queue` (products waiting to be sent),
   `synced` (what Quissly holds), `operations` (Quissly operations not yet finished),
-  `state` (the add-on's own state — **including the encrypted credentials when you use
+  `state` (the add-on's own state — how far Quissly Setup has got, your search-bar
+  suggestions and Catalog-data choices, and **the encrypted credentials when you use
   one-click Connect**), `log` (the sync log), `tokens` (voice/image result sets),
   `rate` (per-visitor throttle buckets) and `ids` (Quissly id ↔ product id pairs, for the
   chat's "Add to cart");
@@ -142,12 +150,12 @@ CS-Cart root so files land under `app/addons/quissly_search/`:
 
 ```bash
 cd /path/to/cscart            # the CS-Cart root (where config.php lives)
-tar -xzf /path/to/quissly_search-1.0.0.tgz
+tar -xzf /path/to/quissly_search-1.0.1.tgz
 ls app/addons/quissly_search/addon.xml   # should now exist
 ```
 
 **B. Via admin panel.** Admin → **Add-ons → Manage add-ons** → click **"+"** (top
-right) → **Local** → upload `quissly_search-1.0.0.tgz`.
+right) → **Local** → upload `quissly_search-1.0.1.tgz`.
 
 ## Step 4 — Activate and test
 
@@ -277,10 +285,18 @@ Saving a change queues a full re-sync.
 
 ## The admin pages
 
-**Add-ons → Quissly** has three pages:
+**Add-ons → Quissly** has three pages — plus **Quissly Setup**, which all three open until
+setup is finished:
 
+- **Quissly Setup** — only while setup is unfinished. *Your details* (your email, store name
+  and a workspace description drafted from your store) → **Connect & continue** → *Choose a
+  plan* (your Quissly plans; the free search plan starts at once) → *Go live*, which waits for
+  the first catalog sync — it starts by itself about 90 seconds after you connect — and then
+  switches Quissly search on. After **Go live** the three pages below open normally. A store
+  connected before this page existed never sees it.
 - **Configuration** — the setup/connection block, the ACTIVE/INACTIVE status with the
-  reason, **Test connection**, the six switches and the Catalog data checklist.
+  reason, **Test connection**, the six switches, the **Search bar suggestions** block and
+  the Catalog data checklist.
 - **Dashboard** — search status, connection and environment, which features are on, the
   catalog-sync counters (in Quissly / queued / waiting on Quissly / last run), the sync
   buttons, whether automatic sync (cron) is running plus the exact crontab line, and the
@@ -306,8 +322,8 @@ Saving a change queues a full re-sync.
   Search instantly reverts to native CS-Cart search; no data is affected. This is the safe
   way to switch Quissly off.
 - **Remove completely:** Uninstall from Manage add-ons, then optionally delete
-  `app/addons/quissly_search/` (plus the other three directories) and the
-  `config.local.php` lines.
+  `app/addons/quissly_search/` (plus the other directories listed under *What the add-on
+  changes on your system*) and the `config.local.php` lines.
 
   ⚠️ **If the store was connected with one-click Connect, uninstalling destroys your
   Quissly credentials.** They live only in `cscart_quissly_search_state`, and uninstall

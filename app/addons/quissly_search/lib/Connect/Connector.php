@@ -82,7 +82,10 @@ final class Connector
             'email'             => $email,
             'platform'          => Config::CONSOLE_PLATFORM,
             'service_type_slug' => 'qsearch',
-            'description'       => 'CS-Cart store connected via the quissly_search add-on.',
+            // Quissly Setup's drafted, editable description; else the add-on's own line.
+            'description'       => isset($store['description']) && trim((string) $store['description']) !== ''
+                ? mb_substr(trim((string) $store['description']), 0, \Quissly\Search\Setup\DescriptionDraft::MAX_LENGTH)
+                : 'CS-Cart store connected via the quissly_search add-on.',
             'environment'       => $store['environment'],
         ];
         // Sent only when known: Quissly names the account from the domain otherwise.

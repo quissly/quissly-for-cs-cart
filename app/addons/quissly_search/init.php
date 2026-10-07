@@ -29,6 +29,9 @@ require_once __DIR__ . '/autoload.php';
  *  - `product_bundle_service_update_bundle`, `..._update_links`, `..._delete_bundle_pre`
  *    (the Product bundles add-on's own hooks; `tools_change_status` covers its on/off
  *    toggle) — re-queue a bundle's members, which carry it in their metadata.
+ *  - `change_company_status_pre`, `update_company` (and `tools_change_status` on the
+ *    companies table) — a Multi-Vendor vendor suspended or reactivated: its products
+ *    are queued, and the worker removes them from Quissly or sends them again.
  *  - `variation_group_save_group` (the Product variations add-on) — generated
  *    variations are written without fn_update_product, so the group's products (and
  *    any product taken out of it) are queued here.
@@ -45,5 +48,7 @@ fn_register_hooks(
     'product_bundle_service_update_links',
     'product_bundle_service_delete_bundle_pre',
     'variation_group_save_group',
+    'change_company_status_pre',
+    'update_company',
     'dispatch_before_display'
 );

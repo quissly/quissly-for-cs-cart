@@ -1,0 +1,54 @@
+# Every zip is signed with Quissly's release key (secret QUISSLY_RELEASE_SIGNING_KEY); stores
+# install a release only when its .sig verifies against the public key in the code.
+# On every push to main: if addon.xml's version has no release yet, build the add-on zip
+# (app/, design/, js/, var/ - what CS-Cart's add-on upload takes) and publish it as GitHub
+# release v<version>. Installed add-ons check the latest release once a day and install
+# it themselves (lib/Update/Updater.php).
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the version
+        id: version
+        run: |
+          version=$(sed -n 's/.*<version>\([^<]*\)<\/version>.*/\1/p' app/addons/quissly_search/addon.xml | head -1)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "addon.xml version '$version' is not x.y.z"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then echo "exists=1" >> "$GITHUB_OUTPUT"; fi
+      - uses: shivammathur/setup-php@v2
+        if: steps.version.outputs.exists != '1'
+        with:
+          php-version: '8.3'
+          extensions: sodium
+          coverage: none
+      - name: Build, sign and publish the release
+        if: steps.version.outputs.exists != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SIGNING_KEY: ${{ secrets.QUISSLY_RELEASE_SIGNING_KEY }}
+        run: |
+          git archive --format=zip -o quissly-for-cs-cart.zip HEAD -- app design js var
+          [ -n "$SIGNING_KEY" ] || { echo "The QUISSLY_RELEASE_SIGNING_KEY secret is not set"; exit 1; }
+          # Sign, and check the signature against the public key the code ships with: a key
+          # that does not match would make every store refuse this release.
+          ZIP=quissly-for-cs-cart.zip PUBLIC_KEY=$(sed -n "s/.*PUBLIC_KEY = '\([^']*\)'.*/\1/p" app/addons/quissly_search/lib/Update/Release.php) php -r '
+            $zip = file_get_contents(getenv("ZIP"));
+            $sig = sodium_crypto_sign_detached($zip, base64_decode(trim(getenv("SIGNING_KEY")), true));
+            if (!sodium_crypto_sign_verify_detached($sig, $zip, base64_decode(getenv("PUBLIC_KEY"), true))) {
+                fwrite(STDERR, "The signing key does not match the public key in the code\n");
+                exit(1);
+            }
+            file_put_contents(getenv("ZIP") . ".sig", base64_encode($sig));'
+          gh release create "v$VERSION" quissly-for-cs-cart.zip quissly-for-cs-cart.zip.sig --target "$GITHUB_SHA" \
+            --title "Quissly for CS-Cart $VERSION" --notes "Quissly for CS-Cart $VERSION"
