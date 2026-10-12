@@ -19,3 +19,13 @@ h4.subheader[data-q-section] .subheader__icon { transition: transform .2s; }
 h4.subheader[data-q-section].collapsed .subheader__icon { transform: rotate(-90deg); }
 h4.subheader[data-q-section] + .collapse { max-width: 1100px; }
 h4.subheader[data-q-section] + .collapse.in { padding-bottom: 12px; }
+
+/* A setting's description under its control (settings-sections.js moves it there). */
+[id^="collapsable_addon_option_quissly_search_"] .control-group { margin-bottom: 22px; }
+[id^="collapsable_addon_option_quissly_search_"] .controls > .description {
+    display: block;
+    max-width: 640px;
+    margin: 8px 0 0;
+    line-height: 1.55;
+    text-align: left;
+}

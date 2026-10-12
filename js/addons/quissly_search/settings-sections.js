@@ -2,7 +2,9 @@
  * Quissly for CS-Cart - Configuration's sections open and close as the WooCommerce and Magento
  * plugins' do: each header of the add-on's settings is a title bar (CS-Cart already makes it a
  * collapse toggle), Features starts open and the rest closed, and the page remembers which ones
- * the merchant left open (localStorage). Inlined by the status block (func.php
+ * the merchant left open (localStorage). Each setting's description moves from under its label
+ * (CS-Cart puts it in the narrow, right-aligned label column) to under its control, where it has
+ * the width - as the other plugins show them. Inlined by the status block (func.php
  * fn_quissly_search_status_handler), styled by design/backend/css/addons/quissly_search/settings.css.
  */
 (function () {
@@ -51,9 +53,24 @@
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot);
-    } else {
+    function describe() {
+        Array.prototype.forEach.call(document.querySelectorAll('[id^="' + PREFIX.slice(1) + '"] .control-group'), function (group) {
+            var description = group.querySelector('.control-label > .description');
+            var controls = group.querySelector('.controls');
+            if (description && controls) {
+                controls.appendChild(description);
+            }
+        });
+    }
+
+    function start() {
         boot();
+        describe();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+    } else {
+        start();
     }
 })();
