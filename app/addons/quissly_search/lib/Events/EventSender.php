@@ -9,8 +9,9 @@ namespace Quissly\Search\Events;
  * endpoint takes one event per call) - from the add-on's cron, and at the end of an admin page
  * on a store whose cron is not set up (func.php fn_quissly_search_events_send).
  *
- * What each answer means is EventOutcome's. Switched off, or no longer connected: the queue is
- * emptied - nothing more leaves the store. A run sends at most BATCH events, stops after its time
+ * What each answer means is EventOutcome's. No longer connected: the queue is emptied - nothing
+ * more leaves the store. "Shopping activity" switched off: the shoppers' events are dropped, the
+ * store's own (source `store`, VersionReport) still go. A run sends at most BATCH events, stops after its time
  * budget and after FAILURES failed sends in a row, so a burst is spread over a few runs and a
  * Quissly outage costs one short run, not a page of timeouts.
  *
@@ -25,13 +26,17 @@ final class EventSender
     private const FAILURES = 5;
 
     /**
+     * $connected defaults to $enabled: a released func.php calls this with five arguments in the
+     * request an update runs in (the update swaps the files with the old func.php loaded).
+     *
+     * @param bool $enabled the "Shopping activity" switch, and connected
      * @param callable(array<string, mixed>): ?array{status: int, body: string} $post the signed POST (null = no answer)
      * @return array{sent: int, dropped: int, retried: int}
      */
-    public static function run(EventQueue $queue, bool $enabled, callable $post, int $now, float $budgetSeconds): array
+    public static function run(EventQueue $queue, bool $enabled, callable $post, int $now, float $budgetSeconds, ?bool $connected = null): array
     {
         $counts = ['sent' => 0, 'dropped' => 0, 'retried' => 0];
-        if (!$enabled) {
+        if (!($connected ?? $enabled)) {
             $counts['dropped'] = $queue->clear();
             return $counts;
         }
@@ -45,7 +50,7 @@ final class EventSender
             if (microtime(true) - $started > $budgetSeconds) {
                 break;
             }
-            if ($row['body'] === []) {
+            if ($row['body'] === [] || (!$enabled && ($row['body']['metadata']['source'] ?? '') !== EventBody::SOURCE_STORE)) {
                 $done[] = $row['event_id'];
                 $counts['dropped']++;
                 continue;

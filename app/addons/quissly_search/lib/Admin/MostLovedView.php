@@ -61,6 +61,38 @@ final class MostLovedView
             . '</strong>' . $duplicates . ($items !== '' ? '<ul>' . $items . '</ul>' : '') . '</div></div>';
     }
 
+    /**
+     * The product picker over each code box (js/addons/quissly_search/most-loved-picker.js, the
+     * Magento plugin's file): search by name or code, choose, drag to reorder. The textarea stays
+     * what the form saves; $script (the picker, inlined) is printed once, after both lists.
+     *
+     * @param array<string, list<array{sku:string, name:string, image:string, note:string}>> $items 'shown' / 'backups', in order
+     * @param array<string, string> $text the words the picker writes
+     */
+    public static function pickers(array $items, string $searchUrl, array $text, string $script): string
+    {
+        $html = '';
+        foreach (['shown' => \Quissly\Search\MostLoved::SHOWN, 'backups' => \Quissly\Search\MostLoved::BACKUPS] as $list => $max) {
+            $config = [
+                // CS-Cart's field ids end in the setting's object id: container_<prefix>_most_loved_shown_<id>.
+                'field'     => '[id^="container_"][id*="_most_loved_' . $list . '_"] textarea',
+                'list'      => $list,
+                'max'       => $max,
+                'searchUrl' => $searchUrl,
+                'items'     => $items[$list] ?? [],
+                'text'      => $text + ['inOther' => $list === 'shown' ? ($text['inBackups'] ?? '') : ($text['inShown'] ?? '')],
+            ];
+            $html .= '<div class="q-picker" data-q-picker data-config="' . self::e((string) json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) . '"></div>';
+        }
+        // Each picker goes under its own box, and the plain list of picks gives way to it.
+        $place = '(function(){document.querySelectorAll(".q-picker[data-q-picker]:not([data-q-placed])").forEach(function(root){'
+            . 'root.setAttribute("data-q-placed","1");var c=JSON.parse(root.getAttribute("data-config")||"{}");'
+            . 'var f=document.querySelector(c.field);if(f){f.parentNode.insertBefore(root,f.nextSibling);}});'
+            . 'document.querySelectorAll(".q-most-loved__list").forEach(function(l){l.hidden=true;});})();';
+
+        return $html . '<script>' . $place . str_replace('</script', '<\/script', $script) . '</script>';
+    }
+
     private static function t(string $key): string
     {
         return function_exists('__') ? (string) __($key) : $key;

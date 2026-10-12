@@ -1671,16 +1671,16 @@ msgid "Products to show (8)"
 msgstr "Показываемые товары (8)"
 
 msgctxt "SettingsTooltips::quissly_search::most_loved_shown"
-msgid "Product codes, one per line, in the order they are shown."
-msgstr "Коды товаров, по одному в строке, в порядке показа."
+msgid "Search by name or code and pick 8, in the order they are shown; drag to change it."
+msgstr "Найдите по названию или коду и выберите 8 в порядке показа; перетащите, чтобы изменить порядок."
 
 msgctxt "SettingsOptions::quissly_search::most_loved_backups"
 msgid "Backups (4)"
 msgstr "Запасные (4)"
 
 msgctxt "SettingsTooltips::quissly_search::most_loved_backups"
-msgid "Product codes, one per line, none of them already in Products to show. A product to show that is out of stock is replaced by the first backup in stock."
-msgstr "Коды товаров, по одному в строке, ни один из них не должен быть среди показываемых. Товар для показа, которого нет в наличии, заменяется первым запасным в наличии."
+msgid "Pick 4, none of them already in Products to show. A product to show that is out of stock is replaced by the first backup in stock."
+msgstr "Выберите 4, ни один из них не должен быть среди показываемых. Товар для показа, которого нет в наличии, заменяется первым запасным в наличии."
 
 msgctxt "SettingsOptions::quissly_search::most_loved_status"
 msgid "Status"
@@ -2105,3 +2105,51 @@ msgstr "Банковской картой"
 msgctxt "Languages::quissly_search.su_invoice_note"
 msgid "paid by invoice, no card needed now"
 msgstr "оплата по счёту, карта сейчас не нужна"
+
+msgctxt "Languages::quissly_search.most_loved_search"
+msgid "Search products by name or code"
+msgstr "Найдите товар по названию или коду"
+
+msgctxt "Languages::quissly_search.most_loved_remove"
+msgid "Remove"
+msgstr "Убрать"
+
+msgctxt "Languages::quissly_search.most_loved_move"
+msgid "Move"
+msgstr "Переместить"
+
+msgctxt "Languages::quissly_search.most_loved_move_hint"
+msgid "Drag to change the order, or use the arrow keys"
+msgstr "Перетащите, чтобы изменить порядок, или используйте стрелки"
+
+msgctxt "Languages::quissly_search.most_loved_searching"
+msgid "Searching..."
+msgstr "Ищем..."
+
+msgctxt "Languages::quissly_search.most_loved_none"
+msgid "No products found."
+msgstr "Товары не найдены."
+
+msgctxt "Languages::quissly_search.most_loved_search_error"
+msgid "Could not search just now. Try again in a moment."
+msgstr "Сейчас не удалось выполнить поиск. Попробуйте чуть позже."
+
+msgctxt "Languages::quissly_search.most_loved_picked"
+msgid "already picked"
+msgstr "уже выбран"
+
+msgctxt "Languages::quissly_search.most_loved_in_shown"
+msgid "already in Products to show"
+msgstr "уже среди показываемых"
+
+msgctxt "Languages::quissly_search.most_loved_in_backups"
+msgid "already in Backups"
+msgstr "уже среди запасных"
+
+msgctxt "Languages::quissly_search.most_loved_count"
+msgid "[count] of [max] picked"
+msgstr "Выбрано [count] из [max]"
+
+msgctxt "Languages::quissly_search.most_loved_full"
+msgid "[count] of [max] picked - remove one to pick another"
+msgstr "Выбрано [count] из [max] - уберите один, чтобы выбрать другой"

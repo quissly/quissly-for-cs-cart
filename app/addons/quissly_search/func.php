@@ -63,6 +63,7 @@ function fn_quissly_search_dispatch_before_display()
         register_shutdown_function(static function () {
             $store = new DbSyncStore();
             \Quissly\Search\Update\Updater::runIfDue($store, time());
+            fn_quissly_search_version_report($store);
             // Shopping events wait for the cron; a store without one sends them here, a few
             // seconds' worth, when the cron has not run for 10 minutes.
             if ((int) ($store->getState('last_cron')['at'] ?? 0) < time() - 600) {
@@ -565,7 +566,86 @@ function fn_quissly_search_most_loved_handler()
         $picks['enabled'],
         $list,
         $picks['enabled'] ? \Quissly\Search\MostLoved::problems($picks['shown'], $picks['backups'], 'fn_quissly_search_most_loved_state') : null
+    ) . fn_quissly_search_most_loved_pickers($picks);
+}
+
+/**
+ * The product pickers over the two code boxes (lib/Admin/MostLovedView::pickers()).
+ *
+ * @param array{shown:list<string>, backups:list<string>} $picks
+ */
+function fn_quissly_search_most_loved_pickers(array $picks): string
+{
+    $count = static fn (string $key): string => str_replace(['[count]', '[max]'], ['%1', '%2'], (string) __($key));
+    $script = (string) @file_get_contents(rtrim((string) \Tygh\Registry::get('config.dir.root'), '/') . '/js/addons/quissly_search/most-loved-picker.js');
+
+    return \Quissly\Search\Admin\MostLovedView::pickers(
+        [
+            'shown'   => array_map('fn_quissly_search_most_loved_item', $picks['shown']),
+            'backups' => array_map('fn_quissly_search_most_loved_item', $picks['backups']),
+        ],
+        (string) fn_url('quissly_search.most_loved_search'),
+        [
+            'placeholder' => (string) __('quissly_search.most_loved_search'),
+            'remove'      => (string) __('quissly_search.most_loved_remove'),
+            'move'        => (string) __('quissly_search.most_loved_move'),
+            'moveHint'    => (string) __('quissly_search.most_loved_move_hint'),
+            'searching'   => (string) __('quissly_search.most_loved_searching'),
+            'none'        => (string) __('quissly_search.most_loved_none'),
+            'error'       => (string) __('quissly_search.most_loved_search_error'),
+            'picked'      => (string) __('quissly_search.most_loved_picked'),
+            'inShown'     => (string) __('quissly_search.most_loved_in_shown'),
+            'inBackups'   => (string) __('quissly_search.most_loved_in_backups'),
+            'count'       => $count('quissly_search.most_loved_count'),
+            'full'        => $count('quissly_search.most_loved_full'),
+        ],
+        $script
     );
+}
+
+/**
+ * A pick as the picker shows it: its code, name, first image and why it cannot be shown ('' when it can).
+ *
+ * @return array{sku:string, name:string, image:string, note:string}
+ */
+function fn_quissly_search_most_loved_item(string $code): array
+{
+    $state = fn_quissly_search_most_loved_state($code);
+    $product = fn_quissly_search_most_loved_product($code)['product'];
+
+    return [
+        'sku'   => $code,
+        'name'  => (string) $state['title'],
+        'image' => $product !== null ? (string) ($product['images'][0] ?? '') : '',
+        'note'  => $state['reason'] === '' ? '' : (string) __('quissly_search.most_loved_reason_' . $state['reason']),
+    ];
+}
+
+/**
+ * The picker's search: products whose name (in the admin's language) or code contains $query,
+ * at most 20, each as fn_quissly_search_most_loved_item(). Products, not their variations: a
+ * variation's code shows its parent's card anyway.
+ *
+ * @return list<array{sku:string, name:string, image:string, note:string}>
+ */
+function fn_quissly_search_most_loved_search(string $query): array
+{
+    $query = trim($query);
+    if (mb_strlen($query) < 2) {
+        return [];
+    }
+    $like = '%' . $query . '%';
+    $codes = db_get_fields(
+        "SELECT p.product_code FROM ?:products AS p"
+        . " LEFT JOIN ?:product_descriptions AS d ON d.product_id = p.product_id AND d.lang_code = ?s"
+        . " WHERE p.product_code != '' AND p.parent_product_id = 0 AND (d.product LIKE ?l OR p.product_code LIKE ?l)"
+        . " GROUP BY p.product_code ORDER BY MIN(d.product) LIMIT 20",
+        defined('DESCR_SL') ? DESCR_SL : CART_LANGUAGE,
+        $like,
+        $like
+    );
+
+    return array_map('fn_quissly_search_most_loved_item', array_map('strval', (array) $codes));
 }
 
 /**
@@ -1006,6 +1086,33 @@ function fn_quissly_search_page_event(): ?array
 }
 
 /**
+ * Queue the version report when due (lib/Events/VersionReport): only from a connected store -
+ * an unconnected one keeps tracking, so its first report says where it came from. Never throws.
+ */
+function fn_quissly_search_version_report(DbSyncStore $store): void
+{
+    try {
+        $version = \Quissly\Search\Update\Release::versionIn((string) @file_get_contents(__DIR__ . '/addon.xml'))
+            ?? (string) fn_get_addon_version('quissly_search');
+        if ($version === '') {
+            return;
+        }
+        $stored = (array) ($store->getState(\Quissly\Search\Events\VersionReport::STATE) ?? []);
+        $result = \Quissly\Search\Events\VersionReport::track($stored, $version, time());
+        $state = $result['state'];
+        if ($result['report'] && Credentials::fromRegistry()->isConfigured()) {
+            (new \Quissly\Search\Events\DbEventQueue())->add(EventBody::envelope(\Quissly\Search\Events\VersionReport::EVENT, \Quissly\Search\Events\VersionReport::metadata($state), null, [], fn_quissly_search_event_shop(), EventBody::SOURCE_STORE, \Quissly\Search\Shopper::newUuid(), time()), time());
+            $state['reported_at'] = time();
+        }
+        if ($state !== $stored) {
+            $store->setState(\Quissly\Search\Events\VersionReport::STATE, $state);
+        }
+    } catch (\Throwable $e) {
+        return;
+    }
+}
+
+/**
  * Send the queued events (the cron; an admin page's end when the cron is not set up).
  *
  * @return array{sent: int, dropped: int, retried: int}
@@ -1019,7 +1126,8 @@ function fn_quissly_search_events_send(float $budgetSeconds): array
         $client !== null && fn_quissly_search_events_enabled(),
         static fn (array $body): ?array => $client !== null ? $client->post(EventSender::PATH, $body, EventSender::TIMEOUT_SECONDS) : null,
         time(),
-        $budgetSeconds
+        $budgetSeconds,
+        $client !== null
     );
     if ($counts['sent'] + $counts['dropped'] + $counts['retried'] > 0) {
         \Quissly\Search\Logger::notice(sprintf('events sent=%d dropped=%d retried=%d', $counts['sent'], $counts['dropped'], $counts['retried']));

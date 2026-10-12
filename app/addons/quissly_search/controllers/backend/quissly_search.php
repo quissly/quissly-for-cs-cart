@@ -578,6 +578,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'sync_now') {
     return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
 }
 
+// Configuration's Most loved picker (js/addons/quissly_search/most-loved-picker.js): read only.
+if ($mode === 'most_loved_search') {
+    fn_quissly_search_setup_json(fn_quissly_search_most_loved_search((string) ($_REQUEST['q'] ?? '')));
+}
+
 if ($mode === 'cron') {
     $store = new DbSyncStore();
     $store->setState('last_cron', ['at' => time()]);
@@ -588,8 +593,9 @@ if ($mode === 'cron') {
         // Search bar suggestions from the catalog: once per store, when due (lib/Showcase/).
         fn_quissly_search_showcase_tick($store);
     }
-    // Shopping activity for Quissly's analytics: the queued events (lib/Events/). Also when
-    // not connected (any longer): the sender then empties the queue.
+    // Shopping activity for Quissly's analytics: the queued events (lib/Events/), after the
+    // version report when due. Also when not connected (any longer): the sender then empties the queue.
+    fn_quissly_search_version_report($store);
     fn_quissly_search_events_send(40.0);
     // A newer release from GitHub, checked once a day and installed (lib/Update/).
     \Quissly\Search\Update\Updater::runIfDue($store, time());
