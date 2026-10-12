@@ -580,7 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'sync_now') {
 
 // Configuration's Most loved picker (js/addons/quissly_search/most-loved-picker.js): read only.
 if ($mode === 'most_loved_search') {
-    fn_quissly_search_setup_json(fn_quissly_search_most_loved_search((string) ($_REQUEST['q'] ?? '')));
+    fn_quissly_search_setup_json(fn_quissly_search_most_loved_search((string) ($_REQUEST['q'] ?? ''), (int) ($_REQUEST['page'] ?? 1)));
 }
 
 if ($mode === 'cron') {

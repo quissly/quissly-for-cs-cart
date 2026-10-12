@@ -3,8 +3,9 @@
  * See COPYING.txt for license details.
  *
  * Most loved products: the product picker (WooCommerce's product search, as its plugin uses it)
- * over the SKU box of each list - "Shown products (8)" and "Backup products (4)". Type part of a
- * name or SKU, choose from the dropdown, drag to change the order, Remove to take one out.
+ * over the SKU box of each list - "Shown products (8)" and "Backup products (4)". Click the field
+ * to browse the catalog (it scrolls, more products load as it does), or type part of a name or
+ * SKU; choose from the dropdown, drag to change the order, Remove to take one out.
  *
  * The SKU box stays the field the form saves (one SKU per line), so the server side - and a
  * page without this script - is unchanged; the picker only hides it and writes it.
@@ -16,7 +17,9 @@
  *   field      CSS selector of the SKU box (textarea) it drives
  *   list       "shown" or "backups" - the other list's picks cannot be picked here
  *   max        how many it holds (8, 4)
- *   searchUrl  GET ?q=... answers [{sku, name, image, note}] - note: why it cannot be shown, or ''
+ *   searchUrl  GET ?q=...&page=N answers {items: [{sku, name, image, note}], more: bool} - note: why
+ *              it cannot be shown, or ''; q under 2 characters = the whole catalog, by name (a plain
+ *              array is read as one page with nothing more)
  *   items      the picks the page opened with, in order: [{sku, name, image, note}]
  *   text       the words it writes
  */
@@ -203,6 +206,10 @@
         var asked = 0;
         var found = [];
         var active = -1;
+        var page = 0;
+        var more = false;
+        var loading = false;
+        var loader = null;
 
         function close() {
             results.hidden = true;
@@ -211,6 +218,10 @@
             input.removeAttribute('aria-activedescendant');
             active = -1;
             found = [];
+            page = 0;
+            more = false;
+            loading = false;
+            loader = null;
         }
 
         function choose(item) {
@@ -240,19 +251,30 @@
             }
         }
 
-        function show(answer) {
-            results.textContent = '';
+        // A page of products: the first replaces the list, the next ones are added under it.
+        function show(answer, append) {
+            if (loader) {
+                loader.remove();
+                loader = null;
+            }
+            if (!append) {
+                results.textContent = '';
+                found = [];
+            }
             var mine = items.map(function (item) { return item.sku; });
             var theirs = other();
-            found = answer.map(function (item) {
+            var start = found.length;
+            var batch = answer.map(function (item) {
                 var blocked = mine.indexOf(item.sku) >= 0 ? text.picked
                     : (theirs.indexOf(item.sku) >= 0 ? text.inOther : '');
                 return {sku: item.sku, name: item.name, image: item.image, note: item.note, blocked: blocked};
             });
+            found = found.concat(batch);
             if (!found.length) {
                 results.appendChild(el('li', 'q-picker__empty', text.none || ''));
             }
-            found.forEach(function (item, index) {
+            batch.forEach(function (item, at) {
+                var index = start + at;
                 var option = el('li', 'q-picker__option' + (item.blocked ? ' is-blocked' : ''));
                 option.id = results.id + '-' + index;
                 option.setAttribute('role', 'option');
@@ -280,28 +302,56 @@
             });
             results.hidden = false;
             input.setAttribute('aria-expanded', 'true');
-            highlight(found.length ? 0 : -1);
+            if (!append) {
+                highlight(found.length ? 0 : -1);
+            }
         }
 
-        function lookUp() {
-            var query = input.value.trim();
-            if (query.length < 2) {
-                close();
+        // The first page for what is typed (under 2 characters: the whole catalog), or - next -
+        // the page after the last one shown, while the server says there is more.
+        function lookUp(next) {
+            if (next && (!more || loading)) {
                 return;
             }
+            var query = input.value.trim();
+            if (query.length < 2) {
+                query = '';
+            }
             var mine = ++asked;
-            results.hidden = false;
-            results.textContent = '';
-            results.appendChild(el('li', 'q-picker__empty', text.searching || ''));
-            var url = config.searchUrl + (config.searchUrl.indexOf('?') >= 0 ? '&' : '?') + 'q=' + encodeURIComponent(query);
+            if (next) {
+                loader = el('li', 'q-picker__empty', text.searching || '');
+                results.appendChild(loader);
+            } else {
+                page = 0;
+                more = false;
+                results.hidden = false;
+                input.setAttribute('aria-expanded', 'true');
+                results.textContent = '';
+                results.appendChild(el('li', 'q-picker__empty', text.searching || ''));
+            }
+            loading = true;
+            var url = config.searchUrl + (config.searchUrl.indexOf('?') >= 0 ? '&' : '?')
+                + 'q=' + encodeURIComponent(query) + '&page=' + (page + 1);
             fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'}})
                 .then(function (response) { return response.ok ? response.json() : []; })
                 .then(function (answer) {
-                    if (mine === asked) {
-                        show(Array.isArray(answer) ? answer : (Array.isArray(answer.items) ? answer.items : []));
+                    if (mine !== asked) {
+                        return;
                     }
+                    loading = false;
+                    page += 1;
+                    more = !Array.isArray(answer) && !!(answer && answer.more);
+                    show(Array.isArray(answer) ? answer : (answer && Array.isArray(answer.items) ? answer.items : []), next);
                 }, function () {
-                    if (mine === asked) {
+                    if (mine !== asked) {
+                        return;
+                    }
+                    loading = false;
+                    if (loader) {
+                        loader.remove();
+                        loader = null;
+                    }
+                    if (!next) {
                         results.textContent = '';
                         results.appendChild(el('li', 'q-picker__empty', text.error || ''));
                     }
@@ -310,7 +360,24 @@
 
         input.addEventListener('input', function () {
             window.clearTimeout(timer);
-            timer = window.setTimeout(lookUp, 250);
+            timer = window.setTimeout(function () { lookUp(false); }, 250);
+        });
+        // A click on the field opens the catalog, as the Shopify app's product picker does.
+        function browse() {
+            if (results.hidden && items.length < config.max) {
+                lookUp(false);
+            }
+        }
+        input.addEventListener('focus', browse);
+        input.addEventListener('click', browse);
+        results.addEventListener('scroll', function () {
+            if (results.scrollTop + results.clientHeight >= results.scrollHeight - 60) {
+                lookUp(true);
+            }
+        });
+        // Dragging the list's scrollbar must not take the focus from the field (which closes it).
+        results.addEventListener('mousedown', function (event) {
+            event.preventDefault();
         });
         input.addEventListener('keydown', function (event) {
             if (event.key === 'Enter') {

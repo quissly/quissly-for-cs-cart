@@ -23,6 +23,33 @@ final class DashboardView
 
     public const CRON_FRESH_SECONDS = 900;
 
+    /**
+     * The page's look: each section a card with room inside and between them, rows with room to
+     * breathe (CS-Cart's table-condensed packed them tight), borders that read in CS-Cart's light
+     * and dark themes alike.
+     */
+    private const STYLE = '.q-dash{max-width:960px}'
+        . '.q-dash__card{border:1px solid rgba(127,127,127,.28);border-radius:8px;padding:20px 24px 22px;margin:0 0 24px}'
+        . '.q-dash__title{margin:0 0 16px;font-size:20px;font-weight:600;line-height:1.3}'
+        . '.q-dash__card h4{margin:26px 0 12px;font-size:15px;font-weight:600}'
+        . '.q-dash__card p{margin:14px 0 0;line-height:1.6}'
+        . '.q-dash__card>.q-dash__title+p{margin-top:0}'
+        . '.q-dash__table{width:100%;margin:0;border-collapse:collapse;background:none}'
+        . '.q-dash__table th,.q-dash__table td{padding:12px 14px!important;vertical-align:middle!important;'
+        . 'border-top:1px solid rgba(127,127,127,.22)!important;line-height:1.5;background:none!important}'
+        . '.q-dash__table tr:first-child th,.q-dash__table tr:first-child td{border-top:0!important}'
+        . '.q-dash__table th{width:280px;text-align:left;font-weight:600;white-space:normal}'
+        . '.q-dash .label{display:inline-block;padding:3px 9px;border-radius:4px;font-size:12px;line-height:1.4;'
+        . 'margin-right:8px;vertical-align:middle}'
+        . '.q-dash__actions{margin-top:18px!important}'
+        . '.q-dash__actions .btn,.q-dash__actions form{margin:0 8px 8px 0}'
+        . '.q-dash .alert{margin:0 0 16px}'
+        . '.q-dash pre{margin:12px 0 0}'
+        . '.q-dash__reasons{margin:12px 0 0 20px}.q-dash__reasons li{margin-bottom:6px}'
+        . '.q-dash .progress{margin:12px 0 0}'
+        . '.q-dash .quissly-log td{padding:8px 12px!important;line-height:1.5;border-top:1px solid rgba(127,127,127,.18)!important;'
+        . 'background:none!important}';
+
     private const REASONS = [
         'master_toggle_off'          => 'quissly_search.reason_master_toggle_off',
         'credentials_not_configured' => 'quissly_search.reason_credentials_not_configured',
@@ -41,14 +68,20 @@ final class DashboardView
      */
     public static function render(array $m): string
     {
-        return self::searchStatus($m)
-            . self::connection($m)
-            . ($m['connected'] ? self::features($m) . self::sync($m) : '')
-            . self::log($m)
-            . '<p style="margin-top:24px">'
+        return '<style>' . self::STYLE . '</style><div class="q-dash">'
+            . self::card(self::searchStatus($m))
+            . self::card(self::connection($m))
+            . ($m['connected'] ? self::card(self::features($m)) . self::card(self::sync($m)) : '')
+            . self::card(self::log($m))
+            . '<p class="q-dash__actions">'
             . self::link($m['urls']['settings'], self::t('quissly_search.dash_open_settings'), 'btn')
             . ' ' . self::link($m['urls']['panel'], self::t('quissly_search.dash_open_panel'), 'btn')
-            . '</p>';
+            . '</p></div>';
+    }
+
+    private static function card(string $html): string
+    {
+        return '<section class="q-dash__card">' . $html . '</section>';
     }
 
     private static function searchStatus(array $m): string
@@ -76,13 +109,13 @@ final class DashboardView
         if (!$m['connected']) {
             // Connect lives at the top of Configuration (the add-on's settings page).
             return $html . self::alert('warning', self::t('quissly_search.dash_not_connected'))
-                . '<p>' . self::link($m['urls']['settings'], self::t('quissly_search.setup_connect'), 'btn btn-primary') . '</p>';
+                . '<p class="q-dash__actions">' . self::link($m['urls']['settings'], self::t('quissly_search.setup_connect'), 'btn btn-primary') . '</p>';
         }
 
         return $html . self::table([
             [self::t('quissly_search.dash_connected'), '<span class="label label-success">' . self::e(self::t('quissly_search.yes')) . '</span>'],
             [self::t('quissly_search.dash_environment'), self::e($m['environment'])],
-        ]) . '<p>' . self::link($m['urls']['test_connection'], self::t('quissly_search.test_connection'), 'btn') . '</p>';
+        ]) . '<p class="q-dash__actions">' . self::link($m['urls']['test_connection'], self::t('quissly_search.test_connection'), 'btn') . '</p>';
     }
 
     /**
@@ -143,7 +176,7 @@ final class DashboardView
             $html .= '<p>' . self::e(self::t('quissly_search.dash_progress', [
                 '[done]' => (string) $done, '[total]' => (string) (int) $progress['total'], '[failed]' => (string) (int) $progress['failed'],
             ])) . '</p>'
-                . '<div class="progress" style="max-width:640px"><div class="bar" style="width:' . $percent . '%"></div></div>';
+                . '<div class="progress"><div class="bar" style="width:' . $percent . '%"></div></div>';
         }
 
         // No second full sync while one is running: it would re-send every product.
@@ -156,7 +189,7 @@ final class DashboardView
             $label = $m['queued'] > 0 ? self::t('quissly_search.dash_send_queued') : self::t('quissly_search.dash_check_again');
             $buttons[] = self::post($m, [], $label, $buttons === [] ? 'btn btn-primary' : 'btn');
         }
-        $html .= '<p>' . implode(' ', $buttons) . '</p>';
+        $html .= '<p class="q-dash__actions">' . implode(' ', $buttons) . '</p>';
 
         $cronFresh = $m['last_cron_at'] !== null && $m['now'] - $m['last_cron_at'] <= self::CRON_FRESH_SECONDS;
         $html .= '<h4>' . self::e(self::t('quissly_search.dash_auto_sync')) . '</h4>';
@@ -165,7 +198,7 @@ final class DashboardView
                 . self::e(self::t('quissly_search.dash_cron_last', ['[ago]' => self::ago((int) $m['last_cron_at'], $m['now'])])) . '</p>';
         } else {
             $html .= self::alert('warning', self::t('quissly_search.dash_cron_missing'))
-                . '<pre class="quissly-dash__cron" style="max-width:900px;white-space:pre-wrap">*/5 * * * * ' . self::e($m['cron_command']) . '</pre>';
+                . '<pre class="quissly-dash__cron" style="white-space:pre-wrap">*/5 * * * * ' . self::e($m['cron_command']) . '</pre>';
         }
 
         return $html;
@@ -199,7 +232,7 @@ final class DashboardView
         }
 
         // Its only place in the admin (there is no Sync Log page): newest first, scrolling.
-        return $html . '<div style="max-height:420px;overflow:auto;max-width:1100px">' . SyncLogView::table($m['log']) . '</div>';
+        return $html . '<div style="max-height:420px;overflow:auto">' . SyncLogView::table($m['log']) . '</div>';
     }
 
     /** @param array<string, string> $fields */
@@ -219,10 +252,10 @@ final class DashboardView
     {
         $html = '';
         foreach ($rows as [$label, $value]) {
-            $html .= '<tr><th style="text-align:left;white-space:nowrap;padding-right:16px">' . self::e($label) . '</th><td>' . $value . '</td></tr>';
+            $html .= '<tr><th>' . self::e($label) . '</th><td>' . $value . '</td></tr>';
         }
 
-        return '<table class="table table-condensed" style="max-width:640px">' . $html . '</table>';
+        return '<table class="table q-dash__table">' . $html . '</table>';
     }
 
     private static function ago(int $at, int $now): string
@@ -243,12 +276,12 @@ final class DashboardView
 
     private static function h(string $text): string
     {
-        return '<h3 style="margin-top:20px">' . self::e($text) . '</h3>';
+        return '<h3 class="q-dash__title">' . self::e($text) . '</h3>';
     }
 
     private static function alert(string $type, string $text): string
     {
-        return '<div class="alert alert-' . self::e($type) . '" style="max-width:900px">' . self::e($text) . '</div>';
+        return '<div class="alert alert-' . self::e($type) . '">' . self::e($text) . '</div>';
     }
 
     private static function link(string $url, string $text, string $class = ''): string

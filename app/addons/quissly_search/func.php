@@ -645,30 +645,35 @@ function fn_quissly_search_most_loved_item(string $code): array
 }
 
 /**
- * The picker's search: products whose name (in the admin's language) or code contains $query,
- * at most 20, each as fn_quissly_search_most_loved_item(). Products, not their variations: a
- * variation's code shows its parent's card anyway.
+ * The picker's search: products whose name (in the admin's language) or code contains $query -
+ * under 2 characters, the whole catalog (the picker opens on it, as the Shopify app's) - by name,
+ * 20 a page, each as fn_quissly_search_most_loved_item(), and whether a next page exists.
+ * Products, not their variations: a variation's code shows its parent's card anyway.
  *
- * @return list<array{sku:string, name:string, image:string, note:string}>
+ * @return array{items: list<array{sku:string, name:string, image:string, note:string}>, more: bool}
  */
-function fn_quissly_search_most_loved_search(string $query): array
+function fn_quissly_search_most_loved_search(string $query, int $page = 1): array
 {
+    $per = 20;
     $query = trim($query);
-    if (mb_strlen($query) < 2) {
-        return [];
-    }
     $like = '%' . $query . '%';
+    $filter = mb_strlen($query) >= 2 ? db_quote(' AND (d.product LIKE ?l OR p.product_code LIKE ?l)', $like, $like) : '';
     $codes = db_get_fields(
         "SELECT p.product_code FROM ?:products AS p"
         . " LEFT JOIN ?:product_descriptions AS d ON d.product_id = p.product_id AND d.lang_code = ?s"
-        . " WHERE p.product_code != '' AND p.parent_product_id = 0 AND (d.product LIKE ?l OR p.product_code LIKE ?l)"
-        . " GROUP BY p.product_code ORDER BY MIN(d.product) LIMIT 20",
+        . " WHERE p.product_code != '' AND p.parent_product_id = 0 ?p"
+        . " GROUP BY p.product_code ORDER BY MIN(d.product), p.product_code LIMIT ?i, ?i",
         defined('DESCR_SL') ? DESCR_SL : CART_LANGUAGE,
-        $like,
-        $like
+        $filter,
+        (max(1, $page) - 1) * $per,
+        $per + 1
     );
+    $codes = array_map('strval', (array) $codes);
 
-    return array_map('fn_quissly_search_most_loved_item', array_map('strval', (array) $codes));
+    return [
+        'items' => array_map('fn_quissly_search_most_loved_item', array_slice($codes, 0, $per)),
+        'more'  => count($codes) > $per,
+    ];
 }
 
 /**
