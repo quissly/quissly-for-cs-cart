@@ -2,11 +2,10 @@
  * Copyright © Quissly. All rights reserved.
  * See COPYING.txt for license details.
  *
- * Quissly Billing - the plans, usage and invoices page, in the Shopify app's Settings
- * design: its billing column (app/routes/app.settings.tsx) with the rules and values of
- * app/styles/quissly-brand.css, and Shopify admin's card, button and banner look
- * (dev-preview/polaris-stubs.ts). The same file ships in quissly-for-woocommerce and
- * quissly-for-cs-cart; keep the three copies identical.
+ * Quissly Billing - the plans, usage and invoices page, in the Quissly Shopify app's Settings
+ * design: its billing column with Quissly's brand colours and Shopify admin's card, button and
+ * banner look. The same file ships in quissly-for-woocommerce and quissly-for-cs-cart; keep
+ * the three copies identical.
  *
  * Everything is scoped under .q-billing so the host admin's own styles are untouched,
  * and the host's button styles are reset inside it.
@@ -389,6 +388,74 @@
 .q-modal__body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .q-modal__body p { font-size: 13.5px; }
 .q-modal__actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--q-border); }
+
+/* ---- Automatic top-up: the Shopify app's "Overage on this plan" box ---- */
+.q-autotopup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--q-border);
+    border-radius: var(--q-radius);
+    background: var(--q-subdued);
+}
+.q-autotopup__title { font-weight: 650; color: var(--q-ink); }
+.q-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; }
+.q-billing .q-check input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--q-brand);
+    cursor: pointer;
+}
+.q-field { display: flex; flex-direction: column; gap: 4px; max-width: 260px; }
+.q-field__label { font-size: 13px; font-weight: 550; color: var(--q-text); }
+.q-field__hint { font-size: 12.5px; color: var(--q-text-help); }
+.q-money {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--q-border-strong);
+    border-radius: 8px;
+    background: var(--q-surface);
+    overflow: hidden;
+}
+.q-money:focus-within { border-color: var(--q-brand); box-shadow: 0 0 0 1px var(--q-brand); }
+.q-money__prefix { padding: 0 0 0 10px; color: var(--q-text-subdued); }
+.q-billing .q-money input {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    margin: 0;
+    padding: 0 10px 0 4px;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    font: inherit;
+    color: var(--q-text);
+}
+.q-billing .q-money input:focus { outline: none; box-shadow: none; }
+.q-field-error { font-size: 12.5px; color: var(--q-critical-text); }
+
+/* ---- Refund claim: a text box in the dialog ---- */
+.q-claim { display: flex; flex-direction: column; gap: 4px; }
+.q-billing .q-claim textarea {
+    width: 100%;
+    min-height: 110px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--q-border-strong);
+    border-radius: 8px;
+    font: inherit;
+    color: var(--q-text);
+    resize: vertical;
+}
+.q-billing .q-claim textarea:focus { outline: none; border-color: var(--q-brand); box-shadow: 0 0 0 1px var(--q-brand); }
+.q-claim__count { align-self: flex-end; font-size: 12px; color: var(--q-text-help); }
+
+/* ---- Refund policy, Terms and Privacy ---- */
+.q-links { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--q-text-help); }
+.q-billing .q-links a { color: var(--q-brand); text-decoration: none; }
+.q-billing .q-links a:hover { text-decoration: underline; }
 
 .q-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

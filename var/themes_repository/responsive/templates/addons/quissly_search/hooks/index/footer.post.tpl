@@ -12,6 +12,9 @@
 {if $quissly.media}
     <div data-quissly-media data-quissly-config="{$quissly.media_json|escape:"html"}" hidden></div>
 {/if}
+{if $quissly.events}
+    <div data-quissly-events data-quissly-config="{$quissly.events_json|escape:"html"}" hidden></div>
+{/if}
 {if $quissly.qchat_agent_id}
     <ai-chatbot agent-id="{$quissly.qchat_agent_id|escape:"html"}"></ai-chatbot>
     <div data-quissly-cart data-quissly-config="{$quissly.cart_json|escape:"html"}" hidden></div>

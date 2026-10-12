@@ -71,8 +71,8 @@ final class Client implements QSearchClient
     }
 
     /**
-     * Voice or image search (the WooCommerce plugin's voice()/visual(), same live-
-     * verified shapes): voice rides /v2beta/qsearch with `audio` (base64 16 kHz mono
+     * Voice or image search (the WooCommerce plugin's voice()/visual(), same
+     * shapes): voice rides /v2beta/qsearch with `audio` (base64 16 kHz mono
      * WAV) instead of `query`; image is /v2beta/qimage with `image` (base64 JPEG). Same
      * v2 header signing as text search, NO body timestamp (qimage rejects one: 422).
      * Returns the ids and, for voice, the transcription Quissly echoes in `query`.
@@ -153,6 +153,29 @@ final class Client implements QSearchClient
     }
 
     /**
+     * A signed v2 POST to another route (Quissly's suggestion generator): the status and the raw
+     * body, or null when nothing answered. Never throws for an HTTP status - the caller reads it.
+     *
+     * @return array{status:int, body:string}|null
+     */
+    public function post(string $path, array $body, int $timeoutSeconds): ?array
+    {
+        $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            return null;
+        }
+        $response = Http::post(Config::BASE_URL . $path, $json, [
+            'headers'            => $this->buildHeaders($json, $path),
+            'timeout'            => $timeoutSeconds,
+            'connection_timeout' => min(10, $timeoutSeconds),
+            'execution_timeout'  => $timeoutSeconds,
+        ]);
+        $status = Http::getStatus();
+
+        return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
+    }
+
+    /**
      * @return list<string> "Key: Value" header lines for cURL
      */
     private function buildHeaders(string $body, string $path = Config::QSEARCH_PATH): array
@@ -170,7 +193,7 @@ final class Client implements QSearchClient
         );
 
         // Verified contract header set. X-Platform carries the platform enum value
-        // (Config::PLATFORM), LIVE-CONFIRMED 2026-09-21: 'cs-cart' -> 200, 'cscart' -> 422.
+        // (Config::PLATFORM): 'cs-cart' -> 200, 'cscart' -> 422.
         return [
             'Authorization: Bearer ' . $this->credentials->bearerToken(),
             'X-Signature: ' . $signature,

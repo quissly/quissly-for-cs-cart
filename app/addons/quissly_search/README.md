@@ -68,22 +68,28 @@ For transparency, installing it:
   (`quissly_bearer_token`, `quissly_private_key_path` *or* `quissly_private_key`,
   `quissly_environment`, `quissly_project_id`, `quissly_account_email`) — **none** with
   one-click Connect;
-- creates nine small database tables, all prefixed `cscart_quissly_search_`:
+- creates ten small database tables, all prefixed `cscart_quissly_search_`:
   `health` (single-row connection-alert record), `queue` (products waiting to be sent),
   `synced` (what Quissly holds), `operations` (Quissly operations not yet finished),
   `state` (the add-on's own state — how far Quissly Setup has got, your search-bar
   suggestions and Catalog-data choices, and **the encrypted credentials when you use
   one-click Connect**), `log` (the sync log), `tokens` (voice/image result sets),
-  `rate` (per-visitor throttle buckets) and `ids` (Quissly id ↔ product id pairs, for the
-  chat's "Add to cart");
+  `rate` (per-visitor throttle buckets), `ids` (Quissly id ↔ product id pairs, for the
+  chat's "Add to cart") and `events` (shopping events waiting to be sent);
 - imports its interface strings in English, Georgian (ka), and Russian (ru);
 - sets one first-party cookie on a guest's first search, `quissly_uid` (a random id, one
   year, HttpOnly), so Quissly's analytics count a returning visitor once — and, with CS-Cart's
   **GDPR** add-on active, lists itself in its cookie banner as **Quissly search** under
-  *Performance cookies*, so a shopper can decline it (see *Security notes*).
+  *Performance cookies*, so a shopper can decline it (see *Security notes*);
+- sends the store's **shopping activity** to Quissly's analytics (setting *Shopping activity
+  for Quissly analytics*, on by default): product page views, searches, adds to cart and to
+  the wish list, and paid orders (an order counts when it enters a status that takes the stock:
+  Open, Processed or Complete) - the Quissly Shopify app sends the same. Product ids,
+  quantities, prices and order totals with the visitor id above, never a name, email, address
+  or IP; nothing for a guest who has not accepted the cookie banner. The cron sends them.
 
 It edits none of your own files — no theme, template, catalog, price, or checkout changes.
-Disabling the add-on reverts search to native immediately. **Uninstalling drops all nine
+Disabling the add-on reverts search to native immediately. **Uninstalling drops all ten
 tables** — see *Rolling back* before you do that on a store connected with one-click
 Connect.
 

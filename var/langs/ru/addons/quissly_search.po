@@ -595,12 +595,12 @@ msgid "Quissly skipped this search: [reason]"
 msgstr "Quissly пропустил этот поиск: [reason]"
 
 msgctxt "SettingsOptions::quissly_search::suggestions_header"
-msgid "Search bar suggestions"
-msgstr "Подсказки в строке поиска"
+msgid "Search Examples"
+msgstr "Примеры поиска"
 
 msgctxt "SettingsOptions::quissly_search::search_suggestions"
-msgid "Typing suggestions"
-msgstr "Подсказки с печатью"
+msgid "Examples"
+msgstr "Примеры"
 
 msgctxt "Languages::quissly_search.suggestions_intro"
 msgid "Example searches the search overlay types, letter by letter, into its empty search bar, in random order, so shoppers see what they can ask. They stop the moment a shopper starts typing."
@@ -617,10 +617,6 @@ msgstr "Показывать подсказки с печатью"
 msgctxt "Languages::quissly_search.suggestions_placeholder"
 msgid "e.g. waterproof jacket under $100"
 msgstr "напр. непромокаемая куртка до $100"
-
-msgctxt "Languages::quissly_search.suggestions_hint"
-msgid "One per line, each under [length] characters. With none, the bar keeps its plain placeholder."
-msgstr "По одной в строке, каждая короче [length] символов. Если их нет, в строке остаётся обычная подсказка."
 
 msgctxt "Languages::quissly_search.suggestions_too_many"
 msgid "Up to [count] search bar suggestions."
@@ -641,10 +637,6 @@ msgstr "Не удалось войти в Quissly, чтобы сохранить
 msgctxt "Languages::quissly_search.suggestions_save_failed"
 msgid "Couldn't save the search bar suggestions. Please try again."
 msgstr "Не удалось сохранить подсказки в строке поиска. Пожалуйста, попробуйте снова."
-
-msgctxt "Languages::quissly_search.suggestions_use_generated"
-msgid "Replace the list with the suggestions generated from your catalog:"
-msgstr "Заменить список подсказками, созданными по вашему каталогу:"
 
 msgctxt "Languages::quissly_search.suggestions_generated_pending"
 msgid "Left empty, suggestions are generated from your catalog after the first catalog sync - each one checked to find products."
@@ -671,8 +663,8 @@ msgid "Let's get Quissly running on your store"
 msgstr "Запустим Quissly в вашем магазине"
 
 msgctxt "Languages::quissly_search.su_band_sub"
-msgid "Three short steps. Nothing reaches your storefront until you go live."
-msgstr "Три коротких шага. До запуска на витрине ничего не меняется."
+msgid "Three short steps, about five minutes."
+msgstr "Три коротких шага, около пяти минут."
 
 msgctxt "Languages::quissly_search.su_progress"
 msgid "Setup progress"
@@ -699,72 +691,44 @@ msgid "Step [n] of [total]"
 msgstr "Шаг [n] из [total]"
 
 msgctxt "Languages::quissly_search.su_details_desc"
-msgid "We use this email for your Quissly account and billing notifications."
-msgstr "Этот email используется для вашего аккаунта Quissly и уведомлений об оплате."
+msgid "We filled this in from your store. Check it's right and fix anything that isn't - Quissly uses it to understand your products."
+msgstr "Мы заполнили это из вашего магазина. Проверьте и исправьте, если что-то не так - Quissly использует это, чтобы понимать ваши товары."
 
 msgctxt "Languages::quissly_search.su_email"
 msgid "Email"
 msgstr "Email"
 
 msgctxt "Languages::quissly_search.su_connected_help"
-msgid "Your store is connected to this Quissly account."
-msgstr "Ваш магазин подключён к этому аккаунту Quissly."
+msgid "Your Quissly account uses this address. To change it, contact Quissly support."
+msgstr "Ваш аккаунт Quissly использует этот адрес. Чтобы изменить его, напишите в поддержку Quissly."
 
 msgctxt "Languages::quissly_search.su_email_help"
-msgid "Account and billing emails go here. This can't be changed later."
-msgstr "Сюда приходят письма об аккаунте и оплате. Позже изменить нельзя."
+msgid "We send account and billing emails here. It can't be changed once your account is created."
+msgstr "Сюда приходят письма об аккаунте и оплате. После создания аккаунта его нельзя изменить."
 
 msgctxt "Languages::quissly_search.su_store_name"
 msgid "Store name"
 msgstr "Название магазина"
 
 msgctxt "Languages::quissly_search.su_store_name_help"
-msgid "Letters, numbers, spaces and hyphens. Your Quissly workspace is named after it; left empty, it is named after [domain]."
-msgstr "Латинские буквы, цифры, пробелы и дефисы. Так будет называться ваше рабочее пространство Quissly; если оставить пустым — [domain]."
+msgid "Letters, numbers, spaces and hyphens."
+msgstr "Буквы, цифры, пробелы и дефисы."
 
 msgctxt "Languages::quissly_search.su_next"
 msgid "What happens next"
 msgstr "Что дальше"
 
-msgctxt "Languages::quissly_search.su_next_plan"
-msgid "Pick a plan"
-msgstr "Выберите тариф"
-
-msgctxt "Languages::quissly_search.su_next_plan_text"
-msgid "Start free, or try a paid plan for 14 days."
-msgstr "Начните бесплатно или попробуйте платный тариф 14 дней."
-
-msgctxt "Languages::quissly_search.su_next_sync"
-msgid "Your catalog syncs"
-msgstr "Каталог синхронизируется"
-
-msgctxt "Languages::quissly_search.su_next_sync_text"
-msgid "Your products are sent to Quissly in the background."
-msgstr "Ваши товары отправляются в Quissly в фоне."
-
-msgctxt "Languages::quissly_search.su_next_golive_text"
-msgid "Switch Quissly search on once your catalog is ready."
-msgstr "Включите поиск Quissly, когда каталог будет готов."
-
 msgctxt "Languages::quissly_search.su_side_foot"
-msgid "Nothing is charged and nothing is published until you say so."
-msgstr "Без вашего согласия ничего не списывается и не публикуется."
+msgid "Nothing is charged until you pick a paid plan, and your store doesn't change until you turn Quissly on."
+msgstr "Ничего не списывается, пока вы не выберете платный план, и магазин не меняется, пока вы не включите Quissly."
 
 msgctxt "Languages::quissly_search.su_connected_note"
 msgid "Connected to Quissly."
 msgstr "Подключено к Quissly."
 
-msgctxt "Languages::quissly_search.su_connect_note"
-msgid "One click creates your Quissly account and connects this store."
-msgstr "Один клик создаёт аккаунт Quissly и подключает этот магазин."
-
 msgctxt "Languages::quissly_search.su_continue"
 msgid "Continue"
 msgstr "Продолжить"
-
-msgctxt "Languages::quissly_search.su_connect"
-msgid "Connect & continue"
-msgstr "Подключить и продолжить"
 
 msgctxt "Languages::quissly_search.su_connecting"
 msgid "Creating your Quissly account..."
@@ -775,8 +739,8 @@ msgid "Saving..."
 msgstr "Сохраняем..."
 
 msgctxt "Languages::quissly_search.su_going_live"
-msgid "Going live..."
-msgstr "Запускаем..."
+msgid "Finishing..."
+msgstr "Завершаем..."
 
 msgctxt "Languages::quissly_search.su_pick_plan"
 msgid "Pick a plan to continue"
@@ -874,10 +838,6 @@ msgctxt "Languages::quissly_search.su_no_plan"
 msgid "Continue without a plan"
 msgstr "Продолжить без тарифа"
 
-msgctxt "Languages::quissly_search.su_golive_desc"
-msgid "Your catalog is on its way to Quissly. Once it is ready, Finish Setup switches Quissly search on for your shoppers - or save now and switch it on later."
-msgstr "Ваш каталог отправляется в Quissly. Когда он будет готов, «Завершить настройку» включит поиск Quissly для покупателей — или сохраните сейчас и включите позже."
-
 msgctxt "Languages::quissly_search.su_live_search"
 msgid "Quissly answers your store's search"
 msgstr "Quissly отвечает на поиск в магазине"
@@ -903,20 +863,12 @@ msgid "Chat, voice and image search, and the search bar."
 msgstr "Чат, голосовой поиск и поиск по фото, строка поиска."
 
 msgctxt "Languages::quissly_search.su_account_setup"
-msgid "Quissly account setup"
-msgstr "Подготовка аккаунта Quissly"
+msgid "Account setup"
+msgstr "Настройка аккаунта"
 
 msgctxt "Languages::quissly_search.su_setting_up"
 msgid "Setting up..."
 msgstr "Настраиваем..."
-
-msgctxt "Languages::quissly_search.su_background"
-msgid "Running in the background. Finish Setup unlocks when it is done - you can keep working on the left."
-msgstr "Идёт в фоне. Завершение станет доступно, когда всё будет готово — можно продолжать работу слева."
-
-msgctxt "Languages::quissly_search.su_waiting"
-msgid "Waiting"
-msgstr "Ожидание"
 
 msgctxt "Languages::quissly_search.su_done"
 msgid "Done"
@@ -934,21 +886,13 @@ msgctxt "Languages::quissly_search.su_ready"
 msgid "Ready"
 msgstr "Готово"
 
-msgctxt "Languages::quissly_search.su_needs_attention"
-msgid "Needs attention"
-msgstr "Требует внимания"
-
 msgctxt "Languages::quissly_search.su_retry"
-msgid "Start the sync again"
-msgstr "Запустить синхронизацию заново"
+msgid "Start the import again"
+msgstr "Запустить импорт снова"
 
 msgctxt "Languages::quissly_search.su_usually"
-msgid "Usually a few minutes. This page updates itself - no refresh needed."
-msgstr "Обычно несколько минут. Страница обновляется сама — перезагружать не нужно."
-
-msgctxt "Languages::quissly_search.su_golive_note"
-msgid "Finish Setup unlocks when background setup completes."
-msgstr "Завершение станет доступно после фоновой подготовки."
+msgid "This page updates itself - no refresh needed."
+msgstr "Страница обновляется сама - перезагружать не нужно."
 
 msgctxt "Languages::quissly_search.su_tier_free"
 msgid "Free"
@@ -971,20 +915,20 @@ msgid "Scale"
 msgstr "Scale"
 
 msgctxt "Languages::quissly_search.su_human_only"
-msgid "Human agents only"
-msgstr "Только операторы"
+msgid "Live chat"
+msgstr "Живой чат"
 
 msgctxt "Languages::quissly_search.su_no_ai"
-msgid "no AI messages"
-msgstr "без AI-сообщений"
+msgid "answered by your team"
+msgstr "отвечает ваша команда"
 
 msgctxt "Languages::quissly_search.su_ai_messages"
-msgid "AI messages / mo"
-msgstr "AI-сообщений / мес"
+msgid "AI chat messages a month"
+msgstr "сообщений AI-чата в месяц"
 
 msgctxt "Languages::quissly_search.su_searches"
-msgid "searches / mo"
-msgstr "поисков / мес"
+msgid "searches a month"
+msgstr "поисков в месяц"
 
 msgctxt "Languages::quissly_search.su_extra_price"
 msgid "[price] per [count]"
@@ -1034,33 +978,13 @@ msgctxt "Languages::quissly_search.su_note_annual"
 msgid "[plan] · [price]/mo · billed yearly"
 msgstr "[plan] · [price]/мес · ежегодно"
 
-msgctxt "Languages::quissly_search.su_products_sent"
-msgid "[count] products sent."
-msgstr "Отправлено товаров: [count]."
-
-msgctxt "Languages::quissly_search.su_products_progress"
-msgid "[sent] of [total] products sent."
-msgstr "Отправлено [sent] из [total] товаров."
-
 msgctxt "Languages::quissly_search.su_sync_refused"
 msgid "Quissly is refusing catalog updates (HTTP [status])."
 msgstr "Quissly отклоняет обновления каталога (HTTP [status])."
 
 msgctxt "Languages::quissly_search.su_sync_nothing"
-msgid "No products reached Quissly. Check the sync log on the Dashboard, then start the sync again."
-msgstr "Ни один товар не дошёл до Quissly. Проверьте журнал синхронизации на панели и запустите её снова."
-
-msgctxt "Languages::quissly_search.su_starting"
-msgid "Starting..."
-msgstr "Запускаем..."
-
-msgctxt "Languages::quissly_search.su_sync_waits"
-msgid "Starts as soon as the search service is ready."
-msgstr "Начнётся, как только сервис поиска будет готов."
-
-msgctxt "Languages::quissly_search.su_service_building"
-msgid "Quissly is building your search service."
-msgstr "Quissly создаёт ваш сервис поиска."
+msgid "No products reached Quissly. The sync log on the Dashboard has the details."
+msgstr "Ни один товар не дошёл до Quissly. Подробности - в журнале синхронизации на панели."
 
 msgctxt "Languages::quissly_search.su_billing_401"
 msgid "Quissly did not recognise this store. Check the connection in Configuration."
@@ -1094,37 +1018,9 @@ msgctxt "Languages::quissly_search.su_live_now"
 msgid "Quissly search is live on your store."
 msgstr "Поиск Quissly запущен в вашем магазине."
 
-msgctxt "Languages::quissly_search.su_description"
-msgid "Description"
-msgstr "Описание"
-
-msgctxt "Languages::quissly_search.su_optional"
-msgid "(optional)"
-msgstr "(необязательно)"
-
-msgctxt "Languages::quissly_search.su_description_help"
-msgid "Drafted from your store. A short note on what you sell, so Quissly and your team recognise this workspace."
-msgstr "Составлено по данным вашего магазина. Коротко о том, что вы продаёте, — чтобы Quissly и ваша команда узнавали это рабочее пространство."
-
-msgctxt "Languages::quissly_search.su_preview"
-msgid "Preview"
-msgstr "Предпросмотр"
-
-msgctxt "Languages::quissly_search.su_workspace"
-msgid "Workspace"
-msgstr "Рабочее пространство"
-
-msgctxt "Languages::quissly_search.su_no_description"
-msgid "No description yet."
-msgstr "Описания пока нет."
-
 msgctxt "Languages::quissly_search.su_finish"
 msgid "Finish Setup"
 msgstr "Завершить настройку"
-
-msgctxt "Languages::quissly_search.su_save_changes"
-msgid "Save changes"
-msgstr "Сохранить изменения"
 
 msgctxt "Languages::quissly_search.su_compare"
 msgid "Compare all features"
@@ -1137,18 +1033,6 @@ msgstr "← Назад к карточкам тарифов"
 msgctxt "Languages::quissly_search.su_compare_plans"
 msgid "Compare plans"
 msgstr "Сравнение тарифов"
-
-msgctxt "Languages::quissly_search.su_row_store"
-msgid "Store identity"
-msgstr "Идентификация магазина"
-
-msgctxt "Languages::quissly_search.su_row_organization"
-msgid "Organization"
-msgstr "Организация"
-
-msgctxt "Languages::quissly_search.su_row_project"
-msgid "Project"
-msgstr "Проект"
 
 msgctxt "Languages::quissly_search.su_row_qsearch"
 msgid "QSearch service"
@@ -1163,12 +1047,12 @@ msgid "Catalog import"
 msgstr "Импорт каталога"
 
 msgctxt "Languages::quissly_search.su_searches_month"
-msgid "Searches / month"
-msgstr "Поисков / мес"
+msgid "Searches a month"
+msgstr "Поисков в месяц"
 
 msgctxt "Languages::quissly_search.su_ai_messages_month"
-msgid "AI messages / month"
-msgstr "AI-сообщений / мес"
+msgid "AI chat messages a month"
+msgstr "Сообщений AI-чата в месяц"
 
 msgctxt "Languages::quissly_search.su_extra_requests"
 msgid "Extra requests"
@@ -1190,13 +1074,9 @@ msgctxt "Languages::quissly_search.su_days"
 msgid "[days] days"
 msgstr "[days] дней"
 
-msgctxt "Languages::quissly_search.su_chat_not_found"
-msgid "Not found yet - chat can still be switched on later."
-msgstr "Пока не найден — чат можно включить позже."
-
 msgctxt "Languages::quissly_search.su_saved_later"
-msgid "Setup saved. Quissly search stays off until you switch it on in Configuration, once your catalog has synced."
-msgstr "Настройка сохранена. Поиск Quissly остаётся выключенным, пока вы не включите его в настройках после синхронизации каталога."
+msgid "Setup saved. Quissly stays off until you switch it on in Configuration, once your catalog has synced."
+msgstr "Настройка сохранена. Quissly выключен, пока вы не включите его в настройках после синхронизации каталога."
 
 msgctxt "Languages::quissly_search.su_still_building"
 msgid "Quissly is still building your services. Try again in a minute."
@@ -1219,8 +1099,8 @@ msgid "Use an address on a real, public domain."
 msgstr "Используйте адрес на реальном публичном домене."
 
 msgctxt "Languages::quissly_search.su_name_invalid"
-msgid "Use letters, numbers, spaces and hyphens in the store name."
-msgstr "В названии магазина используйте латинские буквы, цифры, пробелы и дефисы."
+msgid "Use only letters, numbers, spaces and hyphens."
+msgstr "Используйте только буквы, цифры, пробелы и дефисы."
 
 msgctxt "Languages::quissly_billing"
 msgid "Billing"
@@ -1609,3 +1489,619 @@ msgstr "Запланированное изменение отменено."
 msgctxt "Languages::quissly_search.bi_unknown"
 msgid "Unknown request."
 msgstr "Неизвестный запрос."
+
+msgctxt "Languages::quissly_search.bi_at_hint"
+msgid "One block of [count] requests ([price]) at a time, up to this much a month."
+msgstr "По одному блоку из [count] запросов ([price]), не больше этой суммы в месяц."
+
+msgctxt "Languages::quissly_search.bi_rate_search"
+msgid "[price] per search"
+msgstr "[price] за поиск"
+
+msgctxt "Languages::quissly_search.bi_rate_chat"
+msgid "[price] per AI message"
+msgstr "[price] за сообщение ИИ"
+
+msgctxt "Languages::quissly_search.bi_refund_back"
+msgid "[amount] goes back to your card."
+msgstr "[amount] вернётся на вашу карту."
+
+msgctxt "Languages::quissly_search.bi_refund_claim_offer"
+msgid "You can still ask for a refund: tell us what happened, and a person replies within 3 business days."
+msgstr "Вы всё равно можете попросить возврат: расскажите, что случилось, и сотрудник ответит в течение 3 рабочих дней."
+
+msgctxt "Languages::quissly_search.bi_refund_none"
+msgid "This plan cannot be refunded."
+msgstr "Этот план нельзя вернуть."
+
+msgctxt "Languages::quissly_search.bi_at_meta"
+msgid "auto top-up up to [price] a month"
+msgstr "автопополнение до [price] в месяц"
+
+msgctxt "Languages::quissly_search.bi_at_on"
+msgid "Automatic top-up: up to [price] a month."
+msgstr "Автопополнение: до [price] в месяц."
+
+msgctxt "Languages::quissly_search.bi_at_off"
+msgid "Automatic top-up is off."
+msgstr "Автопополнение выключено."
+
+msgctxt "Languages::quissly_search.bi_request_refund"
+msgid "Request a refund"
+msgstr "Запросить возврат"
+
+msgctxt "Languages::quissly_search.bi_at_on_plan"
+msgid "Automatic top-up on this plan"
+msgstr "Автопополнение на этом плане"
+
+msgctxt "Languages::quissly_search.bi_at_toggle"
+msgid "Top up automatically"
+msgstr "Пополнять автоматически"
+
+msgctxt "Languages::quissly_search.bi_at_max"
+msgid "Max per month"
+msgstr "Максимум в месяц"
+
+msgctxt "Languages::quissly_search.bi_at_explain"
+msgid "When this month's requests are about to run out, Quissly buys one more block on your card. Off, requests stop at your plan's limit until next month."
+msgstr "Когда запросы этого месяца заканчиваются, Quissly покупает ещё один блок с вашей карты. Если выключено, запросы останавливаются на лимите плана до следующего месяца."
+
+msgctxt "Languages::quissly_search.bi_at_title_for"
+msgid "[product]: automatic top-up"
+msgstr "[product]: автопополнение"
+
+msgctxt "Languages::quissly_search.bi_at_title"
+msgid "Automatic top-up"
+msgstr "Автопополнение"
+
+msgctxt "Languages::quissly_search.bi_at_save"
+msgid "Save automatic top-up"
+msgstr "Сохранить автопополнение"
+
+msgctxt "Languages::quissly_search.bi_at_range"
+msgid "Enter a monthly maximum from %1 to %2."
+msgstr "Укажите месячный максимум от %1 до %2."
+
+msgctxt "Languages::quissly_search.bi_at_saved_on"
+msgid "Automatic top-up is on: up to [price] a month."
+msgstr "Автопополнение включено: до [price] в месяц."
+
+msgctxt "Languages::quissly_search.bi_at_saved_off"
+msgid "Automatic top-up is off."
+msgstr "Автопополнение выключено."
+
+msgctxt "Languages::quissly_search.bi_link_refund"
+msgid "Refund policy"
+msgstr "Политика возврата"
+
+msgctxt "Languages::quissly_search.bi_link_terms"
+msgid "Terms of service"
+msgstr "Условия использования"
+
+msgctxt "Languages::quissly_search.bi_link_privacy"
+msgid "Privacy policy"
+msgstr "Политика конфиденциальности"
+
+msgctxt "Languages::quissly_search.bi_claim_label"
+msgid "What happened?"
+msgstr "Что случилось?"
+
+msgctxt "Languages::quissly_search.bi_claim_title"
+msgid "Ask for a refund"
+msgstr "Попросить о возврате"
+
+msgctxt "Languages::quissly_search.bi_refund"
+msgid "Refund"
+msgstr "Вернуть деньги"
+
+msgctxt "Languages::quissly_search.bi_send_request"
+msgid "Send request"
+msgstr "Отправить запрос"
+
+msgctxt "Languages::quissly_search.bi_claim_length"
+msgid "Tell us what happened in 10 to 4000 characters."
+msgstr "Опишите, что случилось, от 10 до 4000 символов."
+
+msgctxt "Languages::quissly_search.bi_refund_done_ends"
+msgid "Refund requested: [amount] goes back to your card within a few days. The plan has ended."
+msgstr "Возврат запрошен: [amount] вернётся на вашу карту в течение нескольких дней. План завершён."
+
+msgctxt "Languages::quissly_search.bi_refund_done_extras"
+msgid "Refund requested: [amount] goes back to your card within a few days. The extra requests it paid for were removed."
+msgstr "Возврат запрошен: [amount] вернётся на вашу карту в течение нескольких дней. Оплаченные им дополнительные запросы удалены."
+
+msgctxt "Languages::quissly_search.bi_claim_sent"
+msgid "Your refund request was sent (ticket [ticket]). A person replies within [days] business days."
+msgstr "Ваш запрос на возврат отправлен (обращение [ticket]). Сотрудник ответит в течение [days] рабочих дней."
+
+msgctxt "SettingsOptions::quissly_search::overlay_suggestions"
+msgid "Show suggestion buttons"
+msgstr "Показывать кнопки подсказок"
+
+msgctxt "SettingsTooltips::quissly_search::overlay_suggestions"
+msgid "Buttons under the empty search bar that a shopper can click to search. On by default."
+msgstr "Кнопки под пустой строкой поиска: покупатель нажимает и ищет. Включено по умолчанию."
+
+msgctxt "Languages::quissly_search.sf_suggestions"
+msgid "[store] suggestions"
+msgstr "Подсказки [store]"
+
+msgctxt "Languages::quissly_search.sf_suggestions_plain"
+msgid "Suggestions"
+msgstr "Подсказки"
+
+msgctxt "Languages::quissly_search.feature_overlay_suggestions"
+msgid "Suggestions under the search bar"
+msgstr "Подсказки под строкой поиска"
+
+msgctxt "SettingsOptions::quissly_search::enable_events"
+msgid "Shopping activity for Quissly analytics"
+msgstr "Действия покупателей для аналитики Quissly"
+
+msgctxt "SettingsTooltips::quissly_search::enable_events"
+msgid "Sends product page views, searches, adds to cart and to the wishlist, and paid orders to Quissly, for the analytics in the Quissly Admin Panel. Products and order totals only - never a customer's name, email, address or IP. A guest who has not accepted the cookie banner is not tracked. On by default."
+msgstr "Отправляет в Quissly просмотры страниц товаров, поиски, добавления в корзину и в избранное и оплаченные заказы - для аналитики в Quissly Admin Panel. Только товары и суммы заказов - никогда имя, email, адрес или IP покупателя. Гость, не принявший cookie-баннер, не учитывается. Включено по умолчанию."
+
+msgctxt "Languages::quissly_search.feature_events"
+msgid "Shopping activity"
+msgstr "Действия покупателей"
+
+msgctxt "SettingsOptions::quissly_search::buttons_header"
+msgid "Search Suggestions"
+msgstr "Подсказки поиска"
+
+msgctxt "SettingsOptions::quissly_search::suggestion_buttons"
+msgid "Suggestions"
+msgstr "Подсказки"
+
+msgctxt "SettingsOptions::quissly_search::most_loved_header"
+msgid "Most Loved Products"
+msgstr "Самые любимые товары"
+
+msgctxt "SettingsOptions::quissly_search::most_loved"
+msgid "Show Most loved products"
+msgstr "Показывать самые любимые товары"
+
+msgctxt "SettingsTooltips::quissly_search::most_loved"
+msgid "Cards of the products you pick, under the suggestion buttons when search opens. Off by default."
+msgstr "Карточки выбранных вами товаров под кнопками подсказок, когда открывается поиск. По умолчанию выключено."
+
+msgctxt "SettingsOptions::quissly_search::most_loved_shown"
+msgid "Products to show (8)"
+msgstr "Показываемые товары (8)"
+
+msgctxt "SettingsTooltips::quissly_search::most_loved_shown"
+msgid "Product codes, one per line, in the order they are shown."
+msgstr "Коды товаров, по одному в строке, в порядке показа."
+
+msgctxt "SettingsOptions::quissly_search::most_loved_backups"
+msgid "Backups (4)"
+msgstr "Запасные (4)"
+
+msgctxt "SettingsTooltips::quissly_search::most_loved_backups"
+msgid "Product codes, one per line, none of them already in Products to show. A product to show that is out of stock is replaced by the first backup in stock."
+msgstr "Коды товаров, по одному в строке, ни один из них не должен быть среди показываемых. Товар для показа, которого нет в наличии, заменяется первым запасным в наличии."
+
+msgctxt "SettingsOptions::quissly_search::most_loved_status"
+msgid "Status"
+msgstr "Состояние"
+
+msgctxt "SettingsOptions::quissly_search::updates_header"
+msgid "Updates"
+msgstr "Обновления"
+
+msgctxt "SettingsOptions::quissly_search::update_check_every"
+msgid "Update check frequency"
+msgstr "Частота проверки обновлений"
+
+msgctxt "SettingsTooltips::quissly_search::update_check_every"
+msgid "How often the add-on looks for a new Quissly version and installs it. Never: no automatic updates."
+msgstr "Как часто модуль ищет новую версию Quissly и устанавливает её. Никогда: без автоматических обновлений."
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::5m"
+msgid "Every 5 minutes (For testing)"
+msgstr "Каждые 5 минут (для тестирования)"
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::30m"
+msgid "Every 30 minutes"
+msgstr "Каждые 30 минут"
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::1h"
+msgid "Every hour"
+msgstr "Каждый час"
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::6h"
+msgid "Every 6 hours"
+msgstr "Каждые 6 часов"
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::12h"
+msgid "Every 12 hours"
+msgstr "Каждые 12 часов"
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::1d"
+msgid "Once a day"
+msgstr "Раз в день"
+
+msgctxt "SettingsVariants::quissly_search::update_check_every::never"
+msgid "Never"
+msgstr "Никогда"
+
+msgctxt "Languages::quissly_search.suggestions_remove"
+msgid "Remove"
+msgstr "Удалить"
+
+msgctxt "Languages::quissly_search.suggestions_add"
+msgid "Add"
+msgstr "Добавить"
+
+msgctxt "Languages::quissly_search.suggestions_add_label"
+msgid "Add a suggestion"
+msgstr "Добавить пример"
+
+msgctxt "Languages::quissly_search.suggestions_reset"
+msgid "Reset to generated"
+msgstr "Вернуть сгенерированные"
+
+msgctxt "Languages::quissly_search.suggestions_empty_main"
+msgid "No suggestions yet. The bar shows its plain placeholder."
+msgstr "Пока ничего нет. В строке поиска обычный текст-подсказка."
+
+msgctxt "Languages::quissly_search.suggestions_empty_other"
+msgid "No list for this language yet: its shoppers see the default list."
+msgstr "Для этого языка списка пока нет: покупатели видят список по умолчанию."
+
+msgctxt "Languages::quissly_search.suggestions_language"
+msgid "Language"
+msgstr "Язык"
+
+msgctxt "Languages::quissly_search.suggestions_language_note"
+msgid "Shoppers see the list for the language they browse your store in. A language with no list of its own uses the default one."
+msgstr "Покупатели видят список на языке, на котором смотрят магазин. Язык без своего списка использует список по умолчанию."
+
+msgctxt "Languages::quissly_search.suggestions_language_default"
+msgid "[language] (default)"
+msgstr "[language] (по умолчанию)"
+
+msgctxt "Languages::quissly_search.buttons_mode"
+msgid "Suggestions"
+msgstr "Подсказки"
+
+msgctxt "Languages::quissly_search.buttons_mode_automatic"
+msgid "Automatic"
+msgstr "Автоматически"
+
+msgctxt "Languages::quissly_search.buttons_mode_manual"
+msgid "Manual"
+msgstr "Вручную"
+
+msgctxt "Languages::quissly_search.buttons_note_automatic"
+msgid "Quissly picks them from your catalog, per language."
+msgstr "Quissly подбирает их из вашего каталога, для каждого языка."
+
+msgctxt "Languages::quissly_search.buttons_note_manual"
+msgid "You type them, per store language."
+msgstr "Вы вводите их сами, для каждого языка магазина."
+
+msgctxt "Languages::quissly_search.buttons_shown_now"
+msgid "Your shop shows now:"
+msgstr "Сейчас магазин показывает:"
+
+msgctxt "Languages::quissly_search.buttons_none_yet"
+msgid "None yet - Quissly creates them from your catalog after the first catalog sync."
+msgstr "Пока нет - Quissly создаёт их из вашего каталога после первой синхронизации."
+
+msgctxt "Languages::quissly_search.buttons_not_connected"
+msgid "Shown here once the store is connected to Quissly and its first catalog sync has finished."
+msgstr "Появятся здесь, когда магазин подключится к Quissly и закончится первая синхронизация каталога."
+
+msgctxt "Languages::quissly_search.buttons_field"
+msgid "Suggestion [n]"
+msgstr "Подсказка [n]"
+
+msgctxt "Languages::quissly_search.buttons_placeholder"
+msgid "e.g. black shorts size 32"
+msgstr "напр. чёрные шорты размер 32"
+
+msgctxt "Languages::quissly_search.buttons_too_many"
+msgid "Up to [max] suggestion buttons per language."
+msgstr "Не больше [max] кнопок подсказок на язык."
+
+msgctxt "Languages::quissly_search.most_loved_intro"
+msgid "Pick 8 products to show when search opens, and 4 other products as backups: a product that is out of stock is replaced by the first backup in stock. Nothing is shown until 8 + 4 different products are picked and 8 of them can be bought."
+msgstr "Выберите 8 товаров, которые видны при открытии поиска, и 4 других товара как запасные: товар, которого нет в наличии, заменяется первым запасным в наличии. Ничего не показывается, пока не выбраны 8 + 4 разных товара и 8 из них нельзя купить."
+
+msgctxt "Languages::quissly_search.most_loved_backup"
+msgid "backup"
+msgstr "запасной"
+
+msgctxt "Languages::quissly_search.most_loved_reason_not_found"
+msgid "no product has this code"
+msgstr "товара с таким кодом нет"
+
+msgctxt "Languages::quissly_search.most_loved_reason_not_visible"
+msgid "not visible in the store"
+msgstr "не виден в магазине"
+
+msgctxt "Languages::quissly_search.most_loved_reason_out_of_stock"
+msgid "out of stock"
+msgstr "нет в наличии"
+
+msgctxt "Languages::quissly_search.most_loved_ready"
+msgid "Ready: shoppers see these products."
+msgstr "Готово: покупатели видят эти товары."
+
+msgctxt "Languages::quissly_search.most_loved_missing_shown"
+msgid "Products to show still to pick: [count]."
+msgstr "Осталось выбрать товаров для показа: [count]."
+
+msgctxt "Languages::quissly_search.most_loved_missing_backups"
+msgid "Backups still to pick: [count]."
+msgstr "Осталось выбрать запасных: [count]."
+
+msgctxt "Languages::quissly_search.most_loved_hidden"
+msgid "Shoppers don't see Most loved products yet:"
+msgstr "Покупатели пока не видят самые любимые товары:"
+
+msgctxt "Languages::quissly_search.most_loved_backups_used"
+msgid "Shown, with backups in place of:"
+msgstr "Показаны, с запасными вместо:"
+
+msgctxt "Languages::quissly_search.sf_most_loved"
+msgid "[store] Most loved"
+msgstr "[store]: самые любимые"
+
+msgctxt "Languages::quissly_search.sf_most_loved_plain"
+msgid "Most loved"
+msgstr "Самые любимые"
+
+msgctxt "Languages::quissly_search.sf_rating"
+msgid "%s out of 5"
+msgstr "%s из 5"
+
+msgctxt "Languages::quissly_search.sf_variants"
+msgid "[count] [option] available"
+msgstr "Вариантов: [count]"
+
+msgctxt "Languages::quissly_search.sf_variants_plain"
+msgid "[count] options available"
+msgstr "Вариантов: [count]"
+
+msgctxt "Languages::quissly_search.most_loved_duplicates"
+msgid "These products are in both Products to show and Backups. Keep each in one list only:"
+msgstr "Эти товары есть и среди показываемых, и среди запасных. Оставьте каждый только в одном списке:"
+
+msgctxt "Languages::quissly_search.su_details_title"
+msgid "Tell us about your store"
+msgstr "Расскажите о своём магазине"
+
+msgctxt "Languages::quissly_search.su_email_updates"
+msgid "Email for account updates"
+msgstr "Email для уведомлений об аккаунте"
+
+msgctxt "Languages::quissly_search.su_store_name_placeholder"
+msgid "Acme Outdoors"
+msgstr "Acme Outdoors"
+
+msgctxt "Languages::quissly_search.su_what_you_sell"
+msgid "What do you sell?"
+msgstr "Что вы продаёте?"
+
+msgctxt "Languages::quissly_search.su_what_you_sell_placeholder"
+msgid "e.g. Outdoor gear and camping equipment"
+msgstr "напр. снаряжение для походов и кемпинга"
+
+msgctxt "Languages::quissly_search.su_drafted_help"
+msgid "Drafted from your store's products. Edit anything that isn't right."
+msgstr "Составлено по товарам вашего магазина. Исправьте, если что-то не так."
+
+msgctxt "Languages::quissly_search.su_sell_help"
+msgid "One or two sentences about what you sell and who it's for."
+msgstr "Одно-два предложения о том, что вы продаёте и для кого."
+
+msgctxt "Languages::quissly_search.su_save_continue"
+msgid "Save & continue"
+msgstr "Сохранить и продолжить"
+
+msgctxt "Languages::quissly_search.su_nothing_charged"
+msgid "Nothing is charged yet."
+msgstr "Пока ничего не списывается."
+
+msgctxt "Languages::quissly_search.su_block_email_missing"
+msgid "Add an email to continue."
+msgstr "Укажите email, чтобы продолжить."
+
+msgctxt "Languages::quissly_search.su_block_email_invalid"
+msgid "Fix the email to continue."
+msgstr "Исправьте email, чтобы продолжить."
+
+msgctxt "Languages::quissly_search.su_block_name_missing"
+msgid "Add your store name to continue."
+msgstr "Укажите название магазина, чтобы продолжить."
+
+msgctxt "Languages::quissly_search.su_block_name_invalid"
+msgid "Fix the store name to continue."
+msgstr "Исправьте название магазина, чтобы продолжить."
+
+msgctxt "Languages::quissly_search.su_block_sell_missing"
+msgid "Add what you sell to continue."
+msgstr "Укажите, что вы продаёте, чтобы продолжить."
+
+msgctxt "Languages::quissly_search.su_required_both"
+msgid "Store name and what you sell are both required."
+msgstr "Нужно указать и название магазина, и что вы продаёте."
+
+msgctxt "Languages::quissly_search.su_name_chars"
+msgid "Store name can only contain letters, numbers, spaces and hyphens."
+msgstr "Название магазина может содержать только буквы, цифры, пробелы и дефисы."
+
+msgctxt "Languages::quissly_search.su_description_long"
+msgid "Description must be 500 characters or fewer."
+msgstr "Описание должно быть не длиннее 500 символов."
+
+msgctxt "Languages::quissly_search.su_journey_details"
+msgid "Tell us about your store"
+msgstr "Расскажите о магазине"
+
+msgctxt "Languages::quissly_search.su_journey_details_text"
+msgid "You're here. It takes a minute."
+msgstr "Вы здесь. Это займёт минуту."
+
+msgctxt "Languages::quissly_search.su_journey_plan"
+msgid "Pick a plan"
+msgstr "Выберите план"
+
+msgctxt "Languages::quissly_search.su_journey_plan_text"
+msgid "Start free, or pick a paid plan and pay on a secure checkout page."
+msgstr "Начните бесплатно или выберите платный план и оплатите на защищённой странице оплаты."
+
+msgctxt "Languages::quissly_search.su_journey_live"
+msgid "Turn Quissly on"
+msgstr "Включите Quissly"
+
+msgctxt "Languages::quissly_search.su_journey_live_text"
+msgid "We set everything up and import your products. Then you switch Quissly on."
+msgstr "Мы всё настроим и импортируем ваши товары. Затем вы включаете Quissly."
+
+msgctxt "Languages::quissly_search.su_plan_desc"
+msgid "Change or cancel anytime in Billing."
+msgstr "Меняйте или отменяйте в любое время в разделе Billing."
+
+msgctxt "Languages::quissly_search.su_want"
+msgid "What do you want on your store?"
+msgstr "Что вы хотите в своём магазине?"
+
+msgctxt "Languages::quissly_search.su_tab_search_sub"
+msgid "A smarter search bar"
+msgstr "Более умная строка поиска"
+
+msgctxt "Languages::quissly_search.su_tab_chat_sub"
+msgid "An AI shopping assistant"
+msgstr "AI-помощник для покупок"
+
+msgctxt "Languages::quissly_search.su_not_sure"
+msgid "Not sure? Growth is our most popular plan, and you can change anytime."
+msgstr "Не уверены? Growth - наш самый популярный план, и его можно сменить в любое время."
+
+msgctxt "Languages::quissly_search.su_plan_locked"
+msgid "Your plan is already active. You can change it in Billing once setup is finished."
+msgstr "Ваш план уже активен. Сменить его можно в разделе Billing после завершения настройки."
+
+msgctxt "Languages::quissly_search.su_intro_building"
+msgid "We're setting up your account - usually about a minute. Then your products are sent to Quissly."
+msgstr "Мы настраиваем ваш аккаунт - обычно около минуты. Затем ваши товары отправятся в Quissly."
+
+msgctxt "Languages::quissly_search.su_intro_importing"
+msgid "Your products are on their way to Quissly. Finish Setup unlocks once they're in."
+msgstr "Ваши товары отправляются в Quissly. Finish Setup станет доступна, когда они будут там."
+
+msgctxt "Languages::quissly_search.su_intro_failed"
+msgid "One thing left: your products didn't reach Quissly. Start the import again under Account setup, or do this later."
+msgstr "Осталось одно: ваши товары не дошли до Quissly. Запустите импорт снова в разделе настройки аккаунта или сделайте это позже."
+
+msgctxt "Languages::quissly_search.su_intro_ready"
+msgid "Everything is ready. Finish setup to switch Quissly on and open your dashboard."
+msgstr "Всё готово. Завершите настройку, чтобы включить Quissly и открыть панель."
+
+msgctxt "Languages::quissly_search.su_body_building"
+msgid "We do this part for you - nothing to click. This page updates by itself."
+msgstr "Эту часть мы делаем за вас - ничего нажимать не нужно. Страница обновляется сама."
+
+msgctxt "Languages::quissly_search.su_body_built"
+msgid "All done. Here's what we set up for your store."
+msgstr "Готово. Вот что мы настроили для вашего магазина."
+
+msgctxt "Languages::quissly_search.su_note_building"
+msgid "Finish unlocks when account setup completes."
+msgstr "Finish станет доступна после настройки аккаунта."
+
+msgctxt "Languages::quissly_search.su_note_waiting"
+msgid "Not ready yet? Do this later and turn Quissly on from Configuration."
+msgstr "Ещё не готовы? Сделайте это позже и включите Quissly в настройках."
+
+msgctxt "Languages::quissly_search.su_note_ready"
+msgid "All set - finish setup to open your dashboard."
+msgstr "Всё готово - завершите настройку, чтобы открыть панель."
+
+msgctxt "Languages::quissly_search.su_do_later"
+msgid "Do this later"
+msgstr "Сделать позже"
+
+msgctxt "Languages::quissly_search.su_technical"
+msgid "Technical details"
+msgstr "Технические подробности"
+
+msgctxt "Languages::quissly_search.su_pending"
+msgid "Pending"
+msgstr "Ожидает"
+
+msgctxt "Languages::quissly_search.su_row_account"
+msgid "Quissly Account"
+msgstr "Аккаунт Quissly"
+
+msgctxt "Languages::quissly_search.su_up_next"
+msgid "Up next"
+msgstr "Далее"
+
+msgctxt "Languages::quissly_search.su_creating_account"
+msgid "Creating your account"
+msgstr "Создаём ваш аккаунт"
+
+msgctxt "Languages::quissly_search.su_setting_up_search"
+msgid "Setting up search"
+msgstr "Настраиваем поиск"
+
+msgctxt "Languages::quissly_search.su_setting_up_assistant"
+msgid "Setting up the assistant"
+msgstr "Настраиваем помощника"
+
+msgctxt "Languages::quissly_search.su_chat_later"
+msgid "Not ready yet - you can switch chat on later in Configuration."
+msgstr "Ещё не готово - чат можно включить позже в настройках."
+
+msgctxt "Languages::quissly_search.su_import_failed"
+msgid "Catalog import failed. Start it again below, or finish setup and retry from the Dashboard."
+msgstr "Импорт каталога не удался. Запустите его снова ниже или завершите настройку и повторите с панели."
+
+msgctxt "Languages::quissly_search.su_reading_products"
+msgid "Reading your products..."
+msgstr "Читаем ваши товары..."
+
+msgctxt "Languages::quissly_search.su_importing_products"
+msgid "Importing your products - [sent] of [total]"
+msgstr "Импортируем товары - [sent] из [total]"
+
+msgctxt "Languages::quissly_search.su_starting_shortly"
+msgid "Starting shortly"
+msgstr "Скоро начнётся"
+
+msgctxt "Languages::quissly_search.su_starts_when_ready"
+msgid "Starts once your account is ready"
+msgstr "Начнётся, когда аккаунт будет готов"
+
+msgctxt "Languages::quissly_search.su_live_chat"
+msgid "Your AI shopping assistant joins your store"
+msgstr "AI-помощник появляется в вашем магазине"
+
+msgctxt "Languages::quissly_search.su_live_chat_text"
+msgid "It finds your products through Quissly search."
+msgstr "Он находит ваши товары через поиск Quissly."
+
+msgctxt "Languages::quissly_search.su_live_chat_now"
+msgid "Your AI shopping assistant is live on your store."
+msgstr "AI-помощник уже работает в вашем магазине."
+
+msgctxt "Languages::quissly_search.su_payment"
+msgid "Payment"
+msgstr "Оплата"
+
+msgctxt "Languages::quissly_search.su_pay_invoice"
+msgid "Manual invoice"
+msgstr "По счёту"
+
+msgctxt "Languages::quissly_search.su_pay_card"
+msgid "Credit card"
+msgstr "Банковской картой"
+
+msgctxt "Languages::quissly_search.su_invoice_note"
+msgid "paid by invoice, no card needed now"
+msgstr "оплата по счёту, карта сейчас не нужна"

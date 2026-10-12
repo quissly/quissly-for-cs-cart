@@ -17,6 +17,7 @@
 
 use Quissly\Search\Cart\CartAdjust;
 use Quissly\Search\Cart\ChatIds;
+use Quissly\Search\Events\EventBody;
 use Quissly\Search\Panel\QChatDirectory;
 use Quissly\Search\Sync\ProductSource;
 use Quissly\Search\Client;
@@ -112,6 +113,50 @@ if ($mode === 'cart_adjust' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
     echo json_encode(['changed' => count($changes)]);
+    exit;
+}
+
+/*
+ * POST quissly_search.event (a JSON body): a product page view or a search, from
+ * js/addons/quissly_search/events.js. Anonymous like the media endpoints, with their
+ * protections: 404 while "Shopping activity" is off or the store is not connected, a body cap,
+ * a per-visitor rate limit (higher - an event costs the merchant nothing). The browser says only
+ * what was viewed or searched; a product that is not active is refused. Writes a queue row.
+ */
+if ($mode === 'event' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $status = 204;
+    $raw = (string) file_get_contents('php://input');
+    $event = json_decode($raw, true);
+    $type = is_array($event) ? (string) ($event['type'] ?? '') : '';
+    if (!fn_quissly_search_events_enabled()) {
+        $status = 404;
+    } elseif (!(new DbRateLimiter())->allow('events|' . (string) ($_SERVER['REMOTE_ADDR'] ?? ''), 60, 60, time())) {
+        $status = 429;
+    } elseif (strlen($raw) > 1024) {
+        $status = 413;
+    } elseif ($type === EventBody::VIEW) {
+        $id = is_scalar($event['product_id'] ?? null) && preg_match('/^[1-9]\d{0,9}$/', (string) $event['product_id']) ? (int) $event['product_id'] : 0;
+        if ($id > 0 && db_get_field('SELECT status FROM ?:products WHERE product_id = ?i', $id) === 'A') {
+            fn_quissly_search_event_shopper(EventBody::VIEW, EventBody::view(fn_quissly_search_event_ids($id)[0]));
+        } else {
+            $status = 400;
+        }
+    } elseif ($type === EventBody::SEARCH) {
+        $metadata = EventBody::search(
+            is_string($event['query'] ?? null) ? $event['query'] : '',
+            is_string($event['modality'] ?? null) ? $event['modality'] : ''
+        );
+        if ($metadata !== null) {
+            fn_quissly_search_event_shopper(EventBody::SEARCH, $metadata);
+        } else {
+            $status = 400;
+        }
+    } else {
+        $status = 400;
+    }
+
+    http_response_code($status);
+    header('Cache-Control: no-store');
     exit;
 }
 

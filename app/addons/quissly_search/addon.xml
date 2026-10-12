@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
+    <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
+    <has_icon>Y</has_icon>
     <priority>2000</priority>
     <position>0</position>
     <status>active</status>
@@ -65,14 +67,54 @@
                         <type>checkbox</type>
                         <default_value>N</default_value>
                     </item>
-                    <!-- Search bar suggestions (the Shopify app's): kept in Quissly, drawn by
-                         the handler, saved by controllers/backend/addons.pre.php. -->
+                    <!-- Shopping activity for Quissly's analytics (lib/Events/). -->
+                    <item id="enable_events">
+                        <type>checkbox</type>
+                        <default_value>Y</default_value>
+                    </item>
+                    <!-- Search Examples (the Shopify app's): the typing list, kept in Quissly, drawn
+                         by the handler, saved by controllers/backend/addons.pre.php. -->
                     <item id="suggestions_header">
                         <type>header</type>
                     </item>
                     <item id="search_suggestions">
                         <type>info</type>
                         <handler>fn_quissly_search_suggestions_handler</handler>
+                    </item>
+                    <!-- Search Suggestions (the Shopify app's): the buttons under the empty bar.
+                         Which ones (Automatic / Manual) and the Manual lists are kept in Quissly,
+                         drawn by the handler, saved by controllers/backend/addons.pre.php. -->
+                    <item id="buttons_header">
+                        <type>header</type>
+                    </item>
+                    <item id="overlay_suggestions">
+                        <type>checkbox</type>
+                        <default_value>Y</default_value>
+                    </item>
+                    <item id="suggestion_buttons">
+                        <type>info</type>
+                        <handler>fn_quissly_search_buttons_handler</handler>
+                    </item>
+                    <!-- Most loved products (the Shopify app's): 8 shown and 4 backups, by
+                         product code (lib/MostLoved.php); the handler says what needs fixing. -->
+                    <item id="most_loved_header">
+                        <type>header</type>
+                    </item>
+                    <item id="most_loved">
+                        <type>checkbox</type>
+                        <default_value>N</default_value>
+                    </item>
+                    <item id="most_loved_shown">
+                        <type>textarea</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="most_loved_backups">
+                        <type>textarea</type>
+                        <default_value></default_value>
+                    </item>
+                    <item id="most_loved_status">
+                        <type>info</type>
+                        <handler>fn_quissly_search_most_loved_handler</handler>
                     </item>
                     <!-- Catalog data (the Magento plugin's): the checklist is drawn by the
                          handler and saved by controllers/backend/addons.pre.php. -->
@@ -82,6 +124,23 @@
                     <item id="catalog_features">
                         <type>info</type>
                         <handler>fn_quissly_search_catalog_handler</handler>
+                    </item>
+                    <!-- How often the add-on looks for a new release (lib/Update/Release::FREQUENCIES). -->
+                    <item id="updates_header">
+                        <type>header</type>
+                    </item>
+                    <item id="update_check_every">
+                        <type>selectbox</type>
+                        <default_value>30m</default_value>
+                        <variants>
+                            <item id="5m"></item>
+                            <item id="30m"></item>
+                            <item id="1h"></item>
+                            <item id="6h"></item>
+                            <item id="12h"></item>
+                            <item id="1d"></item>
+                            <item id="never"></item>
+                        </variants>
                     </item>
                 </items>
             </section>
@@ -168,9 +227,25 @@
                 KEY `product_id` (`product_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         </item>
+        <!-- has_icon is read into ?:addons at install only: a store updated from an older version
+             (the automatic update runs these install queries again) gets the icon this way. -->
+        <item for="install">UPDATE ?:addons SET has_icon = 1 WHERE addon = 'quissly_search';</item>
+        <!-- Shopping events waiting to be sent (lib/Events/DbEventQueue). -->
+        <item for="install">
+            CREATE TABLE IF NOT EXISTS `?:quissly_search_events` (
+                `event_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+                `body` mediumtext NOT NULL,
+                `attempts` smallint(5) unsigned NOT NULL DEFAULT '0',
+                `created_at` int(11) unsigned NOT NULL DEFAULT '0',
+                `next_at` int(11) unsigned NOT NULL DEFAULT '0',
+                PRIMARY KEY (`event_id`),
+                KEY `next_at` (`next_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </item>
         <item for="uninstall">
             DROP TABLE IF EXISTS `?:quissly_search_health`;
         </item>
+        <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_events`;</item>
         <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_tokens`;</item>
         <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_ids`;</item>
         <item for="uninstall">DROP TABLE IF EXISTS `?:quissly_search_rate`;</item>

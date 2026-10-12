@@ -13,6 +13,8 @@
  * Config (JSON in data-config on [data-q-setup]):
  *   step       the step the server says the store is on
  *   reached    the furthest step the store has reached
+ *   planLocked the plan is chosen: its step is closed until setup is finished (the Shopify
+ *              app's rule) - every way back to it lands on Go live
  *   endpoints  {connect, plan, status, finish}: {url, params} - params are
  *              merged into every POST to that endpoint (WordPress' action name)
  *   csrf       {name: value} merged into every POST (form key, nonce, hash)
@@ -105,6 +107,9 @@
         var reachedIndex = Math.max(0, STEPS.indexOf(config.reached || config.step));
 
         function show(step) {
+            if (step === 'plan' && config.planLocked) {
+                step = 'golive';
+            }
             var index = STEPS.indexOf(step);
             if (index < 0 || index > reachedIndex) {
                 return;
@@ -129,7 +134,9 @@
 
         $$('[data-q-goto]').forEach(function (item) {
             item.addEventListener('click', function () {
-                show(item.getAttribute('data-q-goto'));
+                if (!item.disabled) {
+                    show(item.getAttribute('data-q-goto'));
+                }
             });
         });
         $$('[data-q-back]').forEach(function (button) {
@@ -147,19 +154,7 @@
 
         var connectForm = $('[data-q-connect]');
 
-        // The workspace preview beside the form follows what is typed, as on Shopify.
-        $$('[data-q-preview]').forEach(function (target) {
-            var input = connectForm ? $('[name="' + target.getAttribute('data-q-preview') + '"]', connectForm) : null;
-            if (!input) {
-                return;
-            }
-            input.addEventListener('input', function () {
-                var value = input.value.trim();
-                target.textContent = value || target.getAttribute('data-fallback') || '';
-            });
-        });
-
-        // What Quissly's backend accepts (the Shopify app's email-validation.ts), checked as the
+        // What Quissly accepts for an account email, checked as the
         // merchant types; the server checks again.
         var LOCAL_PART = /^[\p{L}\p{N}_!#$%&'*+\-/=?^`{|}~]+(?:\.[\p{L}\p{N}_!#$%&'*+\-/=?^`{|}~]+)*$/u;
         var TYPED_LABEL = /^[\p{L}\p{Nd}](?:[\p{L}\p{Nd}-]*[\p{L}\p{Nd}])?$/u;
@@ -199,6 +194,8 @@
             return '';
         }
 
+        // An empty name is not flagged on the field - it just keeps Save disabled, and the
+        // note beside Save says why.
         function nameProblem(raw) {
             var name = raw.trim();
             return name === '' || (name.length <= 60 && /^[A-Za-z0-9 -]+$/.test(name)) ? '' : text.nameInvalid;
@@ -206,28 +203,60 @@
 
         var checks = {email: emailProblem, store_name: nameProblem};
 
+        function field(name) {
+            return connectForm ? $('[name="' + name + '"]', connectForm) : null;
+        }
+
+        // Why Save is disabled, in the bar beside it: the first problem only (the Shopify app's).
+        function blocker() {
+            var blockers = text.blockers || {};
+            var email = field('email');
+            var name = field('store_name');
+            var sell = field('description');
+            if (email && !email.value.trim()) {
+                return blockers.emailMissing;
+            }
+            if (email && emailProblem(email.value)) {
+                return blockers.emailInvalid;
+            }
+            if (name && !name.value.trim()) {
+                return blockers.nameMissing;
+            }
+            if (name && nameProblem(name.value)) {
+                return blockers.nameInvalid;
+            }
+            if (sell && !sell.value.trim()) {
+                return blockers.sellMissing;
+            }
+            return '';
+        }
+
         function checkFields() {
-            var ok = true;
             Object.keys(checks).forEach(function (name) {
-                var input = connectForm ? $('[name="' + name + '"]', connectForm) : null;
+                var input = field(name);
                 var box = $('[data-q-field-error="' + name + '"]');
                 if (!input || !box) {
                     return;
                 }
-                var problem = checks[name](input.value);
+                // An empty field is not an error yet; it only keeps Save disabled.
+                var problem = input.value.trim() ? checks[name](input.value) : '';
                 box.textContent = problem;
                 box.hidden = !problem;
-                ok = ok && !problem;
             });
+            var reason = blocker();
+            var note = $('[data-q-details-note]');
+            if (note) {
+                note.textContent = reason || (text.blockers || {}).none || '';
+            }
             var submit = $('[data-q-connect-submit]');
             if (submit && !submit.hasAttribute('data-q-label')) {
-                submit.disabled = !ok;
+                submit.disabled = !!reason;
             }
-            return ok;
+            return !reason;
         }
 
         if (connectForm) {
-            Object.keys(checks).forEach(function (name) {
+            Object.keys(checks).concat(['description']).forEach(function (name) {
                 var input = $('[name="' + name + '"]', connectForm);
                 if (input) {
                     input.addEventListener('input', checkFields);
@@ -299,8 +328,16 @@
             if (note) {
                 note.textContent = card
                     ? card.getAttribute(cadence === 'annual' ? 'data-note-annual' : 'data-note-monthly')
+                        + (byInvoice(card) && text.invoiceNote ? ' · ' + text.invoiceNote : '')
                     : (text.pickPlan || '');
             }
+        }
+
+        // How a paid plan is paid ([data-q-pay-method], where the page offers it): a manual
+        // invoice needs no payment page, so the plan step goes straight on to Go live.
+        function byInvoice(card) {
+            var method = $('[data-q-pay-method]');
+            return !!method && method.value === 'invoice' && !!card && card.getAttribute('data-free') !== '1';
         }
 
         function enabledCards(scope) {
@@ -424,6 +461,10 @@
                     renderPlanChoice();
                 });
             }
+            var method = $('[data-q-pay-method]');
+            if (method) {
+                method.addEventListener('change', renderPlanChoice);
+            }
             var firstTab = $('[data-q-tab]');
             showFamily(firstTab ? firstTab.getAttribute('data-q-tab') : 'qsearch');
         }
@@ -436,13 +477,26 @@
                     return;
                 }
                 showError('plan', '');
+                if (byInvoice(card)) {
+                    busy(planSubmit, true, text.saving);
+                    post('plan', {op: 'invoice', plan_id: selected, billing_cycle: cadence, family: card.getAttribute('data-family')}).then(function (result) {
+                        if (result && result.ok) {
+                            reload();
+                            return;
+                        }
+                        busy(planSubmit, false);
+                        renderPlanChoice();
+                        showError('plan', (result && result.message) || text.error);
+                    });
+                    return;
+                }
                 // Opened now, inside the click, so no popup blocker stops it;
                 // pointed at the payment page once Quissly answers. A free plan
                 // never needs it and it is closed again.
                 var paid = card.getAttribute('data-free') !== '1';
                 var tab = paid ? window.open('', '_blank') : null;
                 busy(planSubmit, true, text.saving);
-                post('plan', {op: 'checkout', plan_id: selected, billing_cycle: cadence}).then(function (result) {
+                post('plan', {op: 'checkout', plan_id: selected, billing_cycle: cadence, family: card.getAttribute('data-family')}).then(function (result) {
                     if (result && result.ok && result.kind === 'active') {
                         if (tab) {
                             tab.close();
@@ -508,13 +562,38 @@
         var statusStarted = 0;
         var statusRunning = false;
 
+        function setText(selector, value) {
+            var node = $(selector);
+            if (node && value) {
+                node.textContent = value;
+            }
+        }
+
         function renderStatus(result) {
+            // The phase (building, importing, failed, ready) picks the words: the one sentence on
+            // what is left, the account setup card's line, and the note beside Finish.
+            var phase = result.phase || (result.ready ? 'ready' : 'importing');
+            var built = phase !== 'building';
+            setText('[data-q-intro]', (text.intro || {})[phase]);
+            setText('[data-q-status-body]', (text.body || {})[built ? 'built' : 'building']);
+            setText('[data-q-golive-note]', (text.note || {})[!built ? 'building' : (result.ready ? 'ready' : 'waiting')]);
+            var technical = $('[data-q-technical]');
+            if (technical) {
+                technical.hidden = !result.technical;
+                setText('[data-q-technical-text]', result.technical);
+            }
+            var foot = $('[data-q-status-foot]');
+            if (foot) {
+                // Only while the page is still checking.
+                foot.hidden = !!result.ready;
+            }
             Object.keys(result.rows || {}).forEach(function (key) {
                 var row = $('[data-q-row="' + key + '"]');
                 var data = result.rows[key];
                 if (!row || !data) {
                     return;
                 }
+                row.hidden = !!data.hidden;
                 row.setAttribute('data-state', data.state);
                 var state = $('[data-q-row-state]', row);
                 if (state) {
@@ -526,11 +605,11 @@
                     detail.hidden = !data.detail;
                 }
             });
+            // The chip is the account's: ready once it is built, whatever the import does.
             var chip = $('[data-q-chip]');
             if (chip) {
-                chip.classList.toggle('is-ready', !!result.ready);
-                chip.classList.toggle('is-failed', !!result.failed && !result.ready);
-                chip.textContent = result.ready ? text.chipReady : (result.failed ? text.chipFailed : text.chipWorking);
+                chip.classList.toggle('is-ready', built);
+                chip.textContent = built ? text.chipReady : text.chipWorking;
             }
             var finish = $('[data-q-finish]');
             if (finish && !finish.hasAttribute('data-q-label')) {
@@ -540,7 +619,7 @@
             if (retry) {
                 retry.hidden = !result.failed || !!result.ready;
             }
-            // "Save changes" stands in while Finish Setup is not possible (the Shopify app's rule).
+            // "Do this later" stands in while Finish Setup is not possible (the Shopify app's rule).
             var save = $('[data-q-save]');
             if (save && !save.hasAttribute('data-q-label')) {
                 save.hidden = !!result.ready;

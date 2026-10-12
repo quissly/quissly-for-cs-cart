@@ -19,7 +19,11 @@ namespace Quissly\Search;
  *    decides; the server cannot know), since otherwise the shop cannot be searched;
  *  - QChat needs its switch and the account's agent id (the public id — never a key);
  *    with it comes the cart bridge that makes the chat's "Add to Cart" add to the
- *    store's own cart.
+ *    store's own cart;
+ *  - shopping activity (lib/Events/): a product page or a search results page reports
+ *    itself to Quissly's analytics while its switch is on and the store is connected -
+ *    not tied to search being live (it is not a search feature). Page-constant: the
+ *    page's product, the query in its URL; who the shopper is is decided when it arrives.
  *
  * Pure: takes the facts, returns the template's variables.
  */
@@ -42,9 +46,10 @@ final class Storefront
      * @param array{
      *   configured:bool, gate_open:bool, features:list<array{id:string, on:bool}>, agent_id:string,
      *   urls:array{voice:string, image:string, results:string, cart_add?:string, cart_adjust?:string, cart_resolve?:string},
-     *   security_hash:string, i18n:array<string,string>, mount_selector?:string, suggestions?:list<string>
+     *   security_hash:string, i18n:array<string,string>, mount_selector?:string, suggestions?:list<string>, chips?:list<string>,
+     *   most_loved?:list<array<string,mixed>>, event?:array<string,string>|null
      * } $in
-     * @return array{overlay:bool, overlay_json:string, media:bool, media_json:string, qchat_agent_id:string, qchat_script:string, cart_json:string}
+     * @return array{overlay:bool, overlay_json:string, media:bool, media_json:string, qchat_agent_id:string, qchat_script:string, cart_json:string, events:bool, events_json:string}
      */
     public static function build(array $in): array
     {
@@ -53,6 +58,7 @@ final class Storefront
         $voice = $live && !empty($on['enable_voice']);
         $image = $live && !empty($on['enable_image']);
         $agent = $in['configured'] && !empty($on['enable_qchat']) ? trim($in['agent_id']) : '';
+        $event = $in['configured'] && !empty($on['enable_events']) && !empty($in['event']) ? $in['event'] : null;
 
         $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 
@@ -70,6 +76,15 @@ final class Storefront
                 'mountSelector'    => trim((string) ($in['mount_selector'] ?? '')),
                 // Search bar suggestions, typed into the empty bar (SearchSuggestions).
                 'suggestions'      => array_values(array_filter((array) ($in['suggestions'] ?? []), 'is_string')),
+                // ...and as buttons under the bar while it is empty (the merchant's switch, on by default).
+                'suggestionsPanel' => !empty($on['overlay_suggestions']),
+                // Which ones: Quissly's generated list or the merchant's (func.php), at most ten.
+                'chips'            => !empty($on['overlay_suggestions']) ? array_slice(array_values(array_filter((array) ($in['chips'] ?? []), 'is_string')), 0, 10) : [],
+                'labelSuggestions' => $in['i18n']['suggestions'] ?? 'Suggestions',
+                // The merchant's Most loved products under the buttons (func.php; none while off).
+                'mostLoved'        => array_values((array) ($in['most_loved'] ?? [])),
+                'labelMostLoved'   => $in['i18n']['mostLoved'] ?? 'Most loved',
+                'labelRating'      => $in['i18n']['rating'] ?? '%s out of 5',
             ], $flags) : '',
             'media'          => $voice || $image,
             'media_json'     => $voice || $image ? (string) json_encode([
@@ -94,6 +109,13 @@ final class Storefront
                 'adjustUrl'    => $in['urls']['cart_adjust'] ?? '',
                 'resolveUrl'   => $in['urls']['cart_resolve'] ?? '',
                 'securityHash' => $in['security_hash'],
+            ], $flags) : '',
+            // This page's shopping event (js/addons/quissly_search/events.js).
+            'events'         => $event !== null,
+            'events_json'    => $event !== null ? (string) json_encode([
+                'url'          => $in['urls']['event'] ?? '',
+                'securityHash' => $in['security_hash'],
+                'event'        => $event,
             ], $flags) : '',
         ];
     }

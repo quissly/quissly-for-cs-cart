@@ -7,7 +7,7 @@ namespace Quissly\Search\Setup;
 /**
  * A starting point for the workspace description on Quissly Setup, drafted from the store.
  *
- * A port of the Shopify app's `app/lib/description-draft.ts` (composeDescriptionDraft): the same
+ * A port of the Shopify app's description draft: the same
  * sentences in the same order, locked by its own test cases (tests/Unit/Setup/DescriptionDraftTest),
  * and the same logic as quissly-for-magento's and quissly-for-woocommerce's copies. The
  * description becomes the Quissly organization's; merchants facing an empty box write thin ones,
@@ -16,7 +16,7 @@ namespace Quissly\Search\Setup;
  */
 final class DescriptionDraft
 {
-    /** The middleware rejects organization descriptions over 500 characters. */
+    /** Quissly rejects organization descriptions over 500 characters. */
     public const MAX_LENGTH = 500;
 
     /** The draft stays well under the limit, leaving the merchant room to add. */

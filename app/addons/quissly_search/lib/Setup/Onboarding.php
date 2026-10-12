@@ -14,7 +14,9 @@ use Quissly\Search\Sync\SyncWorker;
  *
  * The first catalog sync starts on its own once the service Connect created has settled
  * (HOLD_SECONDS, the Magento plugin's ConnectHold); going live is the merchant's click, and
- * only once the first sync has opened the gate.
+ * only once the first sync has opened the gate. It switches on what the chosen plan includes
+ * (services()): search, and with a chat plan the assistant. The plan is chosen once: after
+ * that its step is closed until Setup is finished (the Shopify app's rule; Billing changes it).
  *
  * State is one row, `setup`, in quissly_search_state. A store connected before Setup existed
  * has no row and counts as finished, so nobody already live is sent back through it.
@@ -30,6 +32,9 @@ final class Onboarding
     public const STEP_DETAILS = 'details';
     public const STEP_PLAN = 'plan';
     public const STEP_GOLIVE = 'golive';
+
+    /** The products a plan can include. */
+    public const SERVICES = ['qsearch', 'qchat'];
 
     private const IN_PROGRESS = 'in_progress';
     private const COMPLETE = 'complete';
@@ -76,12 +81,35 @@ final class Onboarding
         $this->save($state);
     }
 
-    /** The plan step is done: a plan is live, or the merchant was let through without one. */
-    public function planChosen(): void
+    /**
+     * The plan step is done: a plan is live, or the merchant was let through without one.
+     *
+     * @param list<string> $families the plan's products (qsearch, qchat); none = not known
+     */
+    public function planChosen(array $families = []): void
     {
         $state = $this->state() ?? ['status' => self::IN_PROGRESS];
         $state['plan'] = true;
+        $state['services'] = array_values(array_intersect(self::SERVICES, $families));
         $this->save($state);
+    }
+
+    /** Whether the plan is chosen and Setup is not finished: the plan step is then closed. */
+    public function isPlanLocked(): bool
+    {
+        $state = $this->state();
+
+        return !empty($state['plan']) && ($state['status'] ?? '') !== self::COMPLETE;
+    }
+
+    /**
+     * The chosen plan's products; none when Setup never saw the plan (then it counts as search).
+     *
+     * @return list<string>
+     */
+    public function services(): array
+    {
+        return array_values(array_intersect(self::SERVICES, (array) ($this->state()['services'] ?? [])));
     }
 
     public function holdRemaining(): int
@@ -124,7 +152,7 @@ final class Onboarding
     }
 
     /**
-     * Finish Setup without going live (the Shopify app's "Save changes"): for a merchant not
+     * Finish Setup without going live (the Shopify app's "Do this later"): for a merchant not
      * ready to switch search on yet, so nobody is held on this screen. Needs the services built
      * (the hold over); the caller starts the first sync if it has not started, and search stays
      * off until the merchant switches it on.
@@ -143,13 +171,17 @@ final class Onboarding
     }
 
     /**
-     * The Go live step's progress list: the Shopify app's rows - store identity, organization,
-     * project, QSearch service, QChat service, catalog import. One Connect call creates the
-     * first three at once; the services are built during the hold. Each row's detail is a
-     * langvar and its parameters (null for none), for the caller to translate.
+     * Where Setup stands for the Go live step (the Shopify app's account setup card): a phase -
+     * building (the services are being built), importing, failed (no products got through) or
+     * ready - and the rows: one "Quissly Account" row (store identity, organization and project:
+     * one Connect call creates all three), search, the assistant (with a chat plan, or no plan
+     * known - QChat finds products through the search service, so search is always listed) and
+     * the catalog. A done row has no words. Each detail - and the raw problem behind a failed
+     * import, for "Technical details" - is a langvar and its parameters (null for none), for the
+     * caller to translate.
      *
      * @param bool $chatFound whether the QChat service's id is known
-     * @return array{ready:bool, failed:bool, saveable:bool, rows:array<string, array{state:string, detail:?array{0:string, 1:array<string, int>}}>}
+     * @return array{phase:string, ready:bool, failed:bool, saveable:bool, technical:?array, rows:array<string, array{state:string, detail:?array, hidden:bool}>}
      */
     public function status(bool $chatFound = false): array
     {
@@ -158,49 +190,65 @@ final class Onboarding
         $failed = !$ready && $this->syncFailed();
         $progress = $this->store->getState(SyncWorker::STATE_PROGRESS);
         $sent = (int) ($progress['ok'] ?? 0);
+        $building = !$this->connected || $hold > 0;
+        // Finish waits for the account too (the Shopify app's gate), even over a catalog already in Quissly.
+        $ready = $ready && !$building;
+        $technical = null;
 
         if ($ready) {
-            $catalog = self::row('done', $sent > 0 ? ['quissly_search.su_products_sent', ['[count]' => $sent]] : null);
+            $catalog = self::row('done', null);
         } elseif ($failed) {
             $refusal = $this->store->getState(SyncWorker::STATE_REFUSAL);
-            $catalog = self::row('failed', $refusal !== null
+            $technical = $refusal !== null
                 ? ['quissly_search.su_sync_refused', ['[status]' => (int) ($refusal['code'] ?? 0)]]
-                : ['quissly_search.su_sync_nothing', []]);
+                : ['quissly_search.su_sync_nothing', []];
+            $catalog = self::row('failed', ['quissly_search.su_import_failed', []]);
         } elseif (!empty($progress['running'])) {
-            $catalog = self::row('running', ['quissly_search.su_products_progress', ['[sent]' => $sent, '[total]' => (int) ($progress['total'] ?? 0)]]);
-        } elseif ($this->connected && $hold === 0) {
-            $catalog = self::row('running', ['quissly_search.su_starting', []]);
+            $catalog = self::row('running', $sent === 0
+                ? ['quissly_search.su_reading_products', []]
+                : ['quissly_search.su_importing_products', ['[sent]' => $sent, '[total]' => (int) ($progress['total'] ?? 0)]]);
+        } elseif (!$building) {
+            $catalog = self::row('running', ['quissly_search.su_starting_shortly', []]);
         } else {
-            $catalog = self::row('pending', ['quissly_search.su_sync_waits', []]);
+            $catalog = self::row('pending', ['quissly_search.su_starts_when_ready', []]);
         }
 
-        $created = self::row($this->connected ? 'done' : 'pending', null);
-        $building = !$this->connected ? 'pending' : ($hold > 0 ? 'running' : 'done');
+        $services = $this->services();
+        $connected = $this->connected;
+        $service = static function (string $running) use ($connected, $building): array {
+            return !$connected ? self::row('pending', ['quissly_search.su_up_next', []])
+                : ($building ? self::row('running', [$running, []]) : self::row('done', null));
+        };
+        if ($services !== [] && !in_array('qchat', $services, true)) {
+            $chat = self::row('done', null, true);
+        } elseif ($chatFound || $building) {
+            $chat = $service('quissly_search.su_setting_up_assistant');
+        } else {
+            $chat = self::row('pending', ['quissly_search.su_chat_later', []]);
+        }
 
         return [
-            'ready'    => $ready,
-            'failed'   => $failed,
-            'saveable' => $this->canSaveForLater(),
-            'rows'     => [
-                'store'        => $created,
-                'organization' => $created,
-                'project'      => $created,
-                'qsearch'      => self::row($building, $hold > 0 ? ['quissly_search.su_service_building', []] : null),
-                'qchat'        => $chatFound || $building !== 'done'
-                    ? self::row($building, null)
-                    : self::row('pending', ['quissly_search.su_chat_not_found', []]),
-                'catalog'      => $catalog,
+            'phase'     => $building ? 'building' : ($ready ? 'ready' : ($failed ? 'failed' : 'importing')),
+            'ready'     => $ready,
+            'failed'    => $failed,
+            'saveable'  => $this->canSaveForLater(),
+            'technical' => $technical,
+            'rows'      => [
+                'account' => $this->connected ? self::row('done', null) : self::row('running', ['quissly_search.su_creating_account', []]),
+                'qsearch' => $service('quissly_search.su_setting_up_search'),
+                'qchat'   => $chat,
+                'catalog' => $catalog,
             ],
         ];
     }
 
     /**
      * @param ?array{0:string, 1:array<string, int>} $detail
-     * @return array{state:string, detail:?array{0:string, 1:array<string, int>}}
+     * @return array{state:string, detail:?array{0:string, 1:array<string, int>}, hidden:bool}
      */
-    private static function row(string $state, ?array $detail): array
+    private static function row(string $state, ?array $detail, bool $hidden = false): array
     {
-        return ['state' => $state, 'detail' => $detail];
+        return ['state' => $state, 'detail' => $detail, 'hidden' => $hidden];
     }
 
     private function state(): ?array

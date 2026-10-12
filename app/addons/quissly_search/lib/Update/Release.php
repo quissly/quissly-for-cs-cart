@@ -12,10 +12,14 @@ final class Release
 {
     /**
      * Where the add-on's files live, relative to the store root. A package may hold files
-     * under these folders only, and an update replaces each of them whole.
+     * under these folders (and these files) only, and an update replaces each of them whole.
+     * The language packs sit where CS-Cart reads an add-on's .po (config.dir.lang_packs).
      */
     public const ROOTS = [
         'app/addons/quissly_search',
+        'var/langs/en/addons/quissly_search.po',
+        'var/langs/ka/addons/quissly_search.po',
+        'var/langs/ru/addons/quissly_search.po',
         'design/backend/css/addons/quissly_search',
         'design/backend/media/images/addons/quissly_search',
         'design/backend/templates/addons/quissly_search',
@@ -26,6 +30,46 @@ final class Release
 
     /** Quissly's release-signing public key (Ed25519, base64): every release zip has a `.sig`. */
     public const PUBLIC_KEY = 'zAXZVzzPPk0LR8MjMrnoTZi96kcvNUvolgQ6fax9c4E=';
+
+    /** "Never": no checks and no automatic install. */
+    public const NEVER = 0;
+
+    /** How often a store checks, unless the merchant chose otherwise: every 30 minutes. */
+    public const DEFAULT_EVERY = 1800;
+
+    /**
+     * The "Update check frequency" choices (setting update_check_every) in seconds: 5 minutes
+     * (for testing), 30 minutes (the default) to a day, or never.
+     */
+    public const FREQUENCIES = [
+        '5m'    => 300,
+        '30m'   => 1800,
+        '1h'    => 3600,
+        '6h'    => 21600,
+        '12h'   => 43200,
+        '1d'    => 86400,
+        'never' => self::NEVER,
+    ];
+
+    /**
+     * A setting value in seconds; anything else (nothing chosen included) is the default.
+     *
+     * @param mixed $value
+     */
+    public static function interval($value): int
+    {
+        return is_string($value) && array_key_exists($value, self::FREQUENCIES) ? self::FREQUENCIES[$value] : self::DEFAULT_EVERY;
+    }
+
+    /**
+     * Whether a version the release repository's addon.xml names is worth asking GitHub about:
+     * newer than the installed one and than the release already known ('' = none yet).
+     */
+    public static function isNews(string $hinted, string $installed, string $known): bool
+    {
+        return version_compare($hinted, $installed, '>')
+            && ($known === '' || version_compare($hinted, $known, '>'));
+    }
 
     /**
      * A GitHub "latest release" answer: its version (from a `v1.2.3` / `1.2.3` tag), the
@@ -113,7 +157,7 @@ final class Release
     private static function owned(string $name): bool
     {
         foreach (self::ROOTS as $root) {
-            if ($name === $root . '/' || strpos($name, $root . '/') === 0) {
+            if ($name === $root || $name === $root . '/' || strpos($name, $root . '/') === 0) {
                 return true;
             }
             // The folders leading to a root ("app/", "app/addons/") as zip directory entries.

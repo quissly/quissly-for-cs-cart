@@ -43,7 +43,7 @@ final class Config
     /**
      * X-Platform (header only, NOT signed), in ONE constant.
      *
-     * LIVE-CONFIRMED 2026-09-21 against api.quissly.com: the value is 'cs-cart'
+     * Quissly's API takes 'cs-cart'
      * WITH a hyphen. The enum is 'shopify', 'woocommerce', 'magento', 'internal',
      * 'cs-cart'; the unhyphenated 'cscart' this repo's docs used to mandate returns
      * 422 on EVERY search. (The console's provisioning endpoint accepts 'cscart' in

@@ -146,17 +146,22 @@
     box-shadow: none;
 }
 .q-optional { font-size: 12.5px; font-weight: 500; color: var(--q-muted); }
-.q-preview { margin-top: 14px; background: #fff; border: 1px solid var(--q-brand-border); border-radius: 10px; padding: 16px; flex: 1; }
-.q-preview__kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--q-muted); }
-.q-preview__name { font-size: 16px; font-weight: 700; margin-top: 4px; overflow-wrap: anywhere; }
-.q-preview__desc { font-size: 12.5px; color: #55554f; margin-top: 6px; overflow-wrap: anywhere; }
 .q-help { font-size: 12.5px; color: var(--q-muted); margin-top: 6px; }
 .q-help--error { color: var(--q-critical); font-weight: 600; }
-.q-next { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; flex: 1; }
-.q-next li { position: relative; padding-left: 16px; }
-.q-next li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--q-brand); }
-.q-next strong { display: block; font-size: 13.5px; font-weight: 600; }
-.q-next span { font-size: 12.5px; color: #55554f; }
+/* Step 1's "What happens next": a short numbered timeline (the Shopify app's SetupJourney). */
+.q-journey { counter-reset: journey; display: grid; gap: 16px; margin-top: 14px; flex: 1; align-content: start; }
+.q-journey__item { counter-increment: journey; position: relative; display: grid; gap: 2px; padding-left: 38px; }
+.q-journey__item::before {
+    content: counter(journey); position: absolute; left: 0; top: 0; display: grid; place-items: center;
+    width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--q-brand-border);
+    background: #fff; color: var(--q-muted); font-size: 12.5px; font-weight: 700;
+}
+.q-journey__item:not(:last-child)::after {
+    content: ""; position: absolute; left: 12.5px; top: 30px; bottom: -14px; width: 1.5px; background: var(--q-brand-border);
+}
+.q-journey__item.is-current::before { border-color: var(--q-brand); background: var(--q-brand); color: var(--q-cream); }
+.q-journey__item strong { font-size: 14px; font-weight: 600; line-height: 26px; }
+.q-journey__item span { font-size: 12.5px; line-height: 1.45; color: #55554f; }
 .q-side-foot { font-size: 12.5px; color: #55554f; border-top: 1px solid var(--q-brand-border); padding-top: 12px; margin-top: 16px; }
 
 /* ---- Notices ----------------------------------------------------------- */
@@ -189,6 +194,13 @@
 .q-cadence small { display: block; font-size: 11.5px; font-weight: 700; color: var(--q-brand-strong); }
 .q-tabs { align-self: flex-start; }
 .q-tabs button { padding: 6px 14px; font-size: 13.5px; font-weight: 600; }
+/* "What do you want on your store?": each option says what it adds. */
+.q-listhead { font-size: 12.5px; font-weight: 600; color: var(--q-text); margin: 4px 0 -6px; }
+.q-tabs--choices button { padding: 9px 18px; line-height: 1.2; text-align: left; }
+.q-tabs--choices strong { display: block; font-size: 14px; font-weight: 700; }
+.q-tabs--choices small { display: block; font-size: 11.5px; font-weight: 700; color: var(--q-brand-strong); }
+.q-tabs--choices button[aria-selected="true"] small { color: #d7e88c; }
+.q-plan-head__desc { font-size: 13px; color: var(--q-muted); margin-top: 4px; }
 .q-cadence button[aria-checked="true"], .q-tabs button[aria-selected="true"] { background: var(--q-brand); color: var(--q-cream); }
 .q-cadence button[aria-checked="true"] small { color: #d7e88c; }
 .q-plans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 10px; }
@@ -231,7 +243,8 @@
 .q-plan__figures strong { display: block; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .q-plan__figures span { font-size: 11.5px; color: var(--q-muted); }
 [data-q-plans]:not(.is-annual) [data-q-annual], [data-q-plans].is-annual [data-q-monthly] { display: none; }
-.q-compare-row { display: flex; align-items: center; gap: 10px; }
+.q-compare-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.q-compare-row__note { font-size: 12.5px; color: var(--q-muted); }
 .q-compare-wrap { overflow-x: auto; padding-top: 4px; }
 .q-compare { width: 100%; border-collapse: collapse; font-size: 13px; }
 .q-compare th, .q-compare td { padding: 7px 12px; border-bottom: 1px solid #f1f1f1; text-align: left; font-variant-numeric: tabular-nums; }
@@ -353,3 +366,18 @@
 @media (max-width: 480px) {
     .q-plans { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* The plan is chosen once: its stepper entry is not a link back. */
+.q-stepper__item button:disabled { cursor: default; }
+/* "Technical details": the raw problem, folded away for support. */
+.q-details { font-size: 12px; color: var(--q-muted); margin-top: 10px; }
+.q-details summary { cursor: pointer; }
+.q-details p { margin: 6px 0 0; overflow-wrap: anywhere; }
+/* The plan step's payment choice, under the cadence control. */
+.q-plan-head__controls { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.q-pay-method { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.q-pay-method label { font-weight: 600; color: var(--q-text); }
+.q-pay-method select { min-width: 170px; padding: 6px 28px 6px 10px; border: 1.5px solid var(--q-brand-border); border-radius: 8px; background-color: #fff; font: inherit; color: var(--q-text); }
+.q-pay-method .select2-container .select2-selection--single { height: 34px; border-color: var(--q-brand-border); border-radius: 8px; }
+.q-pay-method .select2-container .select2-selection--single .select2-selection__rendered { line-height: 32px; padding-left: 10px; color: var(--q-text); }
+.q-pay-method .select2-container .select2-selection--single .select2-selection__arrow { height: 32px; }

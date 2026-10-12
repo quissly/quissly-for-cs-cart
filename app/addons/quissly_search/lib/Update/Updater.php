@@ -13,9 +13,12 @@ use Tygh\Registry;
 /**
  * Automatic updates from the add-on's public GitHub repository.
  *
- * Once a day (from the cron dispatch, or at the end of an admin page when the cron is not
- * set up) the add-on asks GitHub for the latest release. When it is newer than the
- * installed version it is installed straight away:
+ * Every "Update check frequency" (Configuration > Updates: 5 minutes for testing, 30 minutes by
+ * default, up to a day, or Never) - from the cron dispatch, or at the end of an admin page when
+ * the cron is not set up - the add-on reads the version in the repository's addon.xml on
+ * GitHub's CDN (raw.githubusercontent.com, no API rate limit), and asks GitHub for the latest
+ * release when that names a newer version than the one installed and known - and at least
+ * once a day. A newer release is installed straight away:
  *
  *  1. the release zip is downloaded and checked: signed with Quissly's release key
  *     (Release::PUBLIC_KEY - an unsigned or wrongly signed zip is never installed, even
@@ -40,30 +43,54 @@ final class Updater
     public const CHECK_EVERY = 86400;
     public const RETRY_AFTER = 3600;
 
+    /** The repository's addon.xml on GitHub's CDN: its version is the latest one pushed. */
+    public const HINT_URL = 'https://raw.githubusercontent.com/' . self::REPOSITORY . '/main/app/addons/quissly_search/addon.xml';
+
     private const ADDON = 'quissly_search';
 
-    /** Check (and install) when the day is up. */
+    /** Check (and install) when the merchant's frequency is up. */
     public static function runIfDue(DbSyncStore $store, int $now): void
     {
+        $every = Release::interval(Registry::get('addons.quissly_search.update_check_every'));
+        if ($every === Release::NEVER) {
+            return;
+        }
         $state = $store->getState(self::STATE) ?? [];
-        if ((int) ($state['next_at'] ?? 0) > $now) {
+        // A frequency changed since the last check applies at once.
+        $changed = (int) ($state['every'] ?? 0) !== $every;
+        if (!$changed && (int) ($state['next_at'] ?? 0) > $now) {
             return;
         }
         // Claimed before the network: a second request in the meantime finds it not due.
-        $state['next_at'] = $now + self::RETRY_AFTER;
+        $state['every'] = $every;
+        $state['next_at'] = $now + min(self::RETRY_AFTER, $every);
         $store->setState(self::STATE, $state);
 
-        $release = self::latest();
-        if ($release === null) {
-            return; // tried again in an hour
-        }
-        $state['next_at'] = $now + self::CHECK_EVERY;
-        $state['checked_at'] = $now;
-        $state['latest'] = $release['version'];
         // The files' own version: what is really running (CS-Cart's recorded version can lag
         // behind files copied in by hand).
         $installed = Release::versionIn((string) @file_get_contents(self::root() . 'app/addons/quissly_search/addon.xml'))
             ?? (string) fn_get_addon_version(self::ADDON);
+
+        // The cheap check first: GitHub's CDN copy of addon.xml. Only news (or a day since the
+        // last full check) asks GitHub's API for the release.
+        if ($now - (int) ($state['checked_at'] ?? 0) < self::CHECK_EVERY) {
+            $hinted = self::hintedVersion();
+            if ($hinted === null || !Release::isNews($hinted, $installed, (string) ($state['latest'] ?? ''))) {
+                $state['next_at'] = $now + $every;
+                $state['hinted_at'] = $now;
+                $store->setState(self::STATE, $state);
+
+                return;
+            }
+        }
+
+        $release = self::latest();
+        if ($release === null) {
+            return; // tried again soon
+        }
+        $state['next_at'] = $now + $every;
+        $state['checked_at'] = $now;
+        $state['latest'] = $release['version'];
         if (self::isCheckout()) {
             $state['skipped'] = 'git_checkout';
         } elseif (version_compare($release['version'], $installed, '>') && ($state['failed'] ?? '') !== $release['version']) {
@@ -289,6 +316,26 @@ final class Updater
     private static function root(): string
     {
         return rtrim((string) Registry::get('config.dir.root'), '/') . '/';
+    }
+
+    /**
+     * The version GitHub's CDN copy of the repository's addon.xml names; null when it cannot be
+     * read. $config['quissly_update_hint_url'] replaces the address on a dev store.
+     */
+    private static function hintedVersion(): ?string
+    {
+        $override = (string) Registry::get('config.quissly_update_hint_url');
+        $body = Http::get($override !== '' ? $override : self::HINT_URL, [], [
+            'headers'            => ['User-Agent: quissly-for-cs-cart'],
+            'timeout'            => 5,
+            'connection_timeout' => 5,
+            'execution_timeout'  => 10,
+        ]);
+        if ($body === false || Http::getStatus() !== 200) {
+            return null;
+        }
+
+        return Release::versionIn((string) $body);
     }
 
     /** GitHub's "latest release" address; $config['quissly_update_url'] replaces it on a dev store. */

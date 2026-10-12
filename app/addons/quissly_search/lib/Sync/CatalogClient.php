@@ -12,8 +12,8 @@ use Quissly\Search\Signer;
  * v1-signed catalog sender: POST add / PUT update / DELETE against /v1beta/catalog,
  * settled on the answer to the send (2026-10-07, the Quissly Shopify app's way): a 2xx is
  * the batch delivered and the operation's status is not polled.
- * Contract live-verified by the WooCommerce plugin and the Magento plugin against the
- * same backend:
+ * The contract the WooCommerce plugin and the Magento plugin use against the same
+ * backend:
  *
  *  - body {data, service: 'search', timestamp}; add/update carry data as a map
  *    id => record, delete as a list of {id}; ids are STRINGS;

@@ -19,7 +19,7 @@ namespace Quissly\Search\Sync;
  *  - up to 10 images, main image first, duplicates dropped.
  *
  * Variations: the parent and its active children go out as `variants`, in the shape
- * the WooCommerce plugin sends (live-confirmed there): each variant is a full
+ * the WooCommerce plugin sends: each variant is a full
  * ProductItem - the required fields (title, description, category, images,
  * original_price) copied from the parent where the child has none, because /add does
  * not inherit them - with price and stock only where they differ from the parent,
@@ -339,6 +339,8 @@ final class ProductMapper
 
     private static function plainText(string $html): string
     {
+        // A <style> or <script> block in a description is code, not words: strip_tags would keep it.
+        $html = (string) preg_replace('#<(style|script)\b[^>]*>.*?</\1\s*>#is', ' ', $html);
         $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = str_replace("\u{00A0}", ' ', $text);
 

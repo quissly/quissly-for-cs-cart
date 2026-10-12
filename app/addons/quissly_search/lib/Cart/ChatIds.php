@@ -6,8 +6,8 @@ namespace Quissly\Search\Cart;
 
 /**
  * Quissly's own product ids, as the chat widget uses them: uuid5 of the qsearch
- * service's quissly_service_link and our product id (live-confirmed 2026-09-24 on
- * this store: uuid5(link, "247") was the chat's id for product 247). Pure; the same
+ * service's quissly_service_link and our product id (uuid5(link, "247") is the chat's id
+ * for product 247). Pure; the same
  * derivation the WooCommerce plugin and the Magento plugin use.
  */
 final class ChatIds

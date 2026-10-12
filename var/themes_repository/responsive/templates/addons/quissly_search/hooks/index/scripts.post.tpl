@@ -20,6 +20,9 @@
 {if $quissly.media}
     {script src="js/addons/quissly_search/media.js"}
 {/if}
+{if $quissly.events}
+    {script src="js/addons/quissly_search/events.js"}
+{/if}
 {if $quissly.qchat_agent_id}
     {script src="js/addons/quissly_search/cart.js"}
     <script src="{$quissly.qchat_script}" async></script>

@@ -8,77 +8,91 @@ use Quissly\Search\SearchSuggestions;
 use Quissly\Search\Sync\SyncStore;
 
 /**
- * Generates a store's search bar suggestions from its own catalog - once, in the background
- * (the add-on's cron), after the first catalog sync (port of the Quissly Shopify app's; the
- * WooCommerce plugin has the same):
+ * Asks Quissly for the store's search bar suggestions, in the background (the add-on's cron),
+ * and keeps track of when to ask - the Quissly Shopify app's showcase runner (the Magento and
+ * WooCommerce plugins have the same).
  *
- *  1. read catalog facts (the 100 most recently changed active products);
- *  2. build candidates (ShowcaseQueries) and RUN each through search - kept only with at
- *     least 2 results (up to 12 searches);
- *  3. fewer than 3 kept = the index may still be filling: retry in an hour (6 attempts; the
- *     last keeps whatever it found, or - nothing at all - gives up, where the Shopify
- *     runner retries for ever);
- *  4. write them as the list (SearchSuggestions) ONLY while Quissly holds no list - a
- *     merchant's own list is never overwritten, even one written elsewhere.
+ * Quissly makes the suggestions (`POST /v2beta/qsearch/suggestions_enrich`, SuggestionsEnrich):
+ * it writes them in each language, checks each one finds products, and writes them into the
+ * QSearch widget_config itself - keeping any list the merchant edited, so nothing here needs to
+ * know about the merchant's own lists. What this sends is what only CS-Cart knows: the store's
+ * languages (the storefront default first, at most SuggestionsEnrich::MAX_LANGUAGES) and its
+ * catalog as each language reads it.
  *
- * A merchant who saves their own list (an actual change) ends it for good; saving the page
- * unchanged does not (the Shopify app stops on any save). The generated list is kept for
- * the settings page's "use the generated suggestions".
+ * When: after the first catalog sync (before it there is nothing to search). Right after the
+ * sync the index can still be filling - Quissly answers "insufficient" and this asks again in
+ * an hour; after MAX_ATTEMPTS it accepts a shorter list. Done once Quissly answers written or
+ * unchanged, until a language is added or the generator changes (lists from an older one are
+ * made again once).
  *
- * The catalog, search and Quissly are passed in (callables), so this is unit-tested
- * without CS-Cart.
+ * The catalog and the call are passed in (callables), so this is unit-tested without CS-Cart.
  */
 final class ShowcaseRunner
 {
     public const STATE = 'showcase';
-    public const MIN_ACCEPTABLE = 3;
-    public const MAX_ATTEMPTS = 6;
     private const LOCK_SECONDS = 600;
     private const HOUR = 3600;
-    private const DAY = 86400;
 
-    /** @return array<string, mixed> generated, generated_at, attempts, next_at, locked_at, last_error, merchant_saved */
+    /**
+     * @return array<string, mixed> generated_at, generator, languages_done, generated,
+     *                              generated_languages, attempts, next_at, locked_at, last_error, last_status
+     */
     public static function state(SyncStore $store): array
     {
         return (array) $store->getState(self::STATE);
     }
 
-    /** Nothing left to do: generated (or given up), or the merchant wrote their own list. */
+    /** Quissly has made the main list. */
     public static function finished(SyncStore $store): bool
     {
-        $state = self::state($store);
-
-        return !empty($state['generated_at']) || !empty($state['merchant_saved']);
-    }
-
-    /** @return list<string> the generated list, [] when none */
-    public static function generated(SyncStore $store): array
-    {
-        return SearchSuggestions::clean(self::state($store)['generated'] ?? []);
-    }
-
-    /** A merchant wrote their own list: generation never writes after this. */
-    public static function merchantSaved(SyncStore $store): void
-    {
-        self::update($store, ['merchant_saved' => true]);
+        return !empty(self::state($store)['generated_at']);
     }
 
     /**
-     * The cron tick: generate when due. Never throws.
+     * Something to ask for: never asked, a language not asked for yet, or an older generator.
      *
-     * @param callable(): array                                           $facts  catalog facts (ShowcaseQueries)
-     * @param callable(string): int                                        $search query => number of results (may throw)
-     * @param callable(): ?array{enabled:bool, queries:list<string>}       $read   what Quissly holds (null = unreadable)
-     * @param callable(bool, list<string>): string                         $write  '' when written, else the reason
+     * @param list<string> $languages
+     */
+    public static function outstanding(SyncStore $store, array $languages): bool
+    {
+        $state = self::state($store);
+
+        return empty($state['generated_at'])
+            || ($state['generator'] ?? '') !== SuggestionsEnrich::GENERATOR
+            || array_diff($languages, (array) ($state['languages_done'] ?? [])) !== [];
+    }
+
+    /**
+     * What Quissly generated last, as it answered here ([] when nothing yet). Configuration
+     * prefers Quissly's own copy (client_specific_queries_generated).
+     *
+     * @return list<string>
+     */
+    public static function generated(SyncStore $store, ?string $language = null): array
+    {
+        $state = self::state($store);
+
+        return SearchSuggestions::clean($language === null
+            ? ($state['generated'] ?? [])
+            : ($state['generated_languages'][$language] ?? []));
+    }
+
+    /**
+     * The cron tick: ask Quissly when due. Never throws.
+     *
+     * @param list<string>                                   $languages the storefront languages, default first
+     * @param callable(string): array                        $facts     catalog facts in a language
+     * @param callable(array): ?array{status:int, body:string} $call    the signed POST (null = no answer)
      * @return string what happened
      */
-    public static function tick(SyncStore $store, bool $ready, int $now, callable $facts, callable $search, callable $read, callable $write): string
+    public static function tick(SyncStore $store, bool $ready, int $now, array $languages, callable $facts, callable $call): string
     {
-        if (self::finished($store)) {
-            return 'finished';
-        }
         if (!$ready) {
             return 'not_ready';
+        }
+        $languages = array_slice(array_values(array_unique($languages)), 0, SuggestionsEnrich::MAX_LANGUAGES);
+        if ($languages === [] || !self::outstanding($store, $languages)) {
+            return 'finished';
         }
         $state = self::state($store);
         if ((int) ($state['next_at'] ?? 0) > $now) {
@@ -90,58 +104,74 @@ final class ShowcaseRunner
         self::update($store, ['locked_at' => $now]);
 
         try {
-            $candidates = ShowcaseQueries::buildCandidates($facts());
-            if ($candidates === []) {
-                return self::retry($store, $now, self::DAY, 'No active products to build suggestions from.', 'no_products');
-            }
-            $accepted = ShowcaseQueries::validate($candidates, $search);
-
-            $attempts = (int) ($state['attempts'] ?? 0) + 1;
-            $lastAttempt = $attempts >= self::MAX_ATTEMPTS;
-            if ($lastAttempt && $accepted === []) {
-                self::update($store, [
-                    'generated' => [], 'generated_at' => $now, 'attempts' => $attempts, 'locked_at' => 0,
-                    'last_error' => 'No candidate search returned results after ' . $attempts . ' attempts.',
-                ]);
-
-                return 'gave_up';
-            }
-            if (count($accepted) < self::MIN_ACCEPTABLE && !($lastAttempt && $accepted !== [])) {
-                // Most likely the search index is still filling after the first sync.
-                return self::retry($store, $now, self::HOUR, 'Only ' . count($accepted) . ' of ' . count($candidates) . ' candidate searches returned results.', 'only_' . count($accepted) . '_validated');
-            }
-
-            $queries = ShowcaseQueries::pick($accepted);
-            $current = $read();
-            if ($current === null) {
-                return self::retry($store, $now, self::HOUR, 'Quissly could not be read.', 'unreadable');
-            }
-            $done = ['generated' => $queries, 'generated_at' => $now, 'attempts' => $attempts, 'locked_at' => 0, 'last_error' => ''];
-            if ($current['queries'] !== [] || !empty(self::state($store)['merchant_saved'])) {
-                // Someone already wrote a list: keep theirs, remember ours for "use generated".
-                self::update($store, $done);
-
-                return 'kept_existing';
-            }
-            $error = $write($current['enabled'], $queries);
-            if ($error !== '') {
-                return self::retry($store, $now, self::HOUR, $error, 'write_failed');
-            }
-            self::update($store, $done);
-
-            return 'written';
+            return self::ask($store, $now, $languages, $state, $facts, $call);
         } catch (\Throwable $e) {
             return self::retry($store, $now, self::HOUR, substr($e->getMessage(), 0, 300), 'error');
         }
     }
 
+    /**
+     * @param list<string> $languages
+     * @param array<string, mixed> $state
+     */
+    private static function ask(SyncStore $store, int $now, array $languages, array $state, callable $facts, callable $call): string
+    {
+        $catalogs = [];
+        foreach ($languages as $language) {
+            $catalogs[$language] = $facts($language);
+        }
+        $attempts = (int) ($state['attempts'] ?? 0) + 1;
+        $regenerate = !empty($state['generated_at']) && ($state['generator'] ?? '') !== SuggestionsEnrich::GENERATOR;
+        $body = SuggestionsEnrich::body(
+            $languages[0],
+            $languages,
+            $catalogs,
+            ['main' => self::generated($store), 'by_language' => array_filter(array_map([SearchSuggestions::class, 'clean'], (array) ($state['generated_languages'] ?? [])))],
+            $regenerate ? 'regenerate' : 'fill',
+            $attempts >= SuggestionsEnrich::MAX_ATTEMPTS
+        );
+
+        $response = $call($body);
+        $answer = $response === null ? null : json_decode($response['body'], true);
+        if ($response === null || $response['status'] < 200 || $response['status'] >= 300 || !is_array($answer)) {
+            return self::retry($store, $now, self::HOUR, 'suggestions_enrich ' . ($response === null ? 'no answer' : 'http=' . $response['status']), 'error');
+        }
+
+        $status = (string) ($answer['status'] ?? '');
+        $next = SuggestionsEnrich::schedule($status);
+        if (!$next['done']) {
+            return self::retry($store, $now, $next['retry'], $next['reason'], $status !== '' ? $status : 'error');
+        }
+
+        $lists = [];
+        foreach ($languages as $language) {
+            $lists[$language] = SearchSuggestions::clean($answer['languages'][$language] ?? []);
+        }
+        $main = SearchSuggestions::clean($answer['main'] ?? []);
+        self::update($store, [
+            'generated_at'        => (int) ($state['generated_at'] ?? 0) ?: $now,
+            'generator'           => SuggestionsEnrich::GENERATOR,
+            'languages_done'      => $languages,
+            'generated'           => $main !== [] ? $main : ($state['generated'] ?? []),
+            'generated_languages' => $lists,
+            'attempts'            => 0,
+            'next_at'             => 0,
+            'locked_at'           => 0,
+            'last_error'          => '',
+            'last_status'         => $status,
+        ]);
+
+        return $status;
+    }
+
     private static function retry(SyncStore $store, int $now, int $in, string $error, string $outcome): string
     {
         self::update($store, [
-            'attempts'   => (int) (self::state($store)['attempts'] ?? 0) + 1,
-            'next_at'    => $now + $in,
-            'locked_at'  => 0,
-            'last_error' => $error,
+            'attempts'    => (int) (self::state($store)['attempts'] ?? 0) + 1,
+            'next_at'     => $now + $in,
+            'locked_at'   => 0,
+            'last_error'  => $error,
+            'last_status' => $outcome,
         ]);
 
         return $outcome;

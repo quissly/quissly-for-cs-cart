@@ -23,6 +23,26 @@ final class BillingPage
     /** The products a store can buy, in the order they are shown. */
     public const FAMILIES = ['qsearch', 'qchat'];
 
+    /** Automatic top-up's maximum a month: one block at least, 50 at most (Quissly refuses outside). */
+    public const TOPUP_MAX_BLOCKS = 50;
+
+    /** The maximum suggested when it is first switched on, in blocks. */
+    public const TOPUP_DEFAULT_BLOCKS = 3;
+
+    /** Refund refusals a person can still look at (POST /refund-claim); others need no claim. */
+    public const CLAIMABLE = ['used', 'too_old', 'carried_extras', 'unpaid', 'ended'];
+
+    /** A refund claim's length, as Quissly accepts it. */
+    public const CLAIM_MIN = 10;
+    public const CLAIM_MAX = 4000;
+
+    /** The policies the billing screen links to. */
+    public const LINKS = [
+        'refund'  => 'https://quissly.com/legal/refund-policy',
+        'terms'   => 'https://quissly.com/legal/terms',
+        'privacy' => 'https://quissly.com/legal/privacy-policy',
+    ];
+
     /**
      * Everything the page shows; null when Quissly could not be reached.
      *
@@ -104,6 +124,9 @@ final class BillingPage
         }
         if (is_array($extra)) {
             $feats[] = self::t('quissly_search.bi_extra_line', ['[price]' => SetupPage::money((float) $extra['price'], $currency), '[count]' => number_format((int) $extra['requests'])]);
+            if (self::rate($extra, $family, $currency) !== '') {
+                $feats[] = self::rate($extra, $family, $currency);
+            }
             $feats[] = self::t('quissly_search.bi_carry_over');
         } else {
             $feats[] = self::t('quissly_search.bi_no_extra');
@@ -119,7 +142,81 @@ final class BillingPage
                 ? self::t('quissly_search.su_trial', ['[days]' => $trialDays])
                 : '',
             'feats'      => $feats,
+            'topup'      => $free ? null : self::topup($extra, $family, $currency),
         ];
+    }
+
+    /**
+     * Automatic top-up's limits and words for a plan that sells blocks; null for one that does not.
+     *
+     * @param mixed $extra the quota's extra_block
+     *
+     * @return array{min:string, max:string, default:string, min_text:string, max_text:string, rate:string, hint:string}|null
+     */
+    public static function topup($extra, string $family, string $currency, ?float $current = null): ?array
+    {
+        $price = is_array($extra) ? (float) ($extra['price'] ?? 0) : 0.0;
+        if ($price <= 0) {
+            return null;
+        }
+        $max = $price * self::TOPUP_MAX_BLOCKS;
+
+        return [
+            'min'      => self::number($price),
+            'max'      => self::number($max),
+            'default'  => self::number($current ?? $price * self::TOPUP_DEFAULT_BLOCKS),
+            'min_text' => SetupPage::money($price, $currency),
+            'max_text' => SetupPage::money($max, $currency),
+            'rate'     => self::rate($extra, $family, $currency),
+            'hint'     => self::t('quissly_search.bi_at_hint', ['[count]' => number_format((int) ($extra['requests'] ?? 0)), '[price]' => SetupPage::money($price, $currency)]),
+        ];
+    }
+
+    /**
+     * What one extra request costs: "$0.003 per search", "$0.012 per AI message"; '' when unknown.
+     *
+     * @param mixed $extra the quota's extra_block
+     */
+    public static function rate($extra, string $family, string $currency): string
+    {
+        $rate = is_array($extra) ? (float) ($extra['rate'] ?? 0) : 0.0;
+        if ($rate <= 0) {
+            return '';
+        }
+        $digits = rtrim(number_format($rate, 4, '.', ''), '0');
+        $digits = strlen(substr((string) strrchr($digits, '.'), 1)) < 2 ? number_format($rate, 2, '.', '') : $digits;
+        $symbols = ['USD' => '$', 'EUR' => '€', 'GBP' => '£'];
+        $amount = isset($symbols[$currency]) ? $symbols[$currency] . $digits : $currency . ' ' . $digits;
+
+        return self::t($family === 'qchat' ? 'quissly_search.bi_rate_chat' : 'quissly_search.bi_rate_search', ['[price]' => $amount]);
+    }
+
+    /**
+     * What the refund dialog says, from Quissly's preview: eligible (refund now), claim (a person
+     * can still look at it) or neither; the summary is Quissly's own sentence, with the claim's offer.
+     *
+     * @return array{eligible:bool, claim:bool, summary:string}
+     */
+    public static function refundAnswer(array $preview): array
+    {
+        $eligible = !empty($preview['eligible']);
+        $claim = !$eligible && in_array((string) ($preview['reason'] ?? ''), self::CLAIMABLE, true);
+        $message = trim((string) ($preview['message'] ?? ''));
+        if ($eligible && $message === '') {
+            $message = self::t('quissly_search.bi_refund_back', ['[amount]' => SetupPage::money((float) ($preview['amount'] ?? 0), (string) ($preview['currency'] ?? 'USD'))]);
+        } elseif ($claim) {
+            $message = trim($message . ' ' . self::t('quissly_search.bi_refund_claim_offer'));
+        } elseif (!$eligible && $message === '') {
+            $message = self::t('quissly_search.bi_refund_none');
+        }
+
+        return ['eligible' => $eligible, 'claim' => $claim, 'summary' => $message];
+    }
+
+    /** A dollar figure for an input: "45", "15.5". */
+    private static function number(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 
     /** One live plan, in words, with the actions it allows. */
@@ -137,6 +234,9 @@ final class BillingPage
         $pending = $cards[(string) ($sub['pending_plan_id'] ?? '')] ?? null;
         $extra = $card['raw']['quotas'][0]['extra_block'] ?? null;
         $id = (string) ($sub['id'] ?? '');
+        $family = (string) ($row['plan']['family'] ?? ($card['family'] ?? ''));
+        $budget = (float) ($sub['overage_budget_usd'] ?? 0);
+        $autoOn = !empty($sub['auto_refill_enabled']) && $budget > 0;
 
         $meta = [];
         if ($free) {
@@ -145,6 +245,9 @@ final class BillingPage
             $meta[] = $annual
                 ? self::t('quissly_search.bi_per_year', ['[price]' => $card['annual_total']])
                 : self::t('quissly_search.bi_per_month', ['[price]' => $card['monthly']]);
+        }
+        if ($autoOn) {
+            $meta[] = self::t('quissly_search.bi_at_meta', ['[price]' => SetupPage::money($budget, $currency)]);
         }
         if ($ends !== '' && !$free) {
             $meta[] = self::t($cancelling ? 'quissly_search.bi_ends' : ($status === 'trial' ? 'quissly_search.bi_trial_ends' : 'quissly_search.bi_renews'), ['[date]' => $ends]);
@@ -184,6 +287,15 @@ final class BillingPage
             'can_cancel'       => $paddle && !$cancelling,
             'can_card'         => $paddle,
             'can_topup'        => $paddle && is_array($extra) && $status === 'active',
+            // Quissly allows it on a trial, active or past-due plan; never bought for one set to cancel.
+            'can_auto_topup'   => $paddle && is_array($extra) && in_array($status, ['trial', 'active', 'past_due'], true) && !$cancelling,
+            'auto_topup'       => [
+                'on'    => $autoOn,
+                'label' => $autoOn
+                    ? self::t('quissly_search.bi_at_on', ['[price]' => SetupPage::money($budget, $currency)])
+                    : self::t('quissly_search.bi_at_off'),
+            ] + (self::topup($extra, $family, $currency, $autoOn ? $budget : null) ?? []),
+            'can_refund'       => $paddle && in_array($status, ['active', 'past_due'], true),
             'extra'            => is_array($extra) ? [
                 'price'    => SetupPage::money((float) $extra['price'], $currency),
                 'requests' => number_format((int) $extra['requests']),
@@ -281,7 +393,7 @@ final class BillingPage
             }
             $left .= self::usageSection($view) . self::extrasSection($view['extras']);
             $html .= '<div class="q-settings" data-q-settings><div class="q-settings__col">' . $left . '</div>'
-                . '<div class="q-settings__col">' . self::invoicesSection($view['invoices']) . self::paymentSection($view['families']) . '</div></div>';
+                . '<div class="q-settings__col">' . self::invoicesSection($view['invoices']) . self::paymentSection($view['families']) . self::links() . '</div></div>';
         }
 
         return $html . self::modal() . '</div>';
@@ -314,6 +426,9 @@ final class BillingPage
             $html .= '<button type="button" class="q-button q-button--tertiary q-button--critical" data-q-op="cancel_confirm" data-id="' . self::e($id) . '" data-summary="'
                 . self::e(self::t('quissly_search.bi_cancel_summary')) . '">' . self::e(self::t('quissly_search.bi_cancel_subscription')) . '</button>';
         }
+        if ($plan !== null && $plan['can_refund']) {
+            $html .= '<button type="button" class="q-button q-button--tertiary" data-q-op="refund_preview" data-id="' . self::e($id) . '">' . self::e(self::t('quissly_search.bi_request_refund')) . '</button>';
+        }
         $html .= '</div>';
 
         // From a paid plan the way to Free is cancelling: change-plan moves between paid plans
@@ -333,7 +448,7 @@ final class BillingPage
         foreach ($shown as $card) {
             $html .= self::card($card, $changing);
         }
-        $html .= '</div><p class="q-text-quiet" data-q-same hidden>' . self::e(self::t('quissly_search.bi_same_plan')) . '</p>'
+        $html .= '</div>' . ($changing ? '' : self::pickerTopup()) . '<p class="q-text-quiet" data-q-same hidden>' . self::e(self::t('quissly_search.bi_same_plan')) . '</p>'
             . '<div class="q-stack"><button type="button" class="q-button q-button--primary" data-q-confirm disabled>' . self::e(self::t('quissly_search.bi_confirm_plan')) . '</button>'
             . '<button type="button" class="q-button q-button--tertiary" data-q-close>' . self::e(self::t('quissly_search.bi_cancel')) . '</button></div></div>';
 
@@ -354,7 +469,8 @@ final class BillingPage
         }
 
         return '<button type="button" role="radio" aria-checked="false" class="q-plan' . ($card['popular'] ? ' is-popular' : '') . '"'
-            . ' data-q-pick="' . self::e($card['id']) . '" data-free="' . ($card['free'] ? '1' : '0') . '"' . ($card['disabled'] ? ' aria-disabled="true"' : '') . '>'
+            . ' data-q-pick="' . self::e($card['id']) . '" data-free="' . ($card['free'] ? '1' : '0') . '"' . ($card['disabled'] ? ' aria-disabled="true"' : '')
+            . ($changing ? '' : self::topupAttributes($card['topup'] ?? null)) . '>'
             . $ribbon
             . '<span class="q-plan__head"><span class="q-plan__name">' . self::e($card['name']) . '</span><span class="q-plan__radio" aria-hidden="true"></span></span>'
             . '<span class="q-plan__price"><span class="q-plan__amount" data-q-monthly>' . self::e($card['monthly']) . '</span>'
@@ -364,6 +480,63 @@ final class BillingPage
             . '<span class="q-plan__note" data-q-annual hidden>' . self::e($card['note_year']) . '</span>'
             . ($card['trial'] !== '' && !$changing ? '<span><span class="q-pill q-pill--brand">' . self::e($card['trial']) . '</span></span>' : '')
             . '<span class="q-plan__feats" role="list">' . $feats . '</span></button>';
+    }
+
+    /** The picker card's automatic top-up limits as data-at-* attributes; '' for a plan without. */
+    private static function topupAttributes(?array $topup): string
+    {
+        if ($topup === null) {
+            return '';
+        }
+        $html = '';
+        foreach (['min', 'max', 'default', 'min_text', 'max_text', 'rate', 'hint'] as $key) {
+            $html .= ' data-at-' . str_replace('_', '-', $key) . '="' . self::e($topup[$key]) . '"';
+        }
+
+        return $html;
+    }
+
+    /** The picker's "Automatic top-up on this plan" box (the Shopify app's "Overage on this plan"). */
+    private static function pickerTopup(): string
+    {
+        return '<div class="q-autotopup" data-q-autotopup hidden>'
+            . '<span class="q-autotopup__title">' . self::e(self::t('quissly_search.bi_at_on_plan')) . '</span>'
+            . '<label class="q-check"><input type="checkbox" data-q-at-toggle><span>' . self::e(self::t('quissly_search.bi_at_toggle')) . '</span>'
+            . '<span class="q-text-quiet" data-q-at-rate></span></label>'
+            . '<div class="q-field" data-q-at-fields hidden><span class="q-field__label">' . self::e(self::t('quissly_search.bi_at_max')) . '</span>'
+            . '<span class="q-money"><span class="q-money__prefix">$</span><input type="number" step="1" inputmode="decimal" data-q-at-max aria-label="' . self::e(self::t('quissly_search.bi_at_max')) . '"></span>'
+            . '<span class="q-field__hint" data-q-at-hint></span></div>'
+            . '<p class="q-text-quiet">' . self::e(self::t('quissly_search.bi_at_explain')) . '</p>'
+            . '<p class="q-field-error" data-q-at-error hidden></p></div>';
+    }
+
+    /** A live plan's automatic top-up form, under Extra requests. */
+    private static function topupForm(array $extra, bool $several): string
+    {
+        $auto = $extra['plan']['auto_topup'];
+
+        return '<div class="q-divider"></div><div class="q-autotopup" data-q-at-form data-id="' . self::e($extra['plan']['id']) . '">'
+            . '<span class="q-autotopup__title">' . self::e($several ? self::t('quissly_search.bi_at_title_for', ['[product]' => $extra['label']]) : self::t('quissly_search.bi_at_title')) . '</span>'
+            . '<span class="q-text-quiet">' . self::e($auto['label']) . '</span>'
+            . '<label class="q-check"><input type="checkbox" data-q-at-toggle' . ($auto['on'] ? ' checked' : '') . '><span>' . self::e(self::t('quissly_search.bi_at_toggle')) . '</span>'
+            . '<span class="q-text-quiet">' . self::e($auto['rate']) . '</span></label>'
+            . '<div class="q-field" data-q-at-fields hidden><span class="q-field__label">' . self::e(self::t('quissly_search.bi_at_max')) . '</span>'
+            . '<span class="q-money"><span class="q-money__prefix">$</span><input type="number" step="1" inputmode="decimal" data-q-at-max aria-label="' . self::e(self::t('quissly_search.bi_at_max')) . '"'
+            . ' min="' . self::e($auto['min']) . '" max="' . self::e($auto['max']) . '" data-min-text="' . self::e($auto['min_text']) . '" data-max-text="' . self::e($auto['max_text']) . '" value="' . self::e($auto['default']) . '"></span>'
+            . '<span class="q-field__hint">' . self::e($auto['hint']) . '</span></div>'
+            . '<p class="q-field-error" data-q-at-error hidden></p>'
+            . '<div><button type="button" class="q-button" data-q-at-save>' . self::e(self::t('quissly_search.bi_at_save')) . '</button></div></div>';
+    }
+
+    /** Refund policy, Terms and Privacy. */
+    private static function links(): string
+    {
+        $html = '';
+        foreach (['refund' => 'quissly_search.bi_link_refund', 'terms' => 'quissly_search.bi_link_terms', 'privacy' => 'quissly_search.bi_link_privacy'] as $key => $label) {
+            $html .= '<a href="' . self::e(self::LINKS[$key]) . '" target="_blank" rel="noopener">' . self::e(self::t($label)) . '</a>';
+        }
+
+        return '<p class="q-links">' . $html . '</p>';
     }
 
     private static function usageSection(array $view): string
@@ -408,6 +581,11 @@ final class BillingPage
                 $buyable[] = $extra;
             }
         }
+        $automatic = array_values(array_filter($extras, static fn (array $e): bool => $e['plan']['can_auto_topup'] && isset($e['plan']['auto_topup']['min'])));
+        $forms = '';
+        foreach ($automatic as $extra) {
+            $forms .= self::topupForm($extra, count($automatic) > 1);
+        }
         $buttons = '';
         foreach ($buyable as $extra) {
             $label = count($buyable) > 1 ? $extra['label'] . ': ' . $extra['plan']['extra']['label'] : $extra['plan']['extra']['label'];
@@ -417,6 +595,7 @@ final class BillingPage
         return '<section class="q-section"><h2 class="q-section__heading">' . self::e(self::t('quissly_search.bi_extra_requests')) . '</h2>'
             . '<div class="q-grid">' . $tiles . '</div>'
             . '<p class="q-text-quiet">' . self::e(self::t('quissly_search.bi_extra_text')) . '</p>'
+            . $forms
             . ($buttons !== '' ? '<div class="q-divider"></div><div class="q-stack">' . $buttons . '</div>' : '')
             . '</section>';
     }
@@ -465,7 +644,11 @@ final class BillingPage
     {
         return '<div class="q-modal" data-q-modal hidden><div class="q-modal__box" role="dialog" aria-modal="true" aria-labelledby="q-modal-title">'
             . '<h3 class="q-modal__title" id="q-modal-title" data-q-modal-title></h3>'
-            . '<div class="q-modal__body"><p data-q-modal-body></p><div class="q-banner q-banner--critical" data-q-modal-error hidden></div></div>'
+            . '<div class="q-modal__body"><p data-q-modal-body></p>'
+            . '<div class="q-claim" data-q-modal-claim hidden><label class="q-field__label" for="q-claim">' . self::e(self::t('quissly_search.bi_claim_label')) . '</label>'
+            . '<textarea id="q-claim" data-q-claim data-min="' . self::CLAIM_MIN . '" maxlength="' . self::CLAIM_MAX . '" rows="5"></textarea>'
+            . '<span class="q-claim__count" data-q-claim-count></span></div>'
+            . '<div class="q-banner q-banner--critical" data-q-modal-error hidden></div></div>'
             . '<div class="q-modal__actions"><button type="button" class="q-button" data-q-modal-cancel>' . self::e(self::t('quissly_search.bi_cancel')) . '</button>'
             . '<button type="button" class="q-button q-button--primary" data-q-modal-ok></button></div></div></div>';
     }

@@ -1,9 +1,9 @@
 <?php
 /**
  * Quissly for CS-Cart — the add-on settings page's own Save also saves Configuration's
- * "Search bar suggestions" (lib/Admin/SuggestionsView.php; written to Quissly, only when
- * changed) and "Catalog data" checklist (lib/Admin/CatalogView.php), both drawn inside that
- * form. Runs before CS-Cart's addons.update, which ignores these fields. A changed
+ * "Search Examples" and "Search Suggestions" (lib/Admin/SuggestionsView.php; written to Quissly,
+ * only when changed) and "Catalog data" checklist (lib/Admin/CatalogView.php), all drawn inside
+ * that form. Runs before CS-Cart's addons.update, which ignores these fields. A changed
  * checklist re-sends the whole catalog, so existing products pick it up
  * (the Magento plugin does the same).
  */
@@ -11,7 +11,6 @@
 use Quissly\Search\Credentials;
 use Quissly\Search\Panel\QChatDirectory;
 use Quissly\Search\SearchSuggestions;
-use Quissly\Search\Showcase\ShowcaseRunner;
 use Quissly\Search\Sync\CatalogFeatures;
 use Quissly\Search\Sync\DbSyncStore;
 use Quissly\Search\Sync\ProductSource;
@@ -30,41 +29,65 @@ if (
     return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.setup'];
 }
 
-// Search bar suggestions: kept in Quissly; written back only when they changed.
-if (
-    $_SERVER['REQUEST_METHOD'] === 'POST'
+$quisslySaving = $_SERVER['REQUEST_METHOD'] === 'POST'
     && $mode === 'update'
-    && ($_REQUEST['addon'] ?? '') === 'quissly_search'
-    && isset($_REQUEST['quissly_suggestions_present'])
-) {
+    && ($_REQUEST['addon'] ?? '') === 'quissly_search';
+
+// Search Examples: kept in Quissly, per language; written back only when they changed.
+if ($quisslySaving && isset($_REQUEST['quissly_suggestions_present'])) {
     $store = new DbSyncStore();
-    $credentials = Credentials::fromRegistry();
     $serviceId = QChatDirectory::cachedSearchServiceId($store);
-    $queries = SearchSuggestions::clean(preg_split('/\r\n|\r|\n/', (string) ($_REQUEST['quissly_suggestions'] ?? '')));
-    if (!empty($_REQUEST['quissly_suggestions_use_generated'])) {
-        $queries = ShowcaseRunner::generated($store); // "use the generated suggestions"
-    }
-    $enabled = ($_REQUEST['quissly_typing_enabled'] ?? '') === 'Y';
-    $error = SearchSuggestions::validate($queries);
-    if ($error === '') {
-        $current = SearchSuggestions::read($serviceId, fn_quissly_search_http_get(10));
-        if ($current === null || $current['enabled'] !== $enabled || $current['queries'] !== $queries) {
+    $main = fn_quissly_search_main_language();
+    $lists = fn_quissly_search_posted_lists('quissly_examples');
+    $current = SearchSuggestions::read($serviceId, fn_quissly_search_http_get(10));
+    if ($lists !== null && $current !== null) {
+        $queries = $lists[$main] ?? [];
+        unset($lists[$main]);
+        $enabled = ($_REQUEST['quissly_typing_enabled'] ?? '') === 'Y';
+        $error = '';
+        foreach (array_merge([$queries], array_values($lists)) as $list) {
+            $error = $error !== '' ? $error : SearchSuggestions::validate($list);
+        }
+        if ($error === '' && ($current['enabled'] !== $enabled || $current['queries'] !== $queries || $current['by_language'] !== array_filter($lists))) {
+            // The merchant's own lists from now on: Quissly's generator keeps any list that
+            // differs from what it generated, so nothing is recorded here.
             $error = SearchSuggestions::save(
-                $store, $credentials, $serviceId, $enabled, $queries,
+                $store, Credentials::fromRegistry(), $serviceId, $enabled, $queries, $lists, $main,
                 fn_quissly_search_http_post(10), fn_quissly_search_http_get(10), fn_quissly_search_http_put(10)
             );
-            if ($error === '' && ($current === null || $current['queries'] !== $queries)) {
-                // The merchant's own list from now on: generation never writes over it.
-                ShowcaseRunner::merchantSaved($store);
-            }
+        }
+        if ($error !== '') {
+            fn_quissly_search_suggestions_error($error);
+        }
+    }
+}
+
+// Search Suggestions: the buttons' choice and Manual lists, kept in Quissly (and a copy here).
+if ($quisslySaving && isset($_REQUEST['quissly_buttons_present'])) {
+    $store = new DbSyncStore();
+    $serviceId = QChatDirectory::cachedSearchServiceId($store);
+    $buttonsMode = ($_REQUEST['quissly_chips_mode'] ?? '') === 'manual' ? 'manual' : 'automatic';
+    $lists = fn_quissly_search_posted_lists('quissly_chips_manual');
+    $error = '';
+    if ($lists === null) {
+        $lists = SearchSuggestions::localButtons($store)['lists'];
+    }
+    foreach ($lists as $list) {
+        $error = $error !== '' ? $error : SearchSuggestions::validateButtons($list);
+    }
+    if ($error === '') {
+        $current = SearchSuggestions::read($serviceId, fn_quissly_search_http_get(10));
+        $local = SearchSuggestions::localButtons($store);
+        $unchanged = $current !== null && $current['chips_mode'] === $buttonsMode && $current['manual_chips'] === array_filter($lists);
+        if (!$unchanged || $local['mode'] !== $buttonsMode || $local['lists'] !== array_filter($lists)) {
+            $error = SearchSuggestions::saveButtons(
+                $store, Credentials::fromRegistry(), $serviceId, $buttonsMode, $lists,
+                fn_quissly_search_http_post(10), fn_quissly_search_http_get(10), fn_quissly_search_http_put(10)
+            );
         }
     }
     if ($error !== '') {
-        fn_set_notification('E', __('error'), str_replace(
-            ['[count]', '[length]'],
-            [(string) SearchSuggestions::MAX_COUNT, (string) SearchSuggestions::MAX_LENGTH],
-            (string) __($error)
-        ));
+        fn_quissly_search_suggestions_error($error);
     }
 }
 

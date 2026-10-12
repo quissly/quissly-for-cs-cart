@@ -1,0 +1,18 @@
+/*
+ * The "Quissly" entry in the admin's Add-ons menu shows Quissly's own mark (the speech-bubble q,
+ * as the Shopify app's icon and the Magento plugin's menu entry), drawn as a mask in the link's
+ * text colour so it greys and lights up with it. The mark is inlined: CS-Cart bundles this file
+ * elsewhere, where a relative url() would not resolve. Picked by its Configuration sub-entry,
+ * so no other add-on's entry is touched.
+ */
+.main-menu-2__item.is-addon:has(#addons_quissly_quissly_settings) > .accordion-heading .main-menu-2__link-content::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 13px;
+    margin-right: 8px;
+    vertical-align: -1px;
+    background-color: currentColor;
+    -webkit-mask: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDcuNzkgMTY1Ljk5Ij48cGF0aCBkPSJNNzAuMTEgMjkuM0M0Ny42IDI5LjMgMjkuMyA0Ny42IDI5LjMgNzAuMTF2MjUuNzdjMCAyMi41MSAxOC4zIDQwLjgxIDQwLjgxIDQwLjgxaDEwOC4zOFY3MC4xMWMwLTIyLjUxLTE4LjMxLTQwLjgxLTQwLjgxLTQwLjgxWk0yMDcuNzkgMTY1Ljk5SDcwLjExQzMxLjQ1IDE2NS45OSAwIDEzNC41NCAwIDk1Ljg4VjcwLjExQzAgMzEuNDUgMzEuNDUgMCA3MC4xMSAwaDY3LjU3YzM4LjY2IDAgNzAuMTEgMzEuNDUgNzAuMTEgNzAuMTFaIi8+PC9zdmc+Cg==') center / contain no-repeat;
+    mask: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDcuNzkgMTY1Ljk5Ij48cGF0aCBkPSJNNzAuMTEgMjkuM0M0Ny42IDI5LjMgMjkuMyA0Ny42IDI5LjMgNzAuMTF2MjUuNzdjMCAyMi41MSAxOC4zIDQwLjgxIDQwLjgxIDQwLjgxaDEwOC4zOFY3MC4xMWMwLTIyLjUxLTE4LjMxLTQwLjgxLTQwLjgxLTQwLjgxWk0yMDcuNzkgMTY1Ljk5SDcwLjExQzMxLjQ1IDE2NS45OSAwIDEzNC41NCAwIDk1Ljg4VjcwLjExQzAgMzEuNDUgMzEuNDUgMCA3MC4xMSAwaDY3LjU3YzM4LjY2IDAgNzAuMTEgMzEuNDUgNzAuMTEgNzAuMTFaIi8+PC9zdmc+Cg==') center / contain no-repeat;
+}

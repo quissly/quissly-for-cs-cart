@@ -9,7 +9,10 @@
  * previews already written as sentences by the server); this script opens the plan picker
  * the way the Shopify app's Settings does (pick a card, then Confirm plan), asks for
  * confirmation with the server's preview before anything is charged, and opens Quissly's
- * payment pages in a new tab. Vanilla, no framework.
+ * payment pages in a new tab. It also carries the automatic top-up choice (in the picker for
+ * a new plan, and saved on its own for a live one) and the refund request: the server's
+ * preview says whether the refund is automatic, and a merchant it does not cover can write
+ * to a person instead. Vanilla, no framework.
  *
  * Config (JSON in data-config on [data-q-billing]): endpoint, reload, csrf {name: value},
  * params {name: value} (merged into every POST), text {...}.
@@ -79,9 +82,16 @@
         var modalError = $('[data-q-modal-error]');
         var onConfirm = null;
 
+        var claim = $('[data-q-modal-claim]');
+        var claimInput = $('[data-q-claim]');
+        var claimCount = $('[data-q-claim-count]');
+
         function openModal(title, summary, confirmLabel, action) {
             $('[data-q-modal-title]').textContent = title;
             $('[data-q-modal-body]').textContent = summary;
+            if (claim) {
+                claim.hidden = true;
+            }
             modalOk.textContent = confirmLabel;
             modalOk.disabled = false;
             modalError.hidden = true;
@@ -100,6 +110,35 @@
             modalError.hidden = false;
             modalOk.disabled = false;
             modalOk.textContent = modalOk.getAttribute('data-label') || modalOk.textContent;
+        }
+
+        /** The refund claim's text box, under the preview's message. */
+        function showClaim() {
+            claim.hidden = false;
+            claimInput.value = '';
+            countClaim();
+            claimInput.focus();
+        }
+
+        function countClaim() {
+            claimCount.textContent = (text.claimCount || '%1 / %2').split('%1').join(claimInput.value.trim().length)
+                .split('%2').join(claimInput.getAttribute('maxlength'));
+        }
+
+        /** The claim's words, or null (with the reason shown) when too short or too long. */
+        function claimText() {
+            var words = claimInput.value.trim();
+            if (words.length < Number(claimInput.getAttribute('data-min')) ||
+                words.length > Number(claimInput.getAttribute('maxlength'))) {
+                fail(text.claimLength);
+                claimInput.focus();
+                return null;
+            }
+            return words;
+        }
+
+        if (claimInput) {
+            claimInput.addEventListener('input', countClaim);
         }
 
         if (modal) {
@@ -165,7 +204,94 @@
                 other.tabIndex = other === card ? 0 : -1;
             });
             syncConfirm(section);
+            syncTopup(section, card);
         }
+
+        // ---- Automatic top-up --------------------------------------------------
+        // Quissly buys one block of extra requests on the saved card when the month's quota is
+        // about to run out, up to the merchant's maximum a month. Offered only on a plan that
+        // sells blocks; the card (or the live plan's form) carries its limits and words.
+
+        /** The picker's top-up box follows the picked card: shown for a plan that sells blocks. */
+        function syncTopup(section, card) {
+            var box = $('[data-q-autotopup]', section);
+            if (!box) {
+                return;
+            }
+            var price = card ? card.getAttribute('data-at-min') : '';
+            box.hidden = !price;
+            if (!price) {
+                return;
+            }
+            var input = $('[data-q-at-max]', box);
+            ['min', 'max'].forEach(function (end) {
+                input.setAttribute(end, card.getAttribute('data-at-' + end));
+                input.setAttribute('data-' + end + '-text', card.getAttribute('data-at-' + end + '-text'));
+            });
+            if (!input.getAttribute('data-touched')) {
+                input.value = card.getAttribute('data-at-default');
+            }
+            $('[data-q-at-rate]', box).textContent = card.getAttribute('data-at-rate');
+            $('[data-q-at-hint]', box).textContent = card.getAttribute('data-at-hint');
+            $('[data-q-at-error]', box).hidden = true;
+        }
+
+        /** The chosen maximum: 0 when off, null when it is out of range (the reason is shown). */
+        function topupAmount(box) {
+            var error = $('[data-q-at-error]', box);
+            error.hidden = true;
+            if (!$('[data-q-at-toggle]', box).checked) {
+                return 0;
+            }
+            var input = $('[data-q-at-max]', box);
+            var value = Number(input.value);
+            if (!(value >= Number(input.getAttribute('min')) && value <= Number(input.getAttribute('max')))) {
+                error.textContent = (text.topupRange || '').split('%1').join(input.getAttribute('data-min-text'))
+                    .split('%2').join(input.getAttribute('data-max-text'));
+                error.hidden = false;
+                input.focus();
+                return null;
+            }
+            return value;
+        }
+
+        $$('[data-q-at-toggle]').forEach(function (toggle) {
+            var box = toggle.closest('[data-q-autotopup], [data-q-at-form]');
+            function show() {
+                $('[data-q-at-fields]', box).hidden = !toggle.checked;
+                $('[data-q-at-error]', box).hidden = true;
+            }
+            toggle.addEventListener('change', show);
+            show();
+        });
+
+        $$('[data-q-at-max]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                input.setAttribute('data-touched', '1');
+                $('[data-q-at-error]', input.closest('[data-q-autotopup], [data-q-at-form]')).hidden = true;
+            });
+        });
+
+        $$('[data-q-at-save]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var form = button.closest('[data-q-at-form]');
+                var amount = topupAmount(form);
+                if (amount === null) {
+                    return;
+                }
+                button.disabled = true;
+                post({op: 'auto_topup', id: form.getAttribute('data-id'), max_usd: amount}).then(function (result) {
+                    if (result && result.ok) {
+                        reload();
+                        return;
+                    }
+                    button.disabled = false;
+                    var error = $('[data-q-at-error]', form);
+                    error.textContent = (result && result.message) || text.error;
+                    error.hidden = false;
+                });
+            });
+        });
 
         function closePicker(section) {
             $('[data-q-picker]', section).hidden = true;
@@ -283,15 +409,22 @@
                     return;
                 }
                 // No plan yet (or the free one): start the chosen plan. The payment tab is opened
-                // inside the click so no popup blocker stops it.
+                // inside the click so no popup blocker stops it. The automatic top-up choice goes
+                // with the checkout: Paddle's card form cannot carry it.
                 var card = $('[data-q-pick="' + planId + '"]', section);
                 var annual = $('[data-q-cycle="annual"][aria-checked="true"]', section);
+                var topupBox = $('[data-q-autotopup]', section);
+                var autoMax = topupBox && !topupBox.hidden ? topupAmount(topupBox) : 0;
+                if (autoMax === null) {
+                    return;
+                }
                 var tab = card.getAttribute('data-free') === '1' ? null : window.open('', '_blank');
                 button.disabled = true;
                 post({
                     op: 'checkout',
                     plan_id: planId,
-                    billing_cycle: annual ? 'annual' : 'monthly'
+                    billing_cycle: annual ? 'annual' : 'monthly',
+                    auto_topup_max_usd: autoMax
                 }).then(function (result) {
                     button.disabled = false;
                     if (result && result.ok && result.done) {
@@ -343,6 +476,37 @@
                         openModal(text.titleTopup, result.summary, result.confirm, function () {
                             finish({op: 'topup', id: id, idempotency_key: key});
                         });
+                    });
+                    return;
+                }
+                if (op === 'refund_preview') {
+                    // The preview says what a refund does now, or why not; a merchant it does not
+                    // cover can still write to a person, who answers within days.
+                    openModal(text.titleRefund, text.working, text.working, null);
+                    modalOk.disabled = true;
+                    post({op: 'refund_preview', id: id}).then(function (result) {
+                        if (!result || !result.ok) {
+                            fail(result && result.message);
+                            modalOk.disabled = true;
+                            return;
+                        }
+                        if (result.eligible) {
+                            openModal(text.titleRefund, result.summary, text.confirmRefund, function () {
+                                finish({op: 'refund', id: id});
+                            });
+                            return;
+                        }
+                        if (result.claim) {
+                            openModal(text.titleClaim, result.summary, text.sendClaim, function () {
+                                var reason = claimText();
+                                if (reason !== null) {
+                                    finish({op: 'refund_claim', id: id, reason: reason});
+                                }
+                            });
+                            showClaim();
+                            return;
+                        }
+                        openModal(text.titleRefund, result.summary, text.close, closeModal);
                     });
                     return;
                 }

@@ -19,7 +19,9 @@ final class SetupPage
 {
     /**
      * @param array{step:string, admin_email:string, account_email:string, store_name:string, description:string,
-     *     domain:string, plans:?array, subscriptions:?array, config:array, logo_url:string} $m
+     *     domain:string, plans:?array, subscriptions:?array, config:array, logo_url:string, locked?:bool,
+     *     services?:list<string>} $m locked: the plan is chosen and its step closed until setup is finished;
+     *     services: the plan's products (none = not known)
      */
     public static function render(array $m): string
     {
@@ -35,22 +37,24 @@ final class SetupPage
         $config = $m['config'];
         $config['step'] = $step;
         $config['reached'] = $step;
+        $locked = !empty($m['locked']);
+        $config['planLocked'] = $locked;
         $config['text']['saveDefault'] = $plans !== null && $plans['discount_pct'] > 0
             ? self::t('quissly_search.su_save_pct', ['[pct]' => $plans['discount_pct']])
             : '';
 
         $html = '<div class="q-setup" data-q-setup data-config="' . self::e((string) json_encode($config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) . '">'
-            . self::band($steps, $done, $m['logo_url'])
-            . self::details($m, $connected);
+            . self::band($steps, $done, $m['logo_url'], $locked)
+            . self::details($m, $connected, $locked);
         if ($connected) {
-            $html .= self::plan($plans) . self::golive();
+            $html .= self::plan($plans) . self::golive((array) ($m['services'] ?? []));
         }
 
         return $html . '</div>';
     }
 
     /** @param array<string, string> $steps */
-    private static function band(array $steps, int $done, string $logoUrl): string
+    private static function band(array $steps, int $done, string $logoUrl, bool $locked): string
     {
         $stepper = '';
         $index = 0;
@@ -58,7 +62,9 @@ final class SetupPage
             if ($index > 0) {
                 $stepper .= '<li class="q-stepper__line" aria-hidden="true"></li>';
             }
-            $stepper .= '<li class="q-stepper__item"><button type="button" data-q-goto="' . self::e($key) . '">'
+            // The plan is chosen once, on its own step: never a link back to it.
+            $stepper .= '<li class="q-stepper__item"><button type="button" data-q-goto="' . self::e($key) . '"'
+                . ($locked && $key === Onboarding::STEP_PLAN ? ' disabled' : '') . '>'
                 . '<span class="q-stepper__dot">' . ($index < $done ? '&#10003;' : (string) ($index + 1)) . '</span>'
                 . '<span>' . self::e($label) . '</span></button></li>';
             $index++;
@@ -83,41 +89,32 @@ final class SetupPage
             . '</div><ol class="q-stepper">' . $stepper . '</ol></div>';
     }
 
-    private static function details(array $m, bool $connected): string
+    private static function details(array $m, bool $connected, bool $locked): string
     {
         if ($connected) {
             $fields = self::field('q-email', self::t('quissly_search.su_email'), '<input id="q-email" type="email" readonly value="' . self::e($m['account_email']) . '">', self::t('quissly_search.su_connected_help'));
-            $action = '<button type="button" class="q-btn" data-q-forward="plan">' . self::e(self::t('quissly_search.su_continue')) . '</button>';
+            $action = '<button type="button" class="q-btn" data-q-forward="' . ($locked ? Onboarding::STEP_GOLIVE : Onboarding::STEP_PLAN) . '">' . self::e(self::t('quissly_search.su_continue')) . '</button>';
         } else {
-            $fields = self::field('q-email', self::t('quissly_search.su_email'), '<input id="q-email" name="email" type="email" required autocomplete="email" value="' . self::e($m['admin_email']) . '">', self::t('quissly_search.su_email_help'), 'email')
-                . self::field('q-store-name', self::t('quissly_search.su_store_name'), '<input id="q-store-name" name="store_name" type="text" maxlength="100" value="' . self::e($m['store_name']) . '" placeholder="' . self::e($m['domain']) . '">', self::t('quissly_search.su_store_name_help', ['[domain]' => $m['domain']]), 'store_name')
-                . '<div class="q-field"><label for="q-description">' . self::e(self::t('quissly_search.su_description'))
-                . ' <span class="q-optional">' . self::e(self::t('quissly_search.su_optional')) . '</span></label>'
-                . '<textarea id="q-description" name="description" rows="3" maxlength="500">' . self::e($m['description']) . '</textarea>'
-                . '<p class="q-help">' . self::e(self::t('quissly_search.su_description_help')) . '</p></div>';
-            $action = '<button type="submit" class="q-btn" data-q-connect-submit>' . self::e(self::t('quissly_search.su_connect')) . '</button>';
+            $fields = self::field('q-email', self::t('quissly_search.su_email_updates'), '<input id="q-email" name="email" type="email" required autocomplete="email" placeholder="merchant@example.com" value="' . self::e($m['admin_email']) . '">', self::t('quissly_search.su_email_help'), 'email')
+                . self::field('q-store-name', self::t('quissly_search.su_store_name'), '<input id="q-store-name" name="store_name" type="text" required maxlength="60" value="' . self::e($m['store_name']) . '" placeholder="' . self::e(self::t('quissly_search.su_store_name_placeholder')) . '">', self::t('quissly_search.su_store_name_help'), 'store_name')
+                . self::field('q-description', self::t('quissly_search.su_what_you_sell'), '<textarea id="q-description" name="description" rows="4" required maxlength="500" placeholder="' . self::e(self::t('quissly_search.su_what_you_sell_placeholder')) . '">' . self::e($m['description']) . '</textarea>', self::t($m['description'] !== '' ? 'quissly_search.su_drafted_help' : 'quissly_search.su_sell_help'));
+            $action = '<button type="submit" class="q-btn" data-q-connect-submit>' . self::e(self::t('quissly_search.su_save_continue')) . '</button>';
         }
-        if ($connected) {
-            $next = '';
-            foreach ([['su_next_plan', 'su_next_plan_text'], ['su_next_sync', 'su_next_sync_text'], ['su_step_golive', 'su_next_golive_text']] as [$title, $text]) {
-                $next .= '<li><strong>' . self::e(self::t('quissly_search.' . $title)) . '</strong><span>' . self::e(self::t('quissly_search.' . $text)) . '</span></li>';
-            }
-            $side = '<div class="q-kicker">' . self::e(self::t('quissly_search.su_next')) . '</div><ul class="q-next">' . $next . '</ul>';
-        } else {
-            // The workspace preview, following what is typed (setup.js), as on Shopify.
-            $noDescription = self::t('quissly_search.su_no_description');
-            $side = '<div class="q-kicker">' . self::e(self::t('quissly_search.su_preview')) . '</div><div class="q-preview">'
-                . '<div class="q-preview__kicker">' . self::e(self::t('quissly_search.su_workspace')) . '</div>'
-                . '<div class="q-preview__name" data-q-preview="store_name" data-fallback="' . self::e($m['domain']) . '">' . self::e($m['store_name'] !== '' ? $m['store_name'] : $m['domain']) . '</div>'
-                . '<p class="q-preview__desc" data-q-preview="description" data-fallback="' . self::e($noDescription) . '">' . self::e($m['description'] !== '' ? $m['description'] : $noDescription) . '</p></div>';
+        // "What happens next": the whole setup at a glance (the Shopify app's SetupJourney).
+        $journey = '';
+        foreach ([['su_journey_details', 'su_journey_details_text'], ['su_journey_plan', 'su_journey_plan_text'], ['su_journey_live', 'su_journey_live_text']] as $i => [$title, $text]) {
+            $journey .= '<li class="q-journey__item' . ($i === 0 ? ' is-current' : '') . '"><strong>' . self::e(self::t('quissly_search.' . $title)) . '</strong>'
+                . '<span>' . self::e(self::t('quissly_search.' . $text)) . '</span></li>';
         }
 
         return '<section data-q-step="details" hidden><form data-q-connect novalidate><div class="q-grid"><div class="q-card">'
-            . self::kicker(1) . '<h2>' . self::e(self::t('quissly_search.su_step_details')) . '</h2>'
+            . self::kicker(1) . '<h2>' . self::e(self::t('quissly_search.su_details_title')) . '</h2>'
             . '<p class="q-desc">' . self::e(self::t('quissly_search.su_details_desc')) . '</p>'
             . $fields . '<div class="q-notice q-notice--error" data-q-error hidden></div></div>'
-            . '<aside class="q-card q-card--side">' . $side . '<p class="q-side-foot">' . self::e(self::t('quissly_search.su_side_foot')) . '</p></aside></div>'
-            . '<div class="q-actionbar"><span class="q-actionbar__note">' . self::e(self::t($connected ? 'quissly_search.su_connected_note' : 'quissly_search.su_connect_note')) . '</span>'
+            . '<aside class="q-card q-card--side"><div class="q-kicker">' . self::e(self::t('quissly_search.su_next')) . '</div><ol class="q-journey">' . $journey . '</ol>'
+            . '<p class="q-side-foot">' . self::e(self::t('quissly_search.su_side_foot')) . '</p></aside></div>'
+            // Why Save is disabled, beside it: the first problem only (setup.js).
+            . '<div class="q-actionbar"><span class="q-actionbar__note" data-q-details-note>' . self::e(self::t($connected ? 'quissly_search.su_connected_note' : 'quissly_search.su_nothing_charged')) . '</span>'
             . $action . '</div></form></section>';
     }
 
@@ -132,15 +129,21 @@ final class SetupPage
             $body = '<div class="q-notice">' . self::e(self::t('quissly_search.su_current_plan', ['[plan]' => $plans['current']])) . '</div>';
             $bar = '<span class="q-actionbar__note">' . self::e($plans['current']) . '</span><button type="button" class="q-btn" data-q-plan-op="keep">' . self::e(self::t('quissly_search.su_continue')) . '</button>';
         } else {
-            $cadence = '<div class="q-cadence" role="radiogroup" aria-label="' . self::e(self::t('quissly_search.su_billing')) . '">'
+            $cadence = '<div class="q-plan-head__controls"><div class="q-cadence" role="radiogroup" aria-label="' . self::e(self::t('quissly_search.su_billing')) . '">'
                 . '<button type="button" role="radio" data-q-cadence="monthly" aria-checked="true"><strong>' . self::e(self::t('quissly_search.su_monthly')) . '</strong><small>' . self::e(self::t('quissly_search.su_monthly_sub')) . '</small></button>'
-                . '<button type="button" role="radio" data-q-cadence="annual" aria-checked="false"><strong>' . self::e(self::t('quissly_search.su_annual')) . '</strong><small data-q-saving></small></button></div>';
+                . '<button type="button" role="radio" data-q-cadence="annual" aria-checked="false"><strong>' . self::e(self::t('quissly_search.su_annual')) . '</strong><small data-q-saving></small></button></div>'
+                // How a paid plan is paid: an invoice (the default, no payment page) or a card.
+                . '<div class="q-pay-method"><label for="q-pay-method">' . self::e(self::t('quissly_search.su_payment')) . '</label>'
+                . '<select id="q-pay-method" data-q-pay-method><option value="invoice" selected>' . self::e(self::t('quissly_search.su_pay_invoice')) . '</option>'
+                . '<option value="card">' . self::e(self::t('quissly_search.su_pay_card')) . '</option></select></div></div>';
             if (!$plans['billing_open']) {
                 $body .= '<div class="q-notice q-notice--warn">' . self::e(self::t('quissly_search.su_billing_closed')) . '</div>';
             }
-            $body .= '<div class="q-tabs" role="tablist">'
-                . '<button type="button" role="tab" data-q-tab="qsearch" aria-selected="true">' . self::e(self::t('quissly_search.su_tab_search')) . '</button>'
-                . '<button type="button" role="tab" data-q-tab="qchat" aria-selected="false">' . self::e(self::t('quissly_search.su_tab_chat')) . '</button></div>'
+            // Each option says what it adds, so nobody has to know what QSearch or QChat is.
+            $body .= '<p class="q-listhead" id="q-want">' . self::e(self::t('quissly_search.su_want')) . '</p>'
+                . '<div class="q-tabs q-tabs--choices" role="tablist" aria-labelledby="q-want">'
+                . '<button type="button" role="tab" data-q-tab="qsearch" aria-selected="true"><strong>' . self::e(self::t('quissly_search.su_tab_search')) . '</strong><small>' . self::e(self::t('quissly_search.su_tab_search_sub')) . '</small></button>'
+                . '<button type="button" role="tab" data-q-tab="qchat" aria-selected="false"><strong>' . self::e(self::t('quissly_search.su_tab_chat')) . '</strong><small>' . self::e(self::t('quissly_search.su_tab_chat_sub')) . '</small></button></div>'
                 . '<div data-q-plan-picker>';
             foreach ($plans['families'] as $family => $cards) {
                 $body .= '<div data-q-plans="' . self::e($family) . '">'
@@ -151,7 +154,7 @@ final class SetupPage
                 $body .= '</div>' . self::compareTable($family, $cards) . '</div>';
             }
             $body .= '</div><div class="q-compare-row"><button type="button" class="q-btn q-btn--quiet q-btn--small" data-q-compare>'
-                . self::e(self::t('quissly_search.su_compare')) . '</button></div>'
+                . self::e(self::t('quissly_search.su_compare')) . '</button><span class="q-compare-row__note">' . self::e(self::t('quissly_search.su_not_sure')) . '</span></div>'
                 . '<div class="q-notice" data-q-pay hidden>' . self::e(self::t('quissly_search.su_pay_waiting'))
                 . ' <a href="#" target="_blank" rel="noopener noreferrer" data-q-pay-open>' . self::e(self::t('quissly_search.su_pay_open')) . '</a> &middot; '
                 . '<button type="button" class="q-link" data-q-pay-check>' . self::e(self::t('quissly_search.su_paid')) . '</button></div>';
@@ -159,7 +162,8 @@ final class SetupPage
         }
 
         return '<section data-q-step="plan" hidden><div class="q-card q-card--plan"><div class="q-plan-head"><div>'
-            . self::kicker(2) . '<h2>' . self::e(self::t('quissly_search.su_step_plan')) . '</h2></div>' . $cadence . '</div>'
+            . self::kicker(2) . '<h2>' . self::e(self::t('quissly_search.su_step_plan')) . '</h2>'
+            . '<p class="q-plan-head__desc">' . self::e(self::t('quissly_search.su_plan_desc')) . '</p></div>' . $cadence . '</div>'
             . $body . '<div class="q-notice q-notice--error" data-q-error hidden></div></div>'
             . '<div class="q-actionbar"><button type="button" class="q-btn q-btn--quiet" data-q-back="details">' . self::e(self::t('quissly_search.su_back')) . '</button>'
             . $bar . '</div></section>';
@@ -226,35 +230,48 @@ final class SetupPage
         return '<div class="q-compare-wrap" data-q-view="table" hidden><table class="q-compare"><thead><tr>' . $head . '</tr></thead><tbody>' . $body . '</tbody></table></div>';
     }
 
-    private static function golive(): string
+    /** @param list<string> $services the plan's products (none = not known, counted as search) */
+    private static function golive(array $services): string
     {
+        $search = $services === [] || in_array('qsearch', $services, true);
+        $chat = in_array('qchat', $services, true);
+        $items = array_merge(
+            $search ? [['su_live_search', 'su_live_search_text'], ['su_live_safety', 'su_live_safety_text']] : [],
+            $chat ? [['su_live_chat', 'su_live_chat_text']] : [],
+            [['su_live_config', 'su_live_config_text']]
+        );
         $list = '';
-        foreach ([['su_live_search', 'su_live_search_text'], ['su_live_safety', 'su_live_safety_text'], ['su_live_config', 'su_live_config_text']] as [$title, $text]) {
+        foreach ($items as [$title, $text]) {
             $list .= '<li><span class="q-disc" aria-hidden="true"></span><div>' . self::e(self::t('quissly_search.' . $title))
                 . '<span>' . self::e(self::t('quissly_search.' . $text)) . '</span></div></li>';
         }
         $rows = '';
-        // The Shopify app's provisioning rows, in its order.
-        foreach (['store' => 'su_row_store', 'organization' => 'su_row_organization', 'project' => 'su_row_project', 'qsearch' => 'su_row_qsearch', 'qchat' => 'su_row_qchat', 'catalog' => 'su_row_import'] as $key => $label) {
-            $rows .= '<li class="q-row" data-q-row="' . $key . '" data-state="pending"><span class="q-disc" aria-hidden="true"></span>'
+        // The Shopify app's account setup rows, in its order: store identity, organization and
+        // project mean nothing to a merchant, so they are one "Quissly Account" row.
+        foreach (['account' => 'su_row_account', 'qsearch' => 'su_row_qsearch', 'qchat' => 'su_row_qchat', 'catalog' => 'su_row_import'] as $key => $label) {
+            $rows .= '<li class="q-row" data-q-row="' . $key . '" data-state="pending"' . ($key === 'qchat' && !$chat && $services !== [] ? ' hidden' : '') . '>'
+                . '<span class="q-disc" aria-hidden="true"></span>'
                 . '<span class="q-row__label">' . self::e(self::t('quissly_search.' . $label)) . ' <small data-q-row-detail hidden></small></span>'
-                . '<span class="q-row__state" data-q-row-state>' . self::e(self::t('quissly_search.su_waiting')) . '</span></li>';
+                . '<span class="q-row__state" data-q-row-state>' . self::e(self::t('quissly_search.su_pending')) . '</span></li>';
         }
 
         return '<section data-q-step="golive" hidden><div class="q-grid q-grid--golive"><div class="q-card q-card--golive">'
             . self::kicker(3) . '<h2>' . self::e(self::t('quissly_search.su_step_golive')) . '</h2>'
-            . '<p class="q-desc">' . self::e(self::t('quissly_search.su_golive_desc')) . '</p>'
+            // What is left for the merchant, in one sentence (setup.js follows the status).
+            . '<p class="q-desc" data-q-intro>' . self::e(self::t('quissly_search.su_intro_building')) . '</p>'
             . '<ul class="q-golive-list">' . $list . '</ul><div class="q-notice q-notice--error" data-q-error hidden></div></div>'
             . '<div class="q-card q-card--warm"><div class="q-status-head"><div class="q-kicker q-kicker--quiet">' . self::e(self::t('quissly_search.su_account_setup')) . '</div>'
             . '<span class="q-chip" data-q-chip>' . self::e(self::t('quissly_search.su_setting_up')) . '</span></div>'
-            . '<p class="q-status-body">' . self::e(self::t('quissly_search.su_background')) . '</p>'
+            . '<p class="q-status-body" data-q-status-body>' . self::e(self::t('quissly_search.su_body_building')) . '</p>'
+            // The raw problem is for support, not the merchant's main message.
+            . '<details class="q-details" data-q-technical hidden><summary>' . self::e(self::t('quissly_search.su_technical')) . '</summary><p data-q-technical-text></p></details>'
             . '<ol class="q-rows">' . $rows . '</ol>'
             . '<p class="q-status-foot"><button type="button" class="q-btn q-btn--quiet q-btn--small" data-q-retry hidden>' . self::e(self::t('quissly_search.su_retry')) . '</button> '
-            . self::e(self::t('quissly_search.su_usually')) . '</p></div></div>'
-            . '<div class="q-actionbar"><button type="button" class="q-btn q-btn--quiet" data-q-back="plan">' . self::e(self::t('quissly_search.su_back')) . '</button>'
-            . '<span class="q-actionbar__note">' . self::e(self::t('quissly_search.su_golive_note')) . '</span>'
-            // The Shopify app's "Save changes": done for now, search switched on later.
-            . '<button type="button" class="q-btn q-btn--quiet" data-q-save hidden disabled>' . self::e(self::t('quissly_search.su_save_changes')) . '</button>'
+            . '<span data-q-status-foot>' . self::e(self::t('quissly_search.su_usually')) . '</span></p></div></div>'
+            // No Back: the plan is chosen by now and is changed in Billing once setup is finished.
+            . '<div class="q-actionbar"><span class="q-actionbar__note" data-q-golive-note>' . self::e(self::t('quissly_search.su_note_building')) . '</span>'
+            // The Shopify app's "Do this later": done for now, Quissly switched on later.
+            . '<button type="button" class="q-btn q-btn--quiet" data-q-save hidden disabled>' . self::e(self::t('quissly_search.su_do_later')) . '</button>'
             . '<button type="button" class="q-btn" data-q-finish disabled>' . self::e(self::t('quissly_search.su_finish')) . '</button></div></section>';
     }
 

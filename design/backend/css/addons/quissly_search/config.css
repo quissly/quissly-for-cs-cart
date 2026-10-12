@@ -1,0 +1,68 @@
+/*
+ * Quissly for CS-Cart - Configuration's suggestion lists as the Quissly Shopify app's Settings
+ * draws them (js/addons/quissly_search/config.js; inlined by lib/Admin/SuggestionsView.php).
+ */
+.q-suggestions { max-width: 640px; }
+.q-suggestions [hidden] { display: none !important; }
+.q-suggestions__language { margin-bottom: 14px; }
+.q-suggestions__language label { display: block; font-weight: 600; margin-bottom: 6px; }
+.q-suggestions__language select { min-width: 240px; }
+
+/* Search Examples: one row per example. */
+.q-rows { margin: 0 0 14px; }
+.q-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e3e3e3;
+}
+.q-row:first-child { border-top: 1px solid #e3e3e3; }
+.q-row__text { overflow-wrap: anywhere; }
+.q-row__remove {
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #007bdb;
+    cursor: pointer;
+    box-shadow: none;
+}
+.q-row__remove:hover, .q-row__remove:focus { text-decoration: underline; background: none; }
+.q-rows__empty { color: #6d6d6d; margin: 0; }
+.q-suggestions__add-label { display: block; font-weight: 600; margin-bottom: 6px; }
+.q-suggestions__add { display: flex; gap: 8px; }
+.q-suggestions__add input { flex: 1; margin: 0; }
+.q-suggestions .note { color: #6d6d6d; margin: 6px 0 0; }
+.q-suggestions__count.is-over { color: #b32d2e; }
+.q-suggestions__error { color: #b32d2e; margin-top: 6px; }
+
+/* Search Suggestions, Manual: a field per suggestion; the next appears when the last is filled. */
+.q-field { margin: 0 0 10px; }
+.q-field__label { display: block; font-weight: 600; margin-bottom: 4px; }
+
+/* Search Suggestions, Automatic: the buttons the shop shows now, read-only, as they look there. */
+.q-auto-buttons { margin-top: 14px; max-width: 640px; }
+.q-auto-buttons[hidden] { display: none !important; }
+.q-auto-buttons__title { font-weight: 600; margin: 0 0 8px; }
+.q-auto-buttons__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+.q-auto-buttons__language { min-width: 90px; color: #6d6d6d; font-size: 13px; }
+.q-auto-buttons__button {
+    padding: 4px 12px;
+    border: 1px solid #adadad;
+    border-radius: 999px;
+    background: #fff;
+    color: #303030;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Most Loved Products: what each product code is, and what still needs fixing. */
+.q-most-loved { max-width: 640px; }
+.q-most-loved__list { margin: 8px 0 0 18px; }
+.q-most-loved__sku { color: #6d6d6d; font-size: 12px; }
+.q-most-loved__problem { color: #b32d2e; }
+.q-most-loved__status { margin-top: 14px; }
+.q-most-loved__status ul { margin: 6px 0 0 18px; }
+[data-q-manual][hidden] { display: none !important; }

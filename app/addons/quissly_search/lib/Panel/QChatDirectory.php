@@ -14,8 +14,8 @@ use Quissly\Search\Sync\SyncStore;
  * id, so it is looked up the way the WooCommerce plugin's
  * Quissly_Live_Service_Directory_Client does: open a panel session
  * ({@see PanelSession}), then GET console.quissly.com/api/v1/services/project/{id}
- * with that session's token and take the qchat service's id. Live 2026-09-21: the
- * test store's list is [qchat, qsearch].
+ * with that session's token and take the qchat service's id (a connected store's list is
+ * [qchat, qsearch]).
  *
  * Cached in the add-on's state, so storefront pages never wait on the console: the
  * admin (Dashboard, Connect) refreshes it.
@@ -56,7 +56,7 @@ final class QChatDirectory
     /**
      * @return array{agent_id:string, namespace:string, search_service_id:string, error:string} error: not_configured | session_<code> | services_unavailable | no_qchat_service
      *         (namespace: the qsearch service's quissly_service_link - the namespace of the
-     *         product ids the chat widget uses, uuid5(namespace, product id); live-confirmed;
+     *         product ids the chat widget uses, uuid5(namespace, product id);
      *         search_service_id: the qsearch service's id - where its widget_config, the
      *         search bar suggestions, lives)
      */
