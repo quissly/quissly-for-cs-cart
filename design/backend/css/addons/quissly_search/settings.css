@@ -1,0 +1,21 @@
+/* Quissly for CS-Cart - Configuration's sections as title bars with a rule between them, like
+   the WooCommerce and Magento plugins' (js/addons/quissly_search/settings-sections.js). */
+h4.subheader[data-q-section] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1100px;
+    margin: 0;
+    padding: 18px 4px;
+    border-top: 1px solid #dfe3e8;
+    border-bottom: 0;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+}
+h4.subheader[data-q-section]:hover { color: #0b6fd6; }
+h4.subheader[data-q-section] .subheader__icon { transition: transform .2s; }
+h4.subheader[data-q-section].collapsed .subheader__icon { transform: rotate(-90deg); }
+h4.subheader[data-q-section] + .collapse { max-width: 1100px; }
+h4.subheader[data-q-section] + .collapse.in { padding-bottom: 12px; }

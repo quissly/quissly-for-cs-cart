@@ -99,7 +99,29 @@ function fn_quissly_search_debug_badge(): string
  */
 function fn_quissly_search_catalog_handler()
 {
-    return CatalogView::render(CatalogFeatures::catalog(), CatalogFeatures::choices(new DbSyncStore()));
+    return fn_quissly_search_info_row(CatalogView::render(CatalogFeatures::catalog(), CatalogFeatures::choices(new DbSyncStore())));
+}
+
+/**
+ * An info block in the settings' field column, under the labels' column like every other
+ * setting (CS-Cart draws an info item as a bare <div> at the form's left edge).
+ */
+function fn_quissly_search_info_row(string $html): string
+{
+    return '<div class="control-group setting-wide"><div class="controls">' . $html . '</div></div>';
+}
+
+/**
+ * Configuration's sections opening and closing (js/addons/quissly_search/settings-sections.js,
+ * design/backend/css/addons/quissly_search/settings.css), inlined like fn_quissly_search_config_assets().
+ */
+function fn_quissly_search_sections_assets(): string
+{
+    $root = rtrim((string) \Tygh\Registry::get('config.dir.root'), '/');
+    $css = (string) @file_get_contents($root . '/design/backend/css/addons/quissly_search/settings.css');
+    $js = (string) @file_get_contents($root . '/js/addons/quissly_search/settings-sections.js');
+
+    return '<style>' . $css . '</style><script>' . str_replace('</script', '<\/script', $js) . '</script>';
 }
 
 function fn_quissly_search_status_handler()
@@ -114,7 +136,8 @@ function fn_quissly_search_status_handler()
             'environment'   => $credentials->environment(),
             'admin_email'   => (string) ($admin['email'] ?? ''),
         ])
-        . AdminStatusView::render(StatusReport::build());
+        . AdminStatusView::render(StatusReport::build())
+        . fn_quissly_search_sections_assets();
 }
 
 /**
@@ -479,14 +502,14 @@ function fn_quissly_search_suggestions_handler()
     $store = new DbSyncStore();
     $current = fn_quissly_search_admin_suggestions($store);
 
-    return \Quissly\Search\Admin\SuggestionsView::examples(
+    return fn_quissly_search_info_row(\Quissly\Search\Admin\SuggestionsView::examples(
         $current,
         fn_quissly_search_languages(),
         // Quissly's own copy of what its generator wrote, else what it last answered here.
         ($current['generated'] ?? []) !== [] ? $current['generated'] : ShowcaseRunner::generated($store),
         fn_quissly_search_showcase_enabled() && !ShowcaseRunner::finished($store),
         fn_quissly_search_config_assets()
-    );
+    ));
 }
 
 /**
@@ -497,12 +520,12 @@ function fn_quissly_search_buttons_handler()
 {
     $store = new DbSyncStore();
 
-    return \Quissly\Search\Admin\SuggestionsView::buttons(
+    return fn_quissly_search_info_row(\Quissly\Search\Admin\SuggestionsView::buttons(
         fn_quissly_search_admin_suggestions($store),
         fn_quissly_search_languages(),
         SearchSuggestions::localButtons($store),
         fn_quissly_search_config_assets()
-    );
+    ));
 }
 
 /**
@@ -562,11 +585,11 @@ function fn_quissly_search_most_loved_handler()
         }
     }
 
-    return \Quissly\Search\Admin\MostLovedView::render(
+    return fn_quissly_search_info_row(\Quissly\Search\Admin\MostLovedView::render(
         $picks['enabled'],
         $list,
         $picks['enabled'] ? \Quissly\Search\MostLoved::problems($picks['shown'], $picks['backups'], 'fn_quissly_search_most_loved_state') : null
-    ) . fn_quissly_search_most_loved_pickers($picks);
+    )) . fn_quissly_search_most_loved_pickers($picks);
 }
 
 /**
