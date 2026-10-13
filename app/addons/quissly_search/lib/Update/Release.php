@@ -37,6 +37,9 @@ final class Release
     /** How often a store checks, unless the merchant chose otherwise: every 30 minutes. */
     public const DEFAULT_EVERY = 1800;
 
+    /** The same update problem goes to the sync log again after this long. */
+    public const PROBLEM_EVERY = 86400;
+
     /**
      * The "Update check frequency" choices (setting update_check_every) in seconds: 5 minutes
      * (for testing), 30 minutes (the default) to a day, or never.
@@ -103,6 +106,19 @@ final class Release
     }
 
     /**
+     * A release named by its version alone, at the addresses the release workflow publishes it
+     * to (`v<version>/` + the zip and its `.sig`) - for when GitHub's API refuses the server.
+     *
+     * @return array{version: string, package: string, signature: string}
+     */
+    public static function forVersion(string $version, string $asset, string $packagePrefix): array
+    {
+        $package = $packagePrefix . 'v' . $version . '/' . $asset;
+
+        return ['version' => $version, 'package' => $package, 'signature' => $package . '.sig'];
+    }
+
+    /**
      * Whether $signature (base64) is a valid Ed25519 signature of $data by $publicKey
      * (base64). False when PHP has no sodium: an update that cannot be checked is not installed.
      */
@@ -152,6 +168,34 @@ final class Release
     public static function versionIn(string $addonXml): ?string
     {
         return preg_match('#<version>\s*(\d+\.\d+\.\d+)\s*</version>#', $addonXml, $m) ? $m[1] : null;
+    }
+
+    /**
+     * Why a request to GitHub failed, '' when it did not: no answer at all, or a status other
+     * than 200 - GitHub answers 403/429 to an IP address past its limit (60 API requests an hour,
+     * shared by every site on a shared host).
+     */
+    public static function requestError(bool $answered, int $status, string $curlError): string
+    {
+        if (!$answered) {
+            return 'no answer' . ($curlError !== '' ? ': ' . $curlError : '');
+        }
+        if ($status === 200) {
+            return '';
+        }
+
+        return in_array($status, [403, 429], true) ? 'HTTP ' . $status . ", GitHub's limit for this server's IP address" : 'HTTP ' . $status;
+    }
+
+    /**
+     * Whether an update problem goes to the sync log: a new one at once, the same one again
+     * after a day.
+     *
+     * @param array{message?: string, at?: int} $last the last one logged ([] = none)
+     */
+    public static function problemDue(array $last, string $message, int $now): bool
+    {
+        return ($last['message'] ?? '') !== $message || $now - (int) ($last['at'] ?? 0) >= self::PROBLEM_EVERY;
     }
 
     private static function owned(string $name): bool

@@ -18,7 +18,9 @@ use Tygh\Registry;
  * the cron is not set up - the add-on reads the version in the repository's addon.xml on
  * GitHub's CDN (raw.githubusercontent.com, no API rate limit), and asks GitHub for the latest
  * release when that names a newer version than the one installed and known - and at least
- * once a day. A newer release is installed straight away:
+ * once a day. When the API refuses the server (60 requests an hour per IP address, shared by
+ * every site on a shared host), the release is found at the address the release workflow
+ * publishes it to, from the CDN's version. A newer release is installed straight away:
  *
  *  1. the release zip is downloaded and checked: signed with Quissly's release key
  *     (Release::PUBLIC_KEY - an unsigned or wrongly signed zip is never installed, even
@@ -33,13 +35,15 @@ use Tygh\Registry;
  *
  * Settings, credentials and the sync tables are never touched. A version that failed to
  * install is not tried again; the next release is. A store (or add-on folder) that is a git
- * checkout is never written to: whoever deploys it updates it.
+ * checkout is never written to: whoever deploys it updates it. Every update, and why one is not
+ * arriving, goes to the sync log (the same problem once a day).
  */
 final class Updater
 {
     public const REPOSITORY = 'quissly/quissly-for-cs-cart';
     public const ASSET = 'quissly-for-cs-cart.zip';
     public const STATE = 'update';
+    public const PROBLEM_STATE = 'update_problem';
     public const CHECK_EVERY = 86400;
     public const RETRY_AFTER = 3600;
 
@@ -47,6 +51,9 @@ final class Updater
     public const HINT_URL = 'https://raw.githubusercontent.com/' . self::REPOSITORY . '/main/app/addons/quissly_search/addon.xml';
 
     private const ADDON = 'quissly_search';
+
+    /** Why the last GitHub request failed ('' = it did not). */
+    private static string $githubError = '';
 
     /** Check (and install) when the merchant's frequency is up. */
     public static function runIfDue(DbSyncStore $store, int $now): void
@@ -73,8 +80,12 @@ final class Updater
 
         // The cheap check first: GitHub's CDN copy of addon.xml. Only news (or a day since the
         // last full check) asks GitHub's API for the release.
+        $hinted = null;
         if ($now - (int) ($state['checked_at'] ?? 0) < self::CHECK_EVERY) {
             $hinted = self::hintedVersion();
+            if ($hinted === null) {
+                self::problem($store, sprintf('Quissly could not check GitHub for a new version (%s).', self::$githubError), $now);
+            }
             if ($hinted === null || !Release::isNews($hinted, $installed, (string) ($state['latest'] ?? ''))) {
                 $state['next_at'] = $now + $every;
                 $state['hinted_at'] = $now;
@@ -84,8 +95,12 @@ final class Updater
             }
         }
 
-        $release = self::latest();
+        $release = self::latest($hinted);
         if ($release === null) {
+            if (self::$githubError !== '') {
+                self::problem($store, sprintf('Quissly could not get the latest release from GitHub (%s).', self::$githubError), $now);
+            }
+
             return; // tried again soon
         }
         $state['next_at'] = $now + $every;
@@ -119,8 +134,13 @@ final class Updater
         return file_exists(self::root() . '.git') || file_exists(self::root() . 'app/addons/quissly_search/.git');
     }
 
-    /** @return array{version: string, package: string, signature: string}|null */
-    private static function latest(): ?array
+    /**
+     * The latest release from GitHub's API; when the API refuses the server, the release of the
+     * CDN's version at its known addresses, once published (the workflow takes a minute or two).
+     *
+     * @return array{version: string, package: string, signature: string}|null
+     */
+    private static function latest(?string $hinted): ?array
     {
         $body = Http::get(self::releaseUrl(), [], [
             'headers'            => ['Accept: application/vnd.github+json', 'User-Agent: quissly-for-cs-cart'],
@@ -128,11 +148,25 @@ final class Updater
             'connection_timeout' => 10,
             'execution_timeout'  => 15,
         ]);
-        if ($body === false || Http::getStatus() !== 200) {
+        self::$githubError = Release::requestError($body !== false, (int) Http::getStatus(), (string) Http::getError());
+        if (self::$githubError === '') {
+            return Release::parse(json_decode((string) $body, true), self::ASSET, self::packagePrefix());
+        }
+        if ((string) Registry::get('config.quissly_update_url') !== '') {
             return null;
         }
+        $apiError = self::$githubError;
+        $hinted = $hinted ?? self::hintedVersion();
+        self::$githubError = $apiError;
+        if ($hinted === null) {
+            return null;
+        }
+        $release = Release::forVersion($hinted, self::ASSET, self::packagePrefix());
+        $signature = Http::get($release['signature'], [], [
+            'headers' => ['User-Agent: quissly-for-cs-cart'], 'timeout' => 15, 'execution_timeout' => 20,
+        ]);
 
-        return Release::parse(json_decode((string) $body, true), self::ASSET, self::packagePrefix());
+        return $signature !== false && Http::getStatus() === 200 ? $release : null;
     }
 
     /**
@@ -331,11 +365,27 @@ final class Updater
             'connection_timeout' => 5,
             'execution_timeout'  => 10,
         ]);
-        if ($body === false || Http::getStatus() !== 200) {
+        self::$githubError = Release::requestError($body !== false, (int) Http::getStatus(), (string) Http::getError());
+        if (self::$githubError !== '') {
             return null;
         }
+        $version = Release::versionIn((string) $body);
+        if ($version === null) {
+            self::$githubError = 'no version in its addon.xml';
+        }
 
-        return Release::versionIn((string) $body);
+        return $version;
+    }
+
+    /** Write an update problem to the sync log - the same one at most once a day. */
+    private static function problem(DbSyncStore $store, string $message, int $now): void
+    {
+        $last = (array) ($store->getState(self::PROBLEM_STATE) ?? []);
+        if (!Release::problemDue($last, $message, $now)) {
+            return;
+        }
+        $store->log($message, $now);
+        $store->setState(self::PROBLEM_STATE, ['message' => $message, 'at' => $now]);
     }
 
     /** GitHub's "latest release" address; $config['quissly_update_url'] replaces it on a dev store. */

@@ -10,7 +10,7 @@
  * The SKU box stays the field the form saves (one SKU per line), so the server side - and a
  * page without this script - is unchanged; the picker only hides it and writes it.
  *
- * The same file ships in quissly-for-magento and quissly-for-cs-cart; keep the copies identical.
+ * The same file ships in quissly-for-magento, quissly-for-cs-cart and quissly-for-prestashop; keep the copies identical.
  * Vanilla, no framework.
  *
  * Markup: an element with [data-q-picker] and data-config:
