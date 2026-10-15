@@ -50,6 +50,26 @@ msgctxt "Languages::quissly_search.reason_master_toggle_off"
 msgid "Master toggle is off"
 msgstr "მთავარი ჩამრთველი გამორთულია"
 
+msgctxt "Languages::quissly_search.plan_lacks_qsearch"
+msgid "Your plan doesn't include Search."
+msgstr "თქვენს პლანში ძებნა არ შედის."
+
+msgctxt "Languages::quissly_search.plan_lacks_qchat"
+msgid "Your plan doesn't include the AI shopping assistant."
+msgstr "თქვენს პლანში AI შოპინგ ასისტენტი არ შედის."
+
+msgctxt "Languages::quissly_search.plan_add_in_billing"
+msgid "Add it in Billing"
+msgstr "დაამატეთ Billing-ში"
+
+msgctxt "Languages::quissly_search.feature_not_in_plan"
+msgid "Not in your plan"
+msgstr "პლანში არ შედის"
+
+msgctxt "Languages::quissly_search.reason_not_in_plan"
+msgid "Search is not in the store's plan"
+msgstr "მაღაზიის პლანში ძებნა არ შედის"
+
 msgctxt "Languages::quissly_search.reason_credentials_not_configured"
 msgid "Credentials are not configured in config.local.php"
 msgstr "კავშირის მონაცემები config.local.php-ში არ არის მითითებული"
@@ -509,6 +529,18 @@ msgstr "ხმოვანი ან სურათით ძიების �
 msgctxt "Languages::quissly_search.sf_placeholder"
 msgid "Search products…"
 msgstr "პროდუქტების ძიება…"
+
+msgctxt "Languages::quissly_search.sf_clear"
+msgid "Clear search"
+msgstr "ძებნის გასუფთავება"
+
+msgctxt "Languages::quissly_search.sf_recent"
+msgid "Your recent searches"
+msgstr "თქვენი ბოლო ძიებები"
+
+msgctxt "Languages::quissly_search.sf_remove_recent"
+msgid "Remove %s from recent searches"
+msgstr "„%s“-ის წაშლა ბოლო ძიებებიდან"
 
 msgctxt "Languages::quissly_search.sf_voice"
 msgid "Voice search"
@@ -1633,6 +1665,18 @@ msgstr "შეთავაზებები"
 msgctxt "Languages::quissly_search.feature_overlay_suggestions"
 msgid "Suggestions under the search bar"
 msgstr "შეთავაზებები ძიების ველის ქვეშ"
+
+msgctxt "Languages::quissly_search.feature_overlay_recent"
+msgid "Recent searches under the search bar"
+msgstr "ბოლო ძიებები ძიების ველის ქვეშ"
+
+msgctxt "SettingsOptions::quissly_search::overlay_recent"
+msgid "Show recent searches"
+msgstr "ბოლო ძიებების ჩვენება"
+
+msgctxt "SettingsTooltips::quissly_search::overlay_recent"
+msgid "The shopper's last 5 searches under the empty search bar, kept only in their own browser and never sent anywhere. Off: none are shown or kept. On by default."
+msgstr "მყიდველის ბოლო 5 ძიება ცარიელი საძიებო ველის ქვეშ - ინახება მხოლოდ მის ბრაუზერში და არსად იგზავნება. გამორთულზე არც ჩანს და არც ინახება. ნაგულისხმევად ჩართულია."
 
 msgctxt "SettingsOptions::quissly_search::enable_events"
 msgid "Shopping activity for Quissly analytics"

@@ -185,7 +185,8 @@ final class SearchInterceptor
         // (X-Quissly-Search / the ?quissly_debug=1 badge, via SearchSignal).
 
         // Master on/off toggle (stored add-on setting; default Y when unset).
-        if (Registry::get('addons.quissly_search.search_interception') === 'N') {
+        // Off too when the store's plan has no Search (Setup\PlanGate).
+        if (Registry::get('addons.quissly_search.search_interception') === 'N' || isset(Features::locked()['search_interception'])) {
             SearchSignal::recordSkip('search-off');
 
             return false;

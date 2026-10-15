@@ -50,6 +50,26 @@ msgctxt "Languages::quissly_search.reason_master_toggle_off"
 msgid "Master toggle is off"
 msgstr "Master toggle is off"
 
+msgctxt "Languages::quissly_search.plan_lacks_qsearch"
+msgid "Your plan doesn't include Search."
+msgstr "Your plan doesn't include Search."
+
+msgctxt "Languages::quissly_search.plan_lacks_qchat"
+msgid "Your plan doesn't include the AI shopping assistant."
+msgstr "Your plan doesn't include the AI shopping assistant."
+
+msgctxt "Languages::quissly_search.plan_add_in_billing"
+msgid "Add it in Billing"
+msgstr "Add it in Billing"
+
+msgctxt "Languages::quissly_search.feature_not_in_plan"
+msgid "Not in your plan"
+msgstr "Not in your plan"
+
+msgctxt "Languages::quissly_search.reason_not_in_plan"
+msgid "Search is not in the store's plan"
+msgstr "Search is not in the store's plan"
+
 msgctxt "Languages::quissly_search.reason_credentials_not_configured"
 msgid "Credentials are not configured in config.local.php"
 msgstr "Credentials are not configured in config.local.php"
@@ -509,6 +529,18 @@ msgstr "This voice or image search has expired. Please search again."
 msgctxt "Languages::quissly_search.sf_placeholder"
 msgid "Search products…"
 msgstr "Search products…"
+
+msgctxt "Languages::quissly_search.sf_clear"
+msgid "Clear search"
+msgstr "Clear search"
+
+msgctxt "Languages::quissly_search.sf_recent"
+msgid "Your recent searches"
+msgstr "Your recent searches"
+
+msgctxt "Languages::quissly_search.sf_remove_recent"
+msgid "Remove %s from recent searches"
+msgstr "Remove %s from recent searches"
 
 msgctxt "Languages::quissly_search.sf_voice"
 msgid "Voice search"
@@ -1633,6 +1665,18 @@ msgstr "Suggestions"
 msgctxt "Languages::quissly_search.feature_overlay_suggestions"
 msgid "Suggestions under the search bar"
 msgstr "Suggestions under the search bar"
+
+msgctxt "Languages::quissly_search.feature_overlay_recent"
+msgid "Recent searches under the search bar"
+msgstr "Recent searches under the search bar"
+
+msgctxt "SettingsOptions::quissly_search::overlay_recent"
+msgid "Show recent searches"
+msgstr "Show recent searches"
+
+msgctxt "SettingsTooltips::quissly_search::overlay_recent"
+msgid "The shopper's last 5 searches under the empty search bar, kept only in their own browser and never sent anywhere. Off: none are shown or kept. On by default."
+msgstr "The shopper's last 5 searches under the empty search bar, kept only in their own browser and never sent anywhere. Off: none are shown or kept. On by default."
 
 msgctxt "SettingsOptions::quissly_search::enable_events"
 msgid "Shopping activity for Quissly analytics"

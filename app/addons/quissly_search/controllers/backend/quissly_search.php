@@ -36,6 +36,7 @@ use Quissly\Search\Admin\SetupPage;
 use Quissly\Search\Setup\DescriptionDraft;
 use Quissly\Search\Setup\Onboarding;
 use Quissly\Search\Setup\SetupInput;
+use Quissly\Search\Setup\PlanGate;
 use Quissly\Search\Setup\StoreBilling;
 use Quissly\Search\Connect\Connector;
 use Quissly\Search\Panel\QChatDirectory;
@@ -119,6 +120,10 @@ function fn_quissly_search_feature_notes(array $features, DbSyncStore $store, Cr
 {
     $gateOpen = SyncWorker::isGateOpen($store);
     foreach ($features as &$feature) {
+        if (($feature['locked'] ?? '') !== '') {
+            $feature['note'] = __('quissly_search.feature_not_in_plan');
+            continue;
+        }
         if (!$feature['on'] || !$feature['built']) {
             continue;
         }
@@ -435,6 +440,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_plan') {
     }
     if ($op === 'check' || $op === 'keep') {
         $subscriptions = $billing->subscriptions();
+        PlanGate::remember(new DbSyncStore(), $subscriptions, time());
         if ($subscriptions === null) {
             fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text(StoreBilling::message(0, ''))]);
         }
@@ -597,6 +603,8 @@ if ($mode === 'cron') {
     // version report when due. Also when not connected (any longer): the sender then empties the queue.
     fn_quissly_search_version_report($store);
     fn_quissly_search_events_send(40.0);
+    // What the store's plan includes (lib/Setup/PlanGate.php), asked again every 10 minutes.
+    fn_quissly_search_plan_refresh($store, false);
     // A newer release from GitHub, checked once a day and installed (lib/Update/).
     \Quissly\Search\Update\Updater::runIfDue($store, time());
 
@@ -678,10 +686,12 @@ if ($mode === 'billing') {
     $text = static function (string $key): string {
         return (string) __('quissly_search.' . $key);
     };
+    $subscriptions = $billing->subscriptions();
+    PlanGate::remember(new DbSyncStore(), $subscriptions, time());
     Tygh::$app['view']->assign('quissly_billing_html', BillingPage::render(
         BillingPage::view(
             $billing->plans(),
-            $billing->subscriptions(),
+            $subscriptions,
             static function (string $id) use ($billing): ?array {
                 return $billing->usage($id);
             },
@@ -749,6 +759,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'billing_manage') {
             // no break: answered
         case 'check':
             $subscriptions = $billing->subscriptions();
+            PlanGate::remember(new DbSyncStore(), $subscriptions, time());
             $active = $subscriptions !== null && isset(StoreBilling::livePlans($subscriptions)[(string) ($_REQUEST['family'] ?? '')]);
             if ($active) {
                 fn_set_notification('N', __('notice'), __('quissly_search.bi_paid_on'));

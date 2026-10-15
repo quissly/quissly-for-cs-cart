@@ -91,9 +91,14 @@ someone presses a sync button on the Dashboard.
 | **Shopping activity for Quissly analytics** | on | Sends product views, searches, adds to cart and wish list, and paid orders to Quissly's analytics (see *Privacy*). |
 | **Search Examples** | generated | The example searches typed into the empty search bar, one list per storefront language, up to 20. Quissly writes them from your catalog after the first sync; edit, remove or reset them here. |
 | **Search Suggestions** | on, Automatic | Buttons under the empty search bar. *Automatic* shows what Quissly generated; *Manual* shows your own, up to 10 per language. |
+| **Show recent searches** | on | The shopper's last 5 searches beside the suggestions, each with a bin to remove it. Kept only in the shopper's own browser, never sent anywhere. |
 | **Most Loved Products** | off | 8 product cards in the overlay, picked by you (plus 4 backups that step in when a pick is sold out or hidden). Click a field to browse your catalog, drag to reorder. |
 | **Catalog data** | what your storefront shows | Which product features are sent to Quissly. Changing it sends your whole catalog again. |
 | **Update check frequency** | 30 minutes | How often the add-on looks for a new version (5 minutes for testing, up to a day, or **Never**). |
+
+A feature your plan does not include - the chat on a Search plan, or search on a Chat plan - is shown
+off and greyed out with a link to Billing, and stays off on the storefront until you add it. Your
+setting is kept for then.
 
 ## Updates
 

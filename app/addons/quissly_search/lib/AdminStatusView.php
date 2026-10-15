@@ -16,6 +16,7 @@ final class AdminStatusView
 {
     private const REASON_LABELS = [
         'master_toggle_off'          => 'quissly_search.reason_master_toggle_off',
+        'not_in_plan'                => 'quissly_search.reason_not_in_plan',
         'credentials_not_configured' => 'quissly_search.reason_credentials_not_configured',
         'auth_error'                 => 'quissly_search.reason_auth_error',
         'initial_sync_pending'       => 'quissly_search.reason_initial_sync_pending',

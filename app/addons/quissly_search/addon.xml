@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>
@@ -94,6 +94,12 @@
                     <item id="suggestion_buttons">
                         <type>info</type>
                         <handler>fn_quissly_search_buttons_handler</handler>
+                    </item>
+                    <!-- "Your recent searches" beside the buttons: the shopper's own, kept in
+                         their browser (overlay.js); off, none are shown or kept. -->
+                    <item id="overlay_recent">
+                        <type>checkbox</type>
+                        <default_value>Y</default_value>
                     </item>
                     <!-- Most loved products (the Shopify app's): 8 shown and 4 backups, by
                          product code (lib/MostLoved.php); the handler says what needs fixing. -->

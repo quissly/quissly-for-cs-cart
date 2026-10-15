@@ -33,7 +33,8 @@
 	var resultsUrl = config.resultsUrl || 'index.php?dispatch=products.search';
 	var nativeInput = findNativeInput();
 
-	var backdrop, panel, input, lastFocus, suggestPanel;
+	var backdrop, panel, input, lastFocus, suggestPanel, clearBtn, recentGroup, suggestLists = null;
+	var hasStaticSuggest = false;
 
 	// Search bar suggestions (the Shopify app's typing animation): the merchant's list,
 	// kept in Quissly, typed letter by letter into the EMPTY bar's placeholder - one
@@ -145,14 +146,14 @@
 		// Decorative magnifier; aria-hidden so screen readers announce only the input.
 		var icon = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' );
 		icon.setAttribute( 'class', 'quissly-overlay__icon' );
-		icon.setAttribute( 'viewBox', '0 0 24 24' );
+		icon.setAttribute( 'viewBox', '0 0 20 20' );
 		icon.setAttribute( 'aria-hidden', 'true' );
 		var ring = document.createElementNS( 'http://www.w3.org/2000/svg', 'circle' );
-		ring.setAttribute( 'cx', '11' );
-		ring.setAttribute( 'cy', '11' );
-		ring.setAttribute( 'r', '7' );
+		ring.setAttribute( 'cx', '9' );
+		ring.setAttribute( 'cy', '9' );
+		ring.setAttribute( 'r', '4.75' );
 		var handle = document.createElementNS( 'http://www.w3.org/2000/svg', 'path' );
-		handle.setAttribute( 'd', 'M20 20l-4.2-4.2' );
+		handle.setAttribute( 'd', 'm12.5 12.5 3.25 3.25' );
 		icon.appendChild( ring );
 		icon.appendChild( handle );
 
@@ -170,9 +171,9 @@
 
 		field.appendChild( icon );
 		field.appendChild( input );
+		field.appendChild( clearButton() );
 		field.appendChild( actions );
 		bar.appendChild( field );
-		bar.appendChild( closeButton() );
 
 		// The space under the bar where suggestions go (Quick, in the WooCommerce and
 		// Magento plugins). Nothing fills it in this add-on yet, so it stays hidden.
@@ -192,7 +193,7 @@
 		backdrop.addEventListener( 'click', function ( e ) {
 			// The panel spans the page width, so its empty stretches are backdrop too as
 			// far as the shopper is concerned.
-			if ( e.target === backdrop || e.target === panel ) {
+			if ( e.target === backdrop ) {
 				close();
 			}
 		} );
@@ -215,72 +216,201 @@
 		} );
 	}
 
+	// "Your recent searches": what this shopper searched from the overlay, newest first, at
+	// most five - kept in their own browser (localStorage) and never sent anywhere; the
+	// merchant's switch, on by default. Each one can be removed; a browser that blocks storage
+	// simply has none.
+	var RECENT_KEY = 'quissly_recent_searches';
+	var RECENT_MAX = 5;
+	var recentOn = !! config.recentSearches;
+	if ( ! recentOn ) {
+		try {
+			window.localStorage.removeItem( RECENT_KEY ); // Switched off: none are kept.
+		} catch ( e ) {
+			// Storage blocked: there is nothing kept to clear.
+		}
+	}
+
+	function readRecent() {
+		if ( ! recentOn ) {
+			return [];
+		}
+		try {
+			var list = JSON.parse( window.localStorage.getItem( RECENT_KEY ) || '[]' );
+			return Array.isArray( list ) ? list.filter( function ( q ) {
+				return typeof q === 'string' && q.trim() !== '';
+			} ).slice( 0, RECENT_MAX ) : [];
+		} catch ( e ) {
+			return [];
+		}
+	}
+
+	function writeRecent( list ) {
+		try {
+			window.localStorage.setItem( RECENT_KEY, JSON.stringify( list.slice( 0, RECENT_MAX ) ) );
+		} catch ( e ) {
+			// Storage full or blocked: the search goes ahead, it is just not remembered.
+		}
+	}
+
+	/** Puts q first, once (case aside). */
+	function rememberSearch( q ) {
+		if ( ! recentOn ) {
+			return;
+		}
+		q = q.slice( 0, 100 );
+		var key = q.toLowerCase();
+		writeRecent( [ q ].concat( readRecent().filter( function ( old ) {
+			return old.toLowerCase() !== key;
+		} ) ) );
+	}
+
+	function forgetSearch( q ) {
+		writeRecent( readRecent().filter( function ( old ) {
+			return old !== q;
+		} ) );
+	}
+
 	/**
-	 * "<Store> suggestions": the search bar suggestions as buttons under the empty bar (the
-	 * merchant's switch, on by default). A click searches for that suggestion. Null when it
-	 * is switched off or there is nothing to show.
+	 * The panel under the empty bar: "Your recent searches" and "<Store> suggestions" side by
+	 * side (stacked on a phone), then "<Store> Most loved". The suggestions are the merchant's
+	 * switch (on by default; which ones, chipQueries); the recent searches are filled in on
+	 * every open (renderRecent). The panel hides while it has nothing to show.
 	 *
-	 * @return {Element|null}
+	 * @return {Element}
 	 */
 	function buildSuggestPanel() {
 		var showChips = !! config.suggestionsPanel && chipQueries.length > 0;
 		var loved = Array.isArray( config.mostLoved ) ? config.mostLoved : [];
-		if ( ! showChips && ! loved.length ) {
-			return null;
-		}
-		var ns = 'http://www.w3.org/2000/svg';
+		hasStaticSuggest = showChips || loved.length > 0;
 		var section = document.createElement( 'section' );
 		section.className = 'quissly-overlay__suggest';
-		if ( ! showChips ) {
-			section.setAttribute( 'aria-label', config.labelMostLoved || 'Most loved' );
-			section.appendChild( buildLoved( loved ) );
-			return section;
+		var sectionLabel = config.labelRecent || 'Your recent searches';
+		if ( showChips ) {
+			sectionLabel = config.labelSuggestions || 'Suggestions';
+		} else if ( loved.length ) {
+			sectionLabel = config.labelMostLoved || 'Most loved';
 		}
+		section.setAttribute( 'aria-label', sectionLabel );
 
-		var title = document.createElement( 'p' );
-		title.className = 'quissly-overlay__suggest-title';
-		// A lightbulb, as the reference design; decorative.
-		var bulb = document.createElementNS( ns, 'svg' );
-		bulb.setAttribute( 'viewBox', '0 0 24 24' );
-		bulb.setAttribute( 'aria-hidden', 'true' );
-		var glass = document.createElementNS( ns, 'path' );
-		glass.setAttribute( 'd', 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z' );
-		bulb.appendChild( glass );
-		title.appendChild( bulb );
-		var heading = document.createElement( 'span' );
-		heading.textContent = config.labelSuggestions || 'Suggestions';
-		title.appendChild( heading );
-		section.setAttribute( 'aria-label', heading.textContent );
-		section.appendChild( title );
+		suggestLists = document.createElement( 'div' );
+		suggestLists.className = 'quissly-overlay__lists';
+		recentGroup = document.createElement( 'div' );
+		recentGroup.className = 'quissly-overlay__group quissly-overlay__group--recent';
+		recentGroup.setAttribute( 'role', 'group' );
+		recentGroup.setAttribute( 'aria-label', config.labelRecent || 'Your recent searches' );
+		recentGroup.hidden = true;
+		suggestLists.appendChild( recentGroup );
 
-		var chips = document.createElement( 'div' );
-		chips.className = 'quissly-overlay__chips';
-		chipQueries.slice( 0, 10 ).forEach( function ( query ) {
-			var chip = document.createElement( 'button' );
-			chip.type = 'button';
-			chip.className = 'quissly-overlay__chip';
-			var label = document.createElement( 'span' );
-			label.textContent = query;
-			chip.appendChild( label );
-			// The up-left arrow: "use this search".
-			var arrow = document.createElementNS( ns, 'svg' );
-			arrow.setAttribute( 'viewBox', '0 0 24 24' );
-			arrow.setAttribute( 'aria-hidden', 'true' );
-			var stroke = document.createElementNS( ns, 'path' );
-			stroke.setAttribute( 'd', 'M17 17L7 7M7 15V7h8' );
-			arrow.appendChild( stroke );
-			chip.appendChild( arrow );
-			chip.addEventListener( 'click', function () {
-				input.value = query;
-				submit();
+		if ( showChips ) {
+			var group = document.createElement( 'div' );
+			group.className = 'quissly-overlay__group';
+			// A lightbulb, as the reference design.
+			group.appendChild( groupTitle( 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z', config.labelSuggestions || 'Suggestions' ) );
+			var chips = document.createElement( 'div' );
+			chips.className = 'quissly-overlay__chips';
+			chipQueries.slice( 0, 10 ).forEach( function ( query ) {
+				var chip = document.createElement( 'button' );
+				chip.type = 'button';
+				chip.className = 'quissly-overlay__chip';
+				var label = document.createElement( 'span' );
+				label.textContent = query;
+				chip.appendChild( label );
+				chip.appendChild( svgIcon( 'M17 17L7 7M7 15V7h8' ) ); // up-left: "use this search".
+				chip.addEventListener( 'click', function () {
+					input.value = query;
+					syncClear();
+					submit();
+				} );
+				chips.appendChild( chip );
 			} );
-			chips.appendChild( chip );
-		} );
-		section.appendChild( chips );
+			group.appendChild( chips );
+			suggestLists.appendChild( group );
+		}
+		section.appendChild( suggestLists );
 		if ( loved.length ) {
 			section.appendChild( buildLoved( loved ) );
 		}
 		return section;
+	}
+
+	/** Fills "Your recent searches" from this browser's list; hides it while empty. */
+	function renderRecent() {
+		if ( ! recentGroup ) {
+			return;
+		}
+		var recent = readRecent();
+		recentGroup.textContent = '';
+		recentGroup.hidden = ! recent.length;
+		suggestLists.classList.toggle( 'is-split', recent.length > 0 && suggestLists.children.length > 1 );
+		suggestLists.hidden = ! recent.length && suggestLists.children.length < 2;
+		if ( recent.length ) {
+			// A clock.
+			recentGroup.appendChild( groupTitle( 'M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 7.5V12l3 2', config.labelRecent || 'Your recent searches' ) );
+			var chips = document.createElement( 'div' );
+			chips.className = 'quissly-overlay__chips';
+			recent.forEach( function ( query ) {
+				var chip = document.createElement( 'span' );
+				chip.className = 'quissly-overlay__chip quissly-overlay__chip--recent';
+				var use = document.createElement( 'button' );
+				use.type = 'button';
+				use.className = 'quissly-overlay__recent-use';
+				var label = document.createElement( 'span' );
+				label.textContent = query;
+				use.appendChild( label );
+				use.appendChild( svgIcon( 'M17 17L7 7M7 15V7h8' ) );
+				use.addEventListener( 'click', function () {
+					input.value = query;
+					syncClear();
+					submit();
+				} );
+				var remove = document.createElement( 'button' );
+				remove.type = 'button';
+				remove.className = 'quissly-overlay__recent-remove';
+				remove.setAttribute( 'aria-label', String( config.labelRemoveRecent || 'Remove %s from recent searches' ).replace( '%s', query ) );
+				// A bin.
+				remove.appendChild( svgIcon( 'M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10.5 11v5M13.5 11v5' ) );
+				remove.addEventListener( 'click', function () {
+					forgetSearch( query );
+					renderRecent();
+					input.focus();
+				} );
+				chip.appendChild( use );
+				chip.appendChild( remove );
+				chips.appendChild( chip );
+			} );
+			recentGroup.appendChild( chips );
+		}
+		syncSuggestPanel();
+	}
+
+	/**
+	 * A list's heading: a line icon and the text, over a hairline.
+	 *
+	 * @param {string} d    The icon's path.
+	 * @param {string} text
+	 * @return {Element}
+	 */
+	function groupTitle( d, text ) {
+		var title = document.createElement( 'p' );
+		title.className = 'quissly-overlay__suggest-title';
+		title.appendChild( svgIcon( d ) );
+		var heading = document.createElement( 'span' );
+		heading.textContent = text;
+		title.appendChild( heading );
+		return title;
+	}
+
+	/** A decorative 24x24 line icon. */
+	function svgIcon( d ) {
+		var ns = 'http://www.w3.org/2000/svg';
+		var svg = document.createElementNS( ns, 'svg' );
+		svg.setAttribute( 'viewBox', '0 0 24 24' );
+		svg.setAttribute( 'aria-hidden', 'true' );
+		var path = document.createElementNS( ns, 'path' );
+		path.setAttribute( 'd', d );
+		svg.appendChild( path );
+		return svg;
 	}
 
 	/**
@@ -359,33 +489,47 @@
 		return block;
 	}
 
-	/** The suggestions show while the bar is empty; typing hands the space to Quick. */
+	/** The panel shows while the bar is empty and it has something; typing hands the space to Quick. */
 	function syncSuggestPanel() {
 		if ( suggestPanel ) {
-			suggestPanel.hidden = !! ( input && input.value.trim() );
+			suggestPanel.hidden = !! ( input && input.value.trim() ) || ( ! hasStaticSuggest && recentGroup.hidden );
 		}
 	}
 
 	/**
-	 * The round close button to the right of the bar.
+	 * The x inside the bar (the Quissly Shopify app's): clears the text and keeps the
+	 * overlay open - Escape or the backdrop closes it. Hidden while the bar is empty.
 	 *
 	 * @return {Element}
 	 */
-	function closeButton() {
+	function clearButton() {
 		var ns = 'http://www.w3.org/2000/svg';
-		var button = document.createElement( 'button' );
-		button.type = 'button';
-		button.className = 'quissly-overlay__close';
-		button.setAttribute( 'aria-label', config.labelClose || 'Close' );
+		clearBtn = document.createElement( 'button' );
+		clearBtn.type = 'button';
+		clearBtn.className = 'quissly-overlay__clear';
+		clearBtn.setAttribute( 'aria-label', config.labelClear || 'Clear search' );
+		clearBtn.hidden = true;
 		var icon = document.createElementNS( ns, 'svg' );
-		icon.setAttribute( 'viewBox', '0 0 24 24' );
+		icon.setAttribute( 'viewBox', '0 0 16 16' );
 		icon.setAttribute( 'aria-hidden', 'true' );
 		var cross = document.createElementNS( ns, 'path' );
-		cross.setAttribute( 'd', 'M6 6l12 12M18 6L6 18' );
+		cross.setAttribute( 'd', 'M4 4l8 8M12 4l-8 8' );
 		icon.appendChild( cross );
-		button.appendChild( icon );
-		button.addEventListener( 'click', close );
-		return button;
+		clearBtn.appendChild( icon );
+		clearBtn.addEventListener( 'click', function () {
+			input.value = '';
+			input.dispatchEvent( new Event( 'input' ) );
+			input.focus();
+		} );
+		input.addEventListener( 'input', syncClear );
+		return clearBtn;
+	}
+
+	/** Show the x only while there is text to clear. */
+	function syncClear() {
+		if ( clearBtn ) {
+			clearBtn.hidden = ! input.value;
+		}
 	}
 
 	function open() {
@@ -395,9 +539,10 @@
 		lastFocus = document.activeElement;
 		// Carry over whatever the shopper already typed in the native box.
 		input.value = ( nativeInput && nativeInput.value ) || '';
+		syncClear();
 		document.documentElement.classList.add( 'quissly-overlay-open' );
 		backdrop.classList.add( 'is-open' );
-		syncSuggestPanel();
+		renderRecent();
 		input.focus();
 		input.select();
 		if ( ! input.value ) {
@@ -422,6 +567,7 @@
 		if ( q === '' ) {
 			return;
 		}
+		rememberSearch( q );
 		window.location.assign( searchUrl( q ) );
 	}
 

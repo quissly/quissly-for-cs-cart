@@ -70,7 +70,7 @@ final class Storefront
                 'searchSelectors'  => self::SEARCH_SELECTORS,
                 'labelTitle'       => $in['i18n']['search'] ?? 'Search',
                 'labelPlaceholder' => $in['i18n']['placeholder'] ?? 'Search products…',
-                'labelClose'       => $in['i18n']['close'] ?? 'Close',
+                'labelClear'       => $in['i18n']['clear'] ?? 'Clear search',
                 // Theme with no search box: the header control the search button sits
                 // beside (a CSS selector); '' = auto-detect cart, account, language.
                 'mountSelector'    => trim((string) ($in['mount_selector'] ?? '')),
@@ -85,6 +85,10 @@ final class Storefront
                 'mostLoved'        => array_values((array) ($in['most_loved'] ?? [])),
                 'labelMostLoved'   => $in['i18n']['mostLoved'] ?? 'Most loved',
                 'labelRating'      => $in['i18n']['rating'] ?? '%s out of 5',
+                // Recent searches: this shopper's own, kept in their browser (overlay.js).
+                'recentSearches'   => !empty($on['overlay_recent']),
+                'labelRecent'      => $in['i18n']['recent'] ?? 'Your recent searches',
+                'labelRemoveRecent' => $in['i18n']['removeRecent'] ?? 'Remove %s from recent searches',
             ], $flags) : '',
             'media'          => $voice || $image,
             'media_json'     => $voice || $image ? (string) json_encode([

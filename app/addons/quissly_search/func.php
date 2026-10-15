@@ -137,7 +137,41 @@ function fn_quissly_search_status_handler()
             'admin_email'   => (string) ($admin['email'] ?? ''),
         ])
         . AdminStatusView::render(StatusReport::build())
+        . fn_quissly_search_plan_locks()
         . fn_quissly_search_sections_assets();
+}
+
+/**
+ * The switches the store's plan leaves out (lib/Setup/PlanGate.php), asked afresh so a plan
+ * changed in Billing shows at once, for settings-sections.js to draw disabled with the reason
+ * and a Billing link. CS-Cart posts nothing for a disabled field, so what was saved stays.
+ */
+function fn_quissly_search_plan_locks(): string
+{
+    $store = new DbSyncStore();
+    fn_quissly_search_plan_refresh($store, true);
+    $locks = [];
+    foreach (\Quissly\Search\Setup\PlanGate::current($store, (new \Quissly\Search\Setup\Onboarding($store, true, time()))->services()) as $id => $product) {
+        $locks[$id] = (string) __('quissly_search.plan_lacks_' . $product);
+    }
+
+    return '<script type="application/json" id="quissly-plan-locks">'
+        . json_encode(['locks' => $locks, 'billing' => fn_url('quissly_search.billing'), 'link' => (string) __('quissly_search.plan_add_in_billing')], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)
+        . '</script>';
+}
+
+/** Ask Quissly what the store's plans are (PlanGate::remember()): always, or once its last answer is 10 minutes old. */
+function fn_quissly_search_plan_refresh(DbSyncStore $store, bool $always): void
+{
+    $credentials = Credentials::fromRegistry();
+    if (!$credentials->isConfigured() || (!$always && !\Quissly\Search\Setup\PlanGate::isStale($store, time()))) {
+        return;
+    }
+    $noPost = static function (): ?array {
+        return null;
+    };
+    $billing = new \Quissly\Search\Setup\StoreBilling($credentials->bearerToken(), fn_quissly_search_http_get($always ? 5 : 15), $noPost);
+    \Quissly\Search\Setup\PlanGate::remember($store, $billing->subscriptions(), time());
 }
 
 /**
@@ -366,7 +400,7 @@ function fn_quissly_search_storefront()
         'most_loved'     => $configured ? fn_quissly_search_most_loved_cards($store) : [],
         'i18n'          => [
             'search'             => __('search'),
-            'close'              => __('close'),
+            'clear'              => __('quissly_search.sf_clear'),
             'placeholder'        => __('quissly_search.sf_placeholder'),
             'suggestions'        => trim((string) \Tygh\Registry::get('settings.Company.company_name')) !== ''
                 ? __('quissly_search.sf_suggestions', ['[store]' => trim((string) \Tygh\Registry::get('settings.Company.company_name'))])
@@ -375,6 +409,8 @@ function fn_quissly_search_storefront()
                 ? __('quissly_search.sf_most_loved', ['[store]' => trim((string) \Tygh\Registry::get('settings.Company.company_name'))])
                 : __('quissly_search.sf_most_loved_plain'),
             'rating'             => __('quissly_search.sf_rating'),
+            'recent'             => __('quissly_search.sf_recent'),
+            'removeRecent'       => __('quissly_search.sf_remove_recent'),
             'voice'              => __('quissly_search.sf_voice'),
             'image'              => __('quissly_search.sf_image'),
             'listening'          => __('quissly_search.sf_listening'),
@@ -565,7 +601,7 @@ function fn_quissly_search_suggestions_error(string $error): void
 function fn_quissly_search_most_loved_picks(): array
 {
     return [
-        'enabled' => \Tygh\Registry::get('addons.quissly_search.most_loved') === 'Y',
+        'enabled' => \Tygh\Registry::get('addons.quissly_search.most_loved') === 'Y' && !isset(Features::locked()['most_loved']),
         'shown'   => \Quissly\Search\MostLoved::codes((string) \Tygh\Registry::get('addons.quissly_search.most_loved_shown'), \Quissly\Search\MostLoved::SHOWN),
         'backups' => \Quissly\Search\MostLoved::codes((string) \Tygh\Registry::get('addons.quissly_search.most_loved_backups'), \Quissly\Search\MostLoved::BACKUPS),
     ];

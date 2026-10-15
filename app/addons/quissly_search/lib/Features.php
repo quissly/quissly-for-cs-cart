@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Quissly\Search;
 
+use Quissly\Search\Setup\Onboarding;
+use Quissly\Search\Setup\PlanGate;
+use Quissly\Search\Sync\DbSyncStore;
 use Tygh\Registry;
 
 /**
@@ -21,6 +24,7 @@ final class Features
         'search_interception' => ['quissly_search.feature_qsearch', true],
         'enable_overlay'      => ['quissly_search.feature_overlay', true],
         'overlay_suggestions' => ['quissly_search.feature_overlay_suggestions', true],
+        'overlay_recent'      => ['quissly_search.feature_overlay_recent', true],
         'enable_quick'        => ['quissly_search.feature_quick', false],
         'enable_voice'        => ['quissly_search.feature_voice', true],
         'enable_image'        => ['quissly_search.feature_image', true],
@@ -29,7 +33,7 @@ final class Features
     ];
 
     /** Defaults when a setting was never saved (matches addon.xml). */
-    private const DEFAULT_ON = ['search_interception', 'enable_overlay', 'overlay_suggestions', 'enable_events'];
+    private const DEFAULT_ON = ['search_interception', 'enable_overlay', 'overlay_suggestions', 'overlay_recent', 'enable_events'];
 
     /**
      * Quick Recommendations style (setting quick_style), the Magento plugin's two: a list
@@ -38,20 +42,43 @@ final class Features
     public const QUICK_STYLES = ['rows', 'carousel'];
 
     /**
+     * A switch the store's plan leaves out (PlanGate) is off whatever was saved, and says why.
+     *
      * @param callable(string): mixed|null $read setting id -> stored value ('Y'/'N'/null)
-     * @return list<array{id:string, label:string, on:bool, built:bool}>
+     * @param ?array<string, string> $locked switch id => the product it needs; null = the store's own
+     * @return list<array{id:string, label:string, on:bool, built:bool, locked:string}>
      */
-    public static function all(?callable $read = null): array
+    public static function all(?callable $read = null, ?array $locked = null): array
     {
+        if ($locked === null) {
+            $locked = $read === null ? self::locked() : [];
+        }
         $read = $read ?? static fn (string $id) => Registry::get('addons.quissly_search.' . $id);
         $list = [];
         foreach (self::ALL as $id => [$label, $built]) {
             $value = $read($id);
             $on = $value === null || $value === '' ? in_array($id, self::DEFAULT_ON, true) : $value === 'Y';
-            $list[] = ['id' => $id, 'label' => $label, 'on' => $on, 'built' => $built];
+            $lockedBy = (string) ($locked[$id] ?? '');
+            $list[] = ['id' => $id, 'label' => $label, 'on' => $on && $lockedBy === '', 'built' => $built, 'locked' => $lockedBy];
         }
 
         return $list;
+    }
+
+    /**
+     * The switches this store's plan leaves out (PlanGate::current()), read once a request.
+     *
+     * @return array<string, string> switch id => the product it needs
+     */
+    public static function locked(): array
+    {
+        static $locked = null;
+        if ($locked === null) {
+            $store = new DbSyncStore();
+            $locked = PlanGate::current($store, (new Onboarding($store, true, time()))->services());
+        }
+
+        return $locked;
     }
 
     /**

@@ -29,3 +29,6 @@ h4.subheader[data-q-section] + .collapse.in { padding-bottom: 12px; }
     line-height: 1.55;
     text-align: left;
 }
+/* A switch the store's plan leaves out (settings-sections.js lock()): greyed; the line under it says why. */
+[data-q-locked] .controls input, [data-q-locked] .controls select { opacity: .45; cursor: not-allowed; }
+[data-q-locked] .q-plan-note { margin-top: 6px; }

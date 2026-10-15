@@ -63,9 +63,49 @@
         });
     }
 
+    // A switch the store's plan leaves out (func.php fn_quissly_search_plan_locks): shown off and
+    // disabled, with the reason and a Billing link under it. A disabled field posts nothing, so what
+    // was saved stays for when the plan includes it.
+    function lock() {
+        var data = null;
+        try {
+            data = JSON.parse((document.getElementById('quissly-plan-locks') || {}).textContent || 'null');
+        } catch (e) {
+            data = null;
+        }
+        if (!data || !data.locks) {
+            return;
+        }
+        Object.keys(data.locks).forEach(function (id) {
+            // container_addon_option_quissly_search_<id>_<object id> - not <id>_shown_<object id>.
+            var own = new RegExp('_quissly_search_' + id + '_\\d+$');
+            Array.prototype.forEach.call(document.querySelectorAll('[id^="container_"][id*="_quissly_search_' + id + '_"]'), function (group) {
+                if (!own.test(group.id) || group.hasAttribute('data-q-locked')) {
+                    return;
+                }
+                group.setAttribute('data-q-locked', '');
+                Array.prototype.forEach.call(group.querySelectorAll('input, select'), function (field) {
+                    if (field.type === 'checkbox') {
+                        field.checked = false;
+                    }
+                    field.disabled = true;
+                });
+                var note = document.createElement('p');
+                note.className = 'description q-plan-note';
+                note.appendChild(document.createTextNode(data.locks[id] + ' '));
+                var link = document.createElement('a');
+                link.href = data.billing;
+                link.textContent = data.link;
+                note.appendChild(link);
+                (group.querySelector('.controls') || group).appendChild(note);
+            });
+        });
+    }
+
     function start() {
         boot();
         describe();
+        lock();
     }
 
     if (document.readyState === 'loading') {

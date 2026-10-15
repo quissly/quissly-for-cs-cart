@@ -57,6 +57,8 @@ final class StatusReport
         $reasons = [];
         if (!$toggleOn) {
             $reasons[] = 'master_toggle_off';
+        } elseif (isset(Features::locked()['search_interception'])) {
+            $reasons[] = 'not_in_plan';
         }
         if (!$configured) {
             $reasons[] = 'credentials_not_configured';
