@@ -643,7 +643,7 @@ final class BillingPage
     private static function modal(): string
     {
         return '<div class="q-modal" data-q-modal hidden><div class="q-modal__box" role="dialog" aria-modal="true" aria-labelledby="q-modal-title">'
-            . '<h3 class="q-modal__title" id="q-modal-title" data-q-modal-title></h3>'
+            . '<div class="q-modal__title" id="q-modal-title" role="heading" aria-level="2" data-q-modal-title></div>'
             . '<div class="q-modal__body"><p data-q-modal-body></p>'
             . '<div class="q-claim" data-q-modal-claim hidden><label class="q-field__label" for="q-claim">' . self::e(self::t('quissly_search.bi_claim_label')) . '</label>'
             . '<textarea id="q-claim" data-q-claim data-min="' . self::CLAIM_MIN . '" maxlength="' . self::CLAIM_MAX . '" rows="5"></textarea>'

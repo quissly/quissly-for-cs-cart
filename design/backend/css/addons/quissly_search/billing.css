@@ -401,6 +401,8 @@
 }
 .q-autotopup__title { font-weight: 650; color: var(--q-ink); }
 .q-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; }
+/* Over the admin themes' label styles (PrestaShop's `.bootstrap label`: inline-block, bold, a bottom margin). */
+.q-billing label.q-check { display: inline-flex; max-width: none; margin: 0; font-weight: 400; }
 .q-billing .q-check input[type="checkbox"] {
     width: 16px;
     height: 16px;
