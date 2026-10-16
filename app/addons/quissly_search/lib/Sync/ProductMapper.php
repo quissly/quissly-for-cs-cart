@@ -153,8 +153,8 @@ final class ProductMapper
 
     /**
      * One option of the group as a variant of $parent: required fields present
-     * (inherited when it has none), price and stock only when they differ, the
-     * options that vary within the group in metadata.
+     * (inherited when it has none), its sale price whenever it is on sale, its own stock
+     * always, the options that vary within the group in metadata.
      *
      * @param array<string,mixed>  $own     the option's own record
      * @param array<string,mixed>  $parent  the parent's record (stock rolled up)
@@ -182,12 +182,16 @@ final class ProductMapper
             'original_price' => $own['original_price'] > 0 ? $own['original_price'] : $parent['original_price'],
             'url'            => $own['url'] !== '' ? $own['url'] : $parent['url'],
         ];
-        if ($own['discounted_price'] !== null && $own['discounted_price'] !== $parent['discounted_price']) {
+        // Its selling price whenever it is on sale - also when the parent's is the same: Quissly
+        // keeps each variant as a record of its own and shows its own price (a sale applied to
+        // the whole product, every variant at -20%, was shown at full price in the chat).
+        if ($own['discounted_price'] !== null) {
             $variant['discounted_price'] = $own['discounted_price'];
         }
-        if ($own['in_stock'] !== $parent['in_stock']) {
-            $variant['in_stock'] = $own['in_stock'];
-        }
+        // Always its own: a variant without in_stock is stored as in stock (ProductItem's default),
+        // so a product sold out in every option - the parent rolled up to false, like each variant -
+        // showed every option as available.
+        $variant['in_stock'] = $own['in_stock'];
 
         $metadata = [];
         $sku = (string) ($own['metadata']['sku'] ?? '');
