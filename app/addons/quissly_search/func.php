@@ -137,6 +137,9 @@ function fn_quissly_search_debug_badge(): string
  */
 function fn_quissly_search_catalog_handler()
 {
+    if (\Quissly\Search\Update\Updater::reinstalling()) {
+        return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
+    }
     return fn_quissly_search_info_row(CatalogView::render(CatalogFeatures::catalog(), CatalogFeatures::choices(new DbSyncStore())));
 }
 
@@ -164,6 +167,9 @@ function fn_quissly_search_sections_assets(): string
 
 function fn_quissly_search_status_handler()
 {
+    if (\Quissly\Search\Update\Updater::reinstalling()) {
+        return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
+    }
     $credentials = Credentials::fromRegistry();
     $admin = fn_quissly_search_admin_user();
 
@@ -632,6 +638,9 @@ function fn_quissly_search_admin_suggestions(DbSyncStore $store): ?array
  */
 function fn_quissly_search_suggestions_handler()
 {
+    if (\Quissly\Search\Update\Updater::reinstalling()) {
+        return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
+    }
     $store = new DbSyncStore();
     $current = fn_quissly_search_admin_suggestions($store);
 
@@ -651,6 +660,9 @@ function fn_quissly_search_suggestions_handler()
  */
 function fn_quissly_search_buttons_handler()
 {
+    if (\Quissly\Search\Update\Updater::reinstalling()) {
+        return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
+    }
     $store = new DbSyncStore();
 
     return fn_quissly_search_info_row(\Quissly\Search\Admin\SuggestionsView::buttons(
@@ -710,6 +722,9 @@ function fn_quissly_search_most_loved_picks(): array
  */
 function fn_quissly_search_most_loved_handler()
 {
+    if (\Quissly\Search\Update\Updater::reinstalling()) {
+        return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
+    }
     $picks = fn_quissly_search_most_loved_picks();
     $list = [];
     foreach ([[$picks['shown'], false], [$picks['backups'], true]] as [$codes, $backup]) {

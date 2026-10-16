@@ -55,6 +55,22 @@ final class Updater
     /** Why the last GitHub request failed ('' = it did not). */
     private static string $githubError = '';
 
+    /** While reinstall() runs (see reinstalling()). */
+    private static bool $reinstalling = false;
+
+    /**
+     * Whether an update is reinstalling the add-on in this request. CS-Cart then rebuilds the
+     * settings and calls their handlers (func.php) - the PREVIOUS version's, already loaded, with
+     * some of its classes already in memory and the rest loading from the new files. Mixed like
+     * that, a new class can call a method the old copy in memory does not have (1.0.9 to 1.0.13
+     * failed so on 4.21: "Call to undefined method Features::locked()" from the new StatusReport,
+     * the rollback too). The handlers draw nothing meanwhile: what they draw then is thrown away.
+     */
+    public static function reinstalling(): bool
+    {
+        return self::$reinstalling;
+    }
+
     /** Check (and install) when the merchant's frequency is up. */
     public static function runIfDue(DbSyncStore $store, int $now): void
     {
@@ -191,7 +207,9 @@ final class Updater
                 'execution_timeout' => 120,
                 'write_to_file'     => $zipPath,
             ]);
-            if ($result === false || Http::getStatus() !== 200 || !is_file($zipPath) || filesize($zipPath) === 0) {
+            // The file itself, not Http::getStatus(): with write_to_file Tygh\Http leaves the status of
+            // the request before (false, or whatever that answered). A zip starts "PK\x03\x04".
+            if ($result === false || !is_file($zipPath) || (string) file_get_contents($zipPath, false, null, 0, 4) !== "PK\x03\x04") {
                 return 'download_failed';
             }
             $signature = Http::get($release['signature'], [], [
@@ -321,6 +339,7 @@ final class Updater
     /** What CS-Cart does only at install time, redone for the files now in place. */
     private static function reinstall(string $version): bool
     {
+        self::$reinstalling = true;
         try {
             SchemesManager::clearInternalCache(self::ADDON);
             $scheme = SchemesManager::getScheme(self::ADDON);
@@ -341,9 +360,15 @@ final class Updater
 
             return true;
         } catch (\Throwable $e) {
-            Logger::error('Quissly update: reinstall step failed', ['exception' => get_class($e)]);
+            Logger::error('Quissly update: reinstall step failed', [
+                'exception' => get_class($e),
+                'message'   => substr($e->getMessage(), 0, 300),
+                'at'        => basename($e->getFile()) . ':' . $e->getLine(),
+            ]);
 
             return false;
+        } finally {
+            self::$reinstalling = false;
         }
     }
 
