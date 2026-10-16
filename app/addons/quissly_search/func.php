@@ -377,6 +377,7 @@ function fn_quissly_search_storefront()
             'cart_adjust' => fn_url('quissly_search.cart_adjust'),
             'cart_resolve' => fn_url('quissly_search.resolve'),
             'event'        => fn_url('quissly_search.event'),
+            'quick'        => fn_url('quissly_search.quick'),
         ],
         'security_hash' => fn_generate_security_hash(),
         'event'         => $configured ? fn_quissly_search_page_event() : null,
@@ -399,9 +400,11 @@ function fn_quissly_search_storefront()
         // The merchant's Most loved products (lib/MostLoved.php; none while off or short of picks).
         'most_loved'     => $configured ? fn_quissly_search_most_loved_cards($store) : [],
         'overlay_layout' => Features::overlayLayout(),
+        'quick_style'    => Features::quickStyle(),
         'i18n'          => [
             'search'             => __('search'),
             'clear'              => __('quissly_search.sf_clear'),
+            'seeAll'             => __('quissly_search.sf_see_all'),
             'placeholder'        => __('quissly_search.sf_placeholder'),
             'suggestions'        => trim((string) \Tygh\Registry::get('settings.Company.company_name')) !== ''
                 ? __('quissly_search.sf_suggestions', ['[store]' => trim((string) \Tygh\Registry::get('settings.Company.company_name'))])
@@ -426,6 +429,61 @@ function fn_quissly_search_storefront()
     ]);
 
     return $result;
+}
+
+/**
+ * Quick Recommendations' rows (lib/Quick/QuickEndpoint.php), in Quissly's order: each from the
+ * store's own product in the shopper's language and currency - name, link, image, price (and the
+ * list price when it is higher) - as Most loved's cards are; Quissly's Quick answers ids only.
+ * A product that is gone, not active, or of a vendor that is not active is left out.
+ *
+ * @param list<int> $ids
+ * @return list<array{id:int, title:string, url:string, image_url:string, price_label:string, original_price_label:string}>
+ */
+function fn_quissly_search_quick_rows(array $ids): array
+{
+    $auth = (array) (\Tygh\Tygh::$app['session']['auth'] ?? []);
+    $currencyCode = defined('CART_SECONDARY_CURRENCY') ? (string) CART_SECONDARY_CURRENCY : '';
+    $currency = (array) (\Tygh\Registry::get('currencies.' . $currencyCode) ?: []);
+    $label = static function ($price) use ($currency, $currencyCode): string {
+        if (!is_numeric($price) || (float) $price <= 0) {
+            return '';
+        }
+        $price = (float) $price;
+        if ($currencyCode !== '' && defined('CART_PRIMARY_CURRENCY') && function_exists('fn_format_price_by_currency')) {
+            $price = (float) fn_format_price_by_currency($price, CART_PRIMARY_CURRENCY, $currencyCode);
+        }
+
+        return \Quissly\Search\MostLoved::formatPrice($price, $currency);
+    };
+
+    $rows = [];
+    foreach ($ids as $id) {
+        // (id, auth, lang, field list, get_add_pairs, get_main_pair, get_taxes, ...)
+        $p = fn_get_product_data((int) $id, $auth, CART_LANGUAGE, '', false, true, false, false, false, false, false);
+        if (empty($p['product_id']) || ($p['status'] ?? '') !== 'A' || !\Quissly\Search\Sync\ProductSource::vendorActive((int) ($p['company_id'] ?? 0))) {
+            continue;
+        }
+        $image = '';
+        if (!empty($p['main_pair'])) {
+            $shown = function_exists('fn_image_to_display') ? (array) fn_image_to_display($p['main_pair'], 160, 160) : [];
+            $image = (string) ($shown['image_path'] ?? ($p['main_pair']['detailed']['image_path'] ?? ($p['main_pair']['icon']['image_path'] ?? '')));
+        }
+        $price = $label($p['price'] ?? null);
+        $list = is_numeric($p['list_price'] ?? null) && is_numeric($p['price'] ?? null) && (float) $p['list_price'] > (float) $p['price']
+            ? $label($p['list_price'])
+            : '';
+        $rows[] = [
+            'id'                   => (int) $p['product_id'],
+            'title'                => (string) ($p['product'] ?? ''),
+            'url'                  => (string) fn_url('products.view?product_id=' . (int) $p['product_id']),
+            'image_url'            => $image,
+            'price_label'          => $price,
+            'original_price_label' => $price !== '' ? $list : '',
+        ];
+    }
+
+    return $rows;
 }
 
 /**

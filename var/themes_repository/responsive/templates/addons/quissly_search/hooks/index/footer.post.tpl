@@ -12,6 +12,9 @@
 {if $quissly.media}
     <div data-quissly-media data-quissly-config="{$quissly.media_json|escape:"html"}" hidden></div>
 {/if}
+{if $quissly.quick}
+    <div data-quissly-quick data-quissly-config="{$quissly.quick_json|escape:"html"}" hidden></div>
+{/if}
 {if $quissly.events}
     <div data-quissly-events data-quissly-config="{$quissly.events_json|escape:"html"}" hidden></div>
 {/if}

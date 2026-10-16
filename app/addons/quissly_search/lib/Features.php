@@ -25,7 +25,7 @@ final class Features
         'enable_overlay'      => ['quissly_search.feature_overlay', true],
         'overlay_suggestions' => ['quissly_search.feature_overlay_suggestions', true],
         'overlay_recent'      => ['quissly_search.feature_overlay_recent', true],
-        'enable_quick'        => ['quissly_search.feature_quick', false],
+        'enable_quick'        => ['quissly_search.feature_quick', true],
         'enable_voice'        => ['quissly_search.feature_voice', true],
         'enable_image'        => ['quissly_search.feature_image', true],
         'enable_qchat'        => ['quissly_search.feature_qchat', true],

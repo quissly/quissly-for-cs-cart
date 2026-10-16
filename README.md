@@ -87,7 +87,7 @@ someone presses a sync button on the Dashboard.
 | **Voice search** | off | A microphone button (up to 5 seconds of speech). |
 | **Image search** | off | A camera button; shoppers can also paste a photo. |
 | **QChat assistant** | off | Quissly's chat on every page; its **Add to cart** puts products in your real CS-Cart cart. |
-| **Quick Recommendations** | off | Not available in the CS-Cart add-on yet - changes nothing. |
+| **Quick Recommendations** | off | Products as the shopper types - under the search overlay's bar, or under your theme's search box - with their image, name and price from your store. Quick must also be switched on for your Quissly account. |
 | **Shopping activity for Quissly analytics** | on | Sends product views, searches, adds to cart and wish list, and paid orders to Quissly's analytics (see *Privacy*). |
 | **Search Examples** | generated | The example searches typed into the empty search bar, one list per storefront language, up to 20. Quissly writes them from your catalog after the first sync; edit, remove or reset them here. |
 | **Search Suggestions** | on, Automatic | Buttons under the empty search bar. *Automatic* shows what Quissly generated; *Manual* shows your own, up to 10 per language. |

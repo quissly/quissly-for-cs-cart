@@ -549,3 +549,62 @@ rows. Phones look the same in both layouts. */
     .quissly-overlay--wide .quissly-overlay__loved-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .quissly-overlay--wide a.quissly-overlay__loved-card:nth-child(n+7) { display: flex; }
 }
+/* Quick Recommendations (quick.js): products as the shopper types - under the overlay's bar,
+   or floating under the theme's own search box. A list, or (the merchant's choice) a carousel
+   of larger cards that scrolls sideways; phones always get the list. */
+.quissly-quick {
+    position: absolute; z-index: 10000; box-sizing: border-box;
+    max-height: 70vh; overflow-y: auto;
+    padding: 8px;
+    background: #fff; color: #1a1a1a;
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .18), 0 1px 4px rgba(0, 0, 0, .08);
+    font-size: 14px; text-align: left;
+}
+.quissly-quick[hidden] { display: none !important; }
+.quissly-quick.quissly-quick--in-overlay {
+    position: static; max-height: none; overflow: visible;
+    padding: 12px 20px 16px;
+    background: transparent; border-radius: 0; box-shadow: none;
+    font-size: 15px;
+}
+.quissly-quick__rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.quissly-quick--in-overlay .quissly-quick__rows { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+.quissly-quick a.quissly-quick__row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 10px; border-radius: 12px;
+    color: inherit; text-decoration: none;
+}
+.quissly-quick a.quissly-quick__row:hover,
+.quissly-quick a.quissly-quick__row.is-active { background: #f4f4f6; outline: none; }
+.quissly-quick__thumb {
+    flex: 0 0 auto; width: 52px; height: 52px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: #f4f4f6; border-radius: 10px;
+}
+.quissly-quick__thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.quissly-quick__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.quissly-quick__title {
+    line-height: 1.3; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.quissly-quick__price { font-weight: 700; white-space: nowrap; }
+.quissly-quick__price del { margin-right: 2px; color: #8a8a90; font-weight: 400; }
+.quissly-quick button.quissly-quick__all {
+    display: block; width: 100%; margin: 8px 0 0; padding: 10px;
+    background: transparent; color: inherit;
+    border: 0; border-top: 1px solid #ececef; border-radius: 0; box-shadow: none;
+    font: inherit; font-weight: 600; text-align: center; cursor: pointer;
+}
+.quissly-quick button.quissly-quick__all:hover { text-decoration: underline; }
+@media (min-width: 600px) {
+    .quissly-quick--carousel .quissly-quick__rows {
+        display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px;
+        scroll-snap-type: x mandatory; scrollbar-width: thin;
+    }
+    .quissly-quick--carousel a.quissly-quick__row {
+        flex: 0 0 168px; flex-direction: column; align-items: stretch; gap: 8px;
+        padding: 10px; scroll-snap-align: start;
+    }
+    .quissly-quick--carousel .quissly-quick__thumb { width: 100%; height: 148px; }
+}

@@ -527,7 +527,7 @@
 		clearBtn.appendChild( icon );
 		clearBtn.addEventListener( 'click', function () {
 			input.value = '';
-			input.dispatchEvent( new Event( 'input' ) );
+			input.dispatchEvent( new Event( 'input', { bubbles: true } ) ); // Quick (quick.js) listens on the document
 			input.focus();
 		} );
 		input.addEventListener( 'input', syncClear );

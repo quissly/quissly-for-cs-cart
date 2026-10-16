@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.12</version>
+    <version>1.0.13</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>
@@ -54,8 +54,7 @@
                         <type>checkbox</type>
                         <default_value>N</default_value>
                     </item>
-                    <!-- the Magento plugin's quick_style, same values: read it with
-                         Features::quickStyle() when Quick is built here. -->
+                    <!-- the Magento plugin's quick_style, same values (Features::quickStyle()). -->
                     <item id="quick_style">
                         <type>selectbox</type>
                         <default_value>rows</default_value>

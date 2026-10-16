@@ -57,6 +57,9 @@ final class Config
     /** Voice (qsearch + audio) and image (qimage) paths; both v2-signed like text search. */
     public const QIMAGE_PATH = '/v2beta/qimage';
 
+    /** Quick Recommendations (v2-signed like text search): product ids for the typed text. */
+    public const QUICK_PATH = '/v2beta/quick';
+
     /** Voice/image: Quissly transcribes or embeds first, so far slower than a text search. */
     public const MEDIA_TIMEOUT_SECONDS = 15;
 

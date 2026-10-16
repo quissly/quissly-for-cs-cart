@@ -443,8 +443,8 @@ msgid "Quick Recommendations"
 msgstr "Быстрые рекомендации"
 
 msgctxt "SettingsTooltips::quissly_search::enable_quick"
-msgid "Product suggestions as the shopper types. Saved now; it takes effect once the feature ships in this add-on."
-msgstr "Подсказки товаров, пока покупатель печатает. Сохраняется уже сейчас; заработает, когда функция появится в этом модуле."
+msgid "Product suggestions as the shopper types: under the search overlay's bar, or under your theme's search box. Names, images and prices come from your store. Quick must also be switched on for your Quissly account."
+msgstr "Подсказки товаров, пока покупатель печатает: под строкой окна поиска или под полем поиска темы. Названия, изображения и цены берутся из вашего магазина. Quick также должен быть включён в вашем аккаунте Quissly."
 
 msgctxt "SettingsOptions::quissly_search::overlay_layout"
 msgid "Search overlay layout"
@@ -467,8 +467,8 @@ msgid "Quick Recommendations style"
 msgstr "Стиль быстрых рекомендаций"
 
 msgctxt "SettingsTooltips::quissly_search::quick_style"
-msgid "A compact list of names, or larger cards with images and prices. Saved now; it takes effect once Quick Recommendations ships in this add-on."
-msgstr "Компактный список названий или крупные карточки с изображениями и ценами. Сохраняется уже сейчас; заработает, когда быстрые рекомендации появятся в этом модуле."
+msgid "A compact list of names, or larger cards with images and prices. Phones always get the list."
+msgstr "Компактный список названий или крупные карточки с изображениями и ценами. На телефоне всегда список."
 
 msgctxt "SettingsVariants::quissly_search::quick_style::rows"
 msgid "List - thumbnail, name and price per row"
@@ -545,6 +545,10 @@ msgstr "Срок этого голосового поиска или поиск�
 msgctxt "Languages::quissly_search.sf_placeholder"
 msgid "Search products…"
 msgstr "Поиск товаров…"
+
+msgctxt "Languages::quissly_search.sf_see_all"
+msgid "See all results"
+msgstr "Все результаты"
 
 msgctxt "Languages::quissly_search.sf_clear"
 msgid "Clear search"

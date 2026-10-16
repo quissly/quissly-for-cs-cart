@@ -95,7 +95,7 @@ final class ProductSource
     }
 
     /** Whether the product's vendor lets the storefront show it. */
-    private static function vendorActive(int $companyId): bool
+    public static function vendorActive(int $companyId): bool
     {
         if ($companyId === 0 || !self::isMultiVendor()) {
             return true;

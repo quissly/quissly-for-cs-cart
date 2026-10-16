@@ -27,6 +27,7 @@ use Quissly\Search\Features;
 use Quissly\Search\Media\DbRateLimiter;
 use Quissly\Search\Media\DbTokenStore;
 use Quissly\Search\Media\MediaEndpoint;
+use Quissly\Search\Quick\QuickEndpoint;
 use Quissly\Search\SearchInterceptor;
 use Quissly\Search\Sync\DbSyncStore;
 use Quissly\Search\Sync\SyncWorker;
@@ -56,6 +57,36 @@ if ($mode === 'voice' || $mode === 'image') {
 
     // REMOTE_ADDR only: X-Forwarded-For is client-spoofable (a fresh bucket per header value).
     $answer = $endpoint->handle($mode, (string) ($_REQUEST[$mode === 'voice' ? 'audio' : 'image'] ?? ''), $enabled, (string) ($_SERVER['REMOTE_ADDR'] ?? ''), time());
+
+    http_response_code($answer['status']);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($answer['body'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/*
+ * POST quissly_search.quick (q): Quick Recommendations for the typed text, answered with JSON
+ * {suggestions: [{id, title, url, image_url, price_label, original_price_label}]} for
+ * js/addons/quissly_search/quick.js (lib/Quick/QuickEndpoint.php; rows from the store,
+ * fn_quissly_search_quick_rows).
+ */
+if ($mode === 'quick') {
+    $credentials = Credentials::fromRegistry();
+    $on = array_column(Features::all(), 'on', 'id');
+    $enabled = $_SERVER['REQUEST_METHOD'] === 'POST'
+        && $credentials->isConfigured()
+        && !empty($on['search_interception'])
+        && !empty($on['enable_quick'])
+        && SyncWorker::isGateOpen(new DbSyncStore());
+
+    $endpoint = new QuickEndpoint(
+        new DbRateLimiter(),
+        static fn (string $query): array => (new Client($credentials))->quick($query, SearchInterceptor::resolveUserId()),
+        'fn_quissly_search_quick_rows'
+    );
+    // REMOTE_ADDR only, as the media endpoints.
+    $answer = $endpoint->handle((string) ($_REQUEST['q'] ?? ''), $enabled, (string) ($_SERVER['REMOTE_ADDR'] ?? ''), time());
 
     http_response_code($answer['status']);
     header('Content-Type: application/json; charset=utf-8');

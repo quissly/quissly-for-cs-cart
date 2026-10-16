@@ -17,6 +17,7 @@ namespace Quissly\Search;
  *  - the overlay switch governs one thing — whether an EXISTING theme search box is
  *    taken over. A theme with no search box gets the overlay anyway (the browser
  *    decides; the server cannot know), since otherwise the shop cannot be searched;
+ *  - Quick Recommendations, like voice/image, only where Quissly answers searches;
  *  - QChat needs its switch and the account's agent id (the public id — never a key);
  *    with it comes the cart bridge that makes the chat's "Add to Cart" add to the
  *    store's own cart;
@@ -47,9 +48,9 @@ final class Storefront
      *   configured:bool, gate_open:bool, features:list<array{id:string, on:bool}>, agent_id:string,
      *   urls:array{voice:string, image:string, results:string, cart_add?:string, cart_adjust?:string, cart_resolve?:string},
      *   security_hash:string, i18n:array<string,string>, mount_selector?:string, suggestions?:list<string>, chips?:list<string>,
-     *   most_loved?:list<array<string,mixed>>, event?:array<string,string>|null
+     *   most_loved?:list<array<string,mixed>>, event?:array<string,string>|null, overlay_layout?:string, quick_style?:string
      * } $in
-     * @return array{overlay:bool, overlay_json:string, media:bool, media_json:string, qchat_agent_id:string, qchat_script:string, cart_json:string, events:bool, events_json:string}
+     * @return array{overlay:bool, overlay_json:string, media:bool, media_json:string, quick:bool, quick_json:string, qchat_agent_id:string, qchat_script:string, cart_json:string, events:bool, events_json:string}
      */
     public static function build(array $in): array
     {
@@ -57,6 +58,7 @@ final class Storefront
         $live = $in['configured'] && $in['gate_open'] && !empty($on['search_interception']);
         $voice = $live && !empty($on['enable_voice']);
         $image = $live && !empty($on['enable_image']);
+        $quick = $live && !empty($on['enable_quick']);
         $agent = $in['configured'] && !empty($on['enable_qchat']) ? trim($in['agent_id']) : '';
         $event = $in['configured'] && !empty($on['enable_events']) && !empty($in['event']) ? $in['event'] : null;
 
@@ -106,6 +108,17 @@ final class Storefront
                 'voiceMaxMs'      => 5000,
                 'imageMaxEdge'    => 1024,
                 'i18n'            => $in['i18n'],
+            ], $flags) : '',
+            // Quick Recommendations as the shopper types (js/addons/quissly_search/quick.js).
+            'quick'          => $quick,
+            'quick_json'     => $quick ? (string) json_encode([
+                'url'             => $in['urls']['quick'] ?? '',
+                'securityHash'    => $in['security_hash'],
+                'style'           => ($in['quick_style'] ?? 'rows') === 'carousel' ? 'carousel' : 'rows',
+                'searchSelectors' => self::SEARCH_SELECTORS,
+                'minChars'        => Config::MIN_QUERY_LENGTH,
+                'debounceMs'      => 200,
+                'labelSeeAll'     => $in['i18n']['seeAll'] ?? 'See all results',
             ], $flags) : '',
             'qchat_agent_id' => $agent,
             'qchat_script'   => self::QCHAT_SCRIPT,

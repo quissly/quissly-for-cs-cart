@@ -20,6 +20,9 @@
 {if $quissly.media}
     {script src="js/addons/quissly_search/media.js"}
 {/if}
+{if $quissly.quick}
+    {script src="js/addons/quissly_search/quick.js"}
+{/if}
 {if $quissly.events}
     {script src="js/addons/quissly_search/events.js"}
 {/if}

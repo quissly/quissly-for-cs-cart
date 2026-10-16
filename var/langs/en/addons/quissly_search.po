@@ -443,8 +443,8 @@ msgid "Quick Recommendations"
 msgstr "Quick Recommendations"
 
 msgctxt "SettingsTooltips::quissly_search::enable_quick"
-msgid "Product suggestions as the shopper types. Saved now; it takes effect once the feature ships in this add-on."
-msgstr "Product suggestions as the shopper types. Saved now; it takes effect once the feature ships in this add-on."
+msgid "Product suggestions as the shopper types: under the search overlay's bar, or under your theme's search box. Names, images and prices come from your store. Quick must also be switched on for your Quissly account."
+msgstr "Product suggestions as the shopper types: under the search overlay's bar, or under your theme's search box. Names, images and prices come from your store. Quick must also be switched on for your Quissly account."
 
 msgctxt "SettingsOptions::quissly_search::overlay_layout"
 msgid "Search overlay layout"
@@ -467,8 +467,8 @@ msgid "Quick Recommendations style"
 msgstr "Quick Recommendations style"
 
 msgctxt "SettingsTooltips::quissly_search::quick_style"
-msgid "A compact list of names, or larger cards with images and prices. Saved now; it takes effect once Quick Recommendations ships in this add-on."
-msgstr "A compact list of names, or larger cards with images and prices. Saved now; it takes effect once Quick Recommendations ships in this add-on."
+msgid "A compact list of names, or larger cards with images and prices. Phones always get the list."
+msgstr "A compact list of names, or larger cards with images and prices. Phones always get the list."
 
 msgctxt "SettingsVariants::quissly_search::quick_style::rows"
 msgid "List - thumbnail, name and price per row"
@@ -545,6 +545,10 @@ msgstr "This voice or image search has expired. Please search again."
 msgctxt "Languages::quissly_search.sf_placeholder"
 msgid "Search products…"
 msgstr "Search products…"
+
+msgctxt "Languages::quissly_search.sf_see_all"
+msgid "See all results"
+msgstr "See all results"
 
 msgctxt "Languages::quissly_search.sf_clear"
 msgid "Clear search"

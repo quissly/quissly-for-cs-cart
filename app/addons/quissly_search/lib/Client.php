@@ -117,6 +117,30 @@ final class Client implements QSearchClient
     }
 
     /**
+     * Quick Recommendations for the typed text: the product ids Quissly ranks, in its order
+     * (Quick\QuickResponseParser) - none when Quissly does not answer 200 (a 404 is Quick not
+     * enabled for the account). Quick takes no page fields (a 422 "Extra inputs").
+     *
+     * @return list<int>
+     *
+     * @throws TransportException when nothing answered
+     */
+    public function quick(string $query, ?string $userId): array
+    {
+        $answer = $this->post(Config::QUICK_PATH, [
+            'query'            => $query,
+            'user_id'          => $userId,
+            'include_metadata' => true,
+            'channel'          => Config::CHANNEL,
+        ], (int) ceil(Config::TIMEOUT_SECONDS));
+        if ($answer === null) {
+            throw new TransportException('Quick transport failure: ' . (Http::getError() ?: 'no response'));
+        }
+
+        return $answer['status'] === 200 ? Quick\QuickResponseParser::ids($answer['body']) : [];
+    }
+
+    /**
      * @return non-empty-string JSON body
      */
     /** @param array{device?: string, os?: string} $shopper */
