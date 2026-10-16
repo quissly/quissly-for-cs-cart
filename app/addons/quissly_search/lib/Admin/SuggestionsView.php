@@ -52,13 +52,16 @@ final class SuggestionsView
         $models = [];
         foreach ($codes as $i => $code) {
             $own = $i === 0 ? (array) $current['queries'] : (array) ($current['by_language'][$code] ?? []);
+            $generatedHere = $i === 0 ? (array) $generated : (array) ($current['generated_by_language'][$code] ?? []);
+            // An empty list shows what the storefront types instead (forStorefront()): another
+            // language without a list of its own uses the main list while that has entries, else
+            // the generated one. Saving then writes it to Quissly as the list.
+            $shown = $own === [] && ($i === 0 || (array) $current['queries'] === []) ? $generatedHere : $own;
             $models[] = [
                 'code'      => $code,
                 'label'     => self::label($languages, $code, $i === 0),
-                'queries'   => array_values($own),
-                'generated' => $i === 0
-                    ? array_values($generated)
-                    : array_values((array) ($current['generated_by_language'][$code] ?? [])),
+                'queries'   => array_values($shown),
+                'generated' => array_values($generatedHere),
                 'note'      => $i === 0 && $own === [] && $pending ? self::t('quissly_search.suggestions_generated_pending') : '',
             ];
         }

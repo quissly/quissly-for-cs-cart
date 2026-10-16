@@ -283,8 +283,15 @@ final class SearchSuggestions
     public static function forStorefront(SyncStore $store, string $serviceId, callable $get, int $now, string $language = '', string $main = ''): array
     {
         $lists = self::storefrontLists($store, $serviceId, $get, $now);
+        if (!$lists['enabled']) {
+            return [];
+        }
+        // An empty list is nothing chosen yet, not "show nothing" (the switch hides the typing):
+        // Quissly's generated list until the merchant's own has entries. A list saved empty
+        // before anything was generated kept the typing off until "Reset to generated".
+        $picked = self::pick($lists, $language, $main);
 
-        return $lists['enabled'] ? self::pick($lists, $language, $main) : [];
+        return $picked !== [] ? $picked : self::pickGenerated($lists, $language, $main);
     }
 
     /**
