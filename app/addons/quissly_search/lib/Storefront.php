@@ -66,6 +66,8 @@ final class Storefront
             'overlay'        => $live,
             'overlay_json'   => $live ? (string) json_encode([
                 'immersive'        => !empty($on['enable_overlay']),
+                // The Shopify app's layout: 'wide' (the default) spans the screen, 'center' is a 760px panel.
+                'layout'           => ($in['overlay_layout'] ?? 'wide') === 'center' ? 'center' : 'wide',
                 'resultsUrl'       => $in['urls']['results'],
                 'searchSelectors'  => self::SEARCH_SELECTORS,
                 'labelTitle'       => $in['i18n']['search'] ?? 'Search',

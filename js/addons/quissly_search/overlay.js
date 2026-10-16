@@ -135,6 +135,10 @@
 	function build() {
 		backdrop = document.createElement( 'div' );
 		backdrop.className = 'quissly-overlay';
+		// The Shopify app's layout: wide (the default) spans the screen, center is a 760px panel.
+		if ( config.layout !== 'center' ) {
+			backdrop.classList.add( 'quissly-overlay--wide' );
+		}
 		backdrop.setAttribute( 'role', 'dialog' );
 		backdrop.setAttribute( 'aria-modal', 'true' );
 		backdrop.setAttribute( 'aria-label', config.labelTitle || 'Search' );

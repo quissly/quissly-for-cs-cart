@@ -254,7 +254,7 @@ html.quissly-overlay-open { overflow: hidden; }
 .quissly-controls .quissly-image-notice:empty { display: none; }
 
 /* Most loved: the merchant's picks under the buttons (the Shopify app's cards), in 1, 2 or 4
-   columns - never 3, which leaves 8 cards as 3 + 3 + 2. Media queries, not container queries:
+   columns - since 2026-10-16 three in the centred panel (the block at the end of these styles). Media queries, not container queries:
    the overlay spans the page, and CS-Cart's LESS compiler predates @container. */
 /* "Your recent searches" beside "<Store> suggestions" (overlay.js renderRecent): two columns
 when both show, one under the other on a phone; a recent search is a chip with its own bin. */
@@ -515,4 +515,37 @@ when both show, one under the other on a phone; a recent search is a chip with i
         display: none;
     }
     .quissly-overlay .quissly-overlay__suggest { padding: 12px 12px 14px; }
+}
+/* Most loved in the centred panel (at most 760px wide): three equal columns from 640px of screen,
+two from 480px, one on a phone - each card the same size, its image on top and its text under
+it. The columns never grow past the panel (minmax(0, 1fr)): four did, and the panel scrolled
+sideways with cards and buttons cut off at both edges. */
+.quissly-overlay .quissly-overlay__suggest { overflow-x: hidden; }
+.quissly-overlay .quissly-overlay__loved-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 480px) {
+    .quissly-overlay .quissly-overlay__loved-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .quissly-overlay a.quissly-overlay__loved-card {
+        flex-direction: column; align-items: stretch; gap: 10px; height: 100%; min-width: 0;
+    }
+    .quissly-overlay .quissly-overlay__loved-media { flex: 0 0 auto; width: 100%; height: 120px; }
+    .quissly-overlay .quissly-overlay__loved-info { flex: 1 1 auto; }
+    /* Two lines for every name, so prices line up across a row. */
+    .quissly-overlay .quissly-overlay__loved-name { min-height: 2.7em; }
+    .quissly-overlay .quissly-overlay__loved-meta { flex-wrap: wrap; }
+}
+@media (min-width: 640px) {
+    .quissly-overlay .quissly-overlay__loved-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    /* Two full rows of three: the 7th and 8th would leave a row of two. */
+    .quissly-overlay a.quissly-overlay__loved-card:nth-child(n+7) { display: none; }
+}
+/* The wide layout (the Shopify app's overlay_layout, the default): from 750px of screen the panel
+spans the screen, and from 1000px Most loved shows all eight cards in four columns - two full
+rows. Phones look the same in both layouts. */
+@media (min-width: 750px) {
+    .quissly-overlay.quissly-overlay--wide { padding: 24px 24px 16px; }
+    .quissly-overlay--wide .quissly-overlay__panel { max-width: none; }
+}
+@media (min-width: 1000px) {
+    .quissly-overlay--wide .quissly-overlay__loved-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .quissly-overlay--wide a.quissly-overlay__loved-card:nth-child(n+7) { display: flex; }
 }

@@ -446,6 +446,22 @@ msgctxt "SettingsTooltips::quissly_search::enable_quick"
 msgid "Product suggestions as the shopper types. Saved now; it takes effect once the feature ships in this add-on."
 msgstr "პროდუქტების შემოთავაზებები, სანამ მყიდველი წერს. ინახება ახლავე; ამოქმედდება, როცა ფუნქცია ამ დამატებაში გამოვა."
 
+msgctxt "SettingsOptions::quissly_search::overlay_layout"
+msgid "Search overlay layout"
+msgstr "ძიების ფანჯრის განლაგება"
+
+msgctxt "SettingsTooltips::quissly_search::overlay_layout"
+msgid "Wide spans the screen and shows products in columns. Center is a compact panel in the middle of the screen. Phones look the same either way."
+msgstr "Wide მთელ ეკრანზეა და პროდუქტებს სვეტებად აჩვენებს. Center კომპაქტური პანელია ეკრანის შუაში. ტელეფონზე ორივე ერთნაირად ჩანს."
+
+msgctxt "SettingsVariants::quissly_search::overlay_layout::wide"
+msgid "Wide - spans the screen"
+msgstr "Wide - მთელ ეკრანზე"
+
+msgctxt "SettingsVariants::quissly_search::overlay_layout::center"
+msgid "Center - a compact panel"
+msgstr "Center - კომპაქტური პანელი"
+
 msgctxt "SettingsOptions::quissly_search::quick_style"
 msgid "Quick Recommendations style"
 msgstr "სწრაფი რეკომენდაციების სტილი"

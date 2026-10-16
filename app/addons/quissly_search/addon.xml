@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.11</version>
+    <version>1.0.12</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>
@@ -36,6 +36,15 @@
                     <item id="enable_overlay">
                         <type>checkbox</type>
                         <default_value>Y</default_value>
+                    </item>
+                    <!-- The Shopify app's search overlay layout: wide (the default) or center. -->
+                    <item id="overlay_layout">
+                        <type>selectbox</type>
+                        <default_value>wide</default_value>
+                        <variants>
+                            <item id="wide"></item>
+                            <item id="center"></item>
+                        </variants>
                     </item>
                     <item id="overlay_mount_selector">
                         <type>input</type>

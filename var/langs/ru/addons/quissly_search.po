@@ -446,6 +446,22 @@ msgctxt "SettingsTooltips::quissly_search::enable_quick"
 msgid "Product suggestions as the shopper types. Saved now; it takes effect once the feature ships in this add-on."
 msgstr "Подсказки товаров, пока покупатель печатает. Сохраняется уже сейчас; заработает, когда функция появится в этом модуле."
 
+msgctxt "SettingsOptions::quissly_search::overlay_layout"
+msgid "Search overlay layout"
+msgstr "Вид окна поиска"
+
+msgctxt "SettingsTooltips::quissly_search::overlay_layout"
+msgid "Wide spans the screen and shows products in columns. Center is a compact panel in the middle of the screen. Phones look the same either way."
+msgstr "Wide - на всю ширину экрана, товары в колонках. Center - компактная панель по центру. На телефоне оба выглядят одинаково."
+
+msgctxt "SettingsVariants::quissly_search::overlay_layout::wide"
+msgid "Wide - spans the screen"
+msgstr "Wide - на всю ширину"
+
+msgctxt "SettingsVariants::quissly_search::overlay_layout::center"
+msgid "Center - a compact panel"
+msgstr "Center - компактная панель"
+
 msgctxt "SettingsOptions::quissly_search::quick_style"
 msgid "Quick Recommendations style"
 msgstr "Стиль быстрых рекомендаций"

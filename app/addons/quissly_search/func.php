@@ -398,6 +398,7 @@ function fn_quissly_search_storefront()
         ),
         // The merchant's Most loved products (lib/MostLoved.php; none while off or short of picks).
         'most_loved'     => $configured ? fn_quissly_search_most_loved_cards($store) : [],
+        'overlay_layout' => Features::overlayLayout(),
         'i18n'          => [
             'search'             => __('search'),
             'clear'              => __('quissly_search.sf_clear'),
