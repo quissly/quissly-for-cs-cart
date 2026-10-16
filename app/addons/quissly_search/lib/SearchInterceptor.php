@@ -464,7 +464,8 @@ final class SearchInterceptor
         $gdprOn = Registry::get('addons.gdpr.status') === 'A';
         if (!Shopper::guestAllowed(
             $gdprOn ? (string) Registry::get('addons.gdpr.gdpr_cookie_consent') : null,
-            (string) ($_COOKIE['klaro'] ?? '')
+            (string) ($_COOKIE['klaro'] ?? ''),
+            (string) ($_COOKIE['has_cookie_consent'] ?? '')
         )) {
             return null;
         }

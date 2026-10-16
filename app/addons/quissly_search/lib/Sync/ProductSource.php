@@ -296,7 +296,9 @@ final class ProductSource
             $choices = CatalogFeatures::choices(new DbSyncStore());
         }
         $out = [];
-        foreach (fn_get_product_features_list($p, \Tygh\Enum\ProductFeaturesDisplayOn::EXIM, CART_LANGUAGE) as $f) {
+        // 'EXIM' = every feature; a string, as CS-Cart 4.11 takes it (the enum class ProductFeaturesDisplayOn,
+        // with the same value, only exists from 4.12 - on 4.11 it is missing and the sync died).
+        foreach (fn_get_product_features_list($p, 'EXIM', CART_LANGUAGE) as $f) {
             $id = (int) ($f['feature_id'] ?? 0);
             $shown = ($status[$id] ?? '') === 'A'
                 && (($f['display_on_product'] ?? '') === 'Y' || ($f['display_on_catalog'] ?? '') === 'Y' || ($f['display_on_header'] ?? '') === 'Y');

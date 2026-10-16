@@ -54,14 +54,17 @@ final class Shopper
 
     /**
      * May a guest be identified? The GDPR add-on's banner (Klaro) keeps each service's answer
-     * in its `klaro` cookie as JSON ({"quissly_search": true, ...}). Without an answer it
-     * follows the store's policy: "explicit" consent = not until accepted, "implicit" = until
-     * declined; no GDPR add-on (or policy "none") = yes.
+     * in its `klaro` cookie as JSON ({"quissly_search": true, ...}). CS-Cart 4.11's add-on has
+     * no Klaro: its banner accepts all cookies at once and sets `has_cookie_consent=Y`
+     * (CookiesPolicyManager::storeAgreement). Without an answer it follows the store's policy:
+     * "explicit" consent = not until accepted, "implicit" = until declined; no GDPR add-on (or
+     * policy "none") = yes.
      *
-     * @param string|null $policy      addons.gdpr.gdpr_cookie_consent, null when the add-on is off
-     * @param string      $klaroCookie the `klaro` cookie, '' when absent
+     * @param string|null $policy        addons.gdpr.gdpr_cookie_consent, null when the add-on is off
+     * @param string      $klaroCookie   the `klaro` cookie, '' when absent
+     * @param string      $legacyConsent the `has_cookie_consent` cookie (CS-Cart 4.11), '' when absent
      */
-    public static function guestAllowed(?string $policy, string $klaroCookie): bool
+    public static function guestAllowed(?string $policy, string $klaroCookie, string $legacyConsent = ''): bool
     {
         if ($policy === null || $policy === 'none') {
             return true;
@@ -69,6 +72,9 @@ final class Shopper
         $consents = json_decode($klaroCookie, true);
         if (is_array($consents) && array_key_exists(self::KLARO_SERVICE, $consents)) {
             return $consents[self::KLARO_SERVICE] === true;
+        }
+        if ($legacyConsent === 'Y') {
+            return true;
         }
 
         return $policy !== 'explicit';

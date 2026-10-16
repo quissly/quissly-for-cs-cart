@@ -95,6 +95,29 @@ if ($mode === 'quick') {
     exit;
 }
 
+/*
+ * GET quissly_search.tick (token): the cron's work for a store without a server cron, asked by a
+ * storefront visit in the background (lib/VisitTick.php). It does not count as the cron and does
+ * nothing while the cron runs; 403 without the right token.
+ */
+if ($mode === 'tick') {
+    if (!\Quissly\Search\VisitTick::valid((string) ($_REQUEST['token'] ?? ''), (string) \Tygh\Registry::get('config.crypt_key'))) {
+        http_response_code(403);
+        exit;
+    }
+    ignore_user_abort(true);
+    $store = new DbSyncStore();
+    $skipped = (int) ($store->getState('last_cron')['at'] ?? 0) >= time() - \Quissly\Search\VisitTick::CRON_FRESH_SECONDS;
+    if (!$skipped) {
+        $store->setState('last_visit_run', ['at' => time()]);
+        fn_quissly_search_cron_work($store);
+    }
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode(['ok' => true, 'skipped' => $skipped ? 'cron_running' : '']);
+    exit;
+}
+
 if ($mode === 'resolve') {
     $ids = array_slice(array_values(array_unique(array_filter(
         array_map(static fn (string $id): string => strtolower(trim($id)), explode(',', (string) ($_REQUEST['ids'] ?? ''))),

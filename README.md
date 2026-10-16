@@ -61,8 +61,9 @@ store; it looks like this:
 ```
 
 Add it to the crontab of the user that owns the CS-Cart files (or under *Cron jobs* in your
-hosting panel). The Dashboard then says **Running**. Without it, changed products wait until
-someone presses a sync button on the Dashboard.
+hosting panel). The Dashboard then says **Running**. Without it, changed products are sent every few
+minutes while shoppers visit your store, or at once when you press a sync button on the Dashboard -
+so a store nobody visits for a while waits that long.
 
 ## The Quissly menu
 

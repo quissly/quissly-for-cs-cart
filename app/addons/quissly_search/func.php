@@ -57,6 +57,15 @@ function fn_quissly_search_dispatch_before_display()
     if (AREA === 'C' && $value !== null && \Quissly\Search\SearchOrigin::asked($_REQUEST) && !headers_sent()) {
         header('X-Quissly-Search: ' . $value);
     }
+    // The cron's work every few minutes while shoppers visit, for a store without a server cron.
+    $cryptKey = (string) \Tygh\Registry::get('config.crypt_key');
+    if (AREA === 'C' && $cryptKey !== '') {
+        \Quissly\Search\VisitTick::maybe(
+            rtrim((string) \Tygh\Registry::get('config.dir.var'), '/') . '/quissly_search_tick',
+            (string) fn_url('quissly_search.tick?token=' . \Quissly\Search\VisitTick::token($cryptKey), 'C'),
+            time()
+        );
+    }
     // The daily update check, for a store whose cron is not set up: at the end of an admin
     // page, once the page is built (the cron dispatch runs it too; lib/Update/).
     if (AREA === 'A') {
@@ -71,6 +80,35 @@ function fn_quissly_search_dispatch_before_display()
             }
         });
     }
+}
+
+/**
+ * The cron's work - the cron dispatch (controllers/backend/quissly_search.php) and, for a store
+ * without a server cron, storefront visits (lib/VisitTick.php, quissly_search.tick). The
+ * update check runs last: an update replaces the add-on's files, and the rest of the request
+ * runs the old code.
+ *
+ * @return array<string, mixed>|null the catalog sync's summary; null when not connected
+ */
+function fn_quissly_search_cron_work(DbSyncStore $store): ?array
+{
+    $summary = null;
+    if (Credentials::fromRegistry()->isConfigured()) {
+        @set_time_limit(\Quissly\Search\Sync\Sync::CRON_BUDGET_SECONDS + 60);
+        $summary = \Quissly\Search\Sync\Sync::worker()->run(\Quissly\Search\Sync\Sync::CRON_BUDGET_SECONDS, 'cron');
+        // Search bar suggestions from the catalog: once per store, when due (lib/Showcase/).
+        fn_quissly_search_showcase_tick($store);
+    }
+    // Shopping activity for Quissly's analytics: the queued events (lib/Events/), after the
+    // version report when due. Also when not connected (any longer): the sender then empties the queue.
+    fn_quissly_search_version_report($store);
+    fn_quissly_search_events_send(40.0);
+    // What the store's plan includes (lib/Setup/PlanGate.php), asked again every 10 minutes.
+    fn_quissly_search_plan_refresh($store, false);
+    // A newer release from GitHub, checked once a day and installed (lib/Update/).
+    \Quissly\Search\Update\Updater::runIfDue($store, time());
+
+    return $summary;
 }
 
 /**

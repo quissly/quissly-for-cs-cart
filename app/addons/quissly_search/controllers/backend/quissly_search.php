@@ -592,21 +592,10 @@ if ($mode === 'most_loved_search') {
 if ($mode === 'cron') {
     $store = new DbSyncStore();
     $store->setState('last_cron', ['at' => time()]);
-    if (Credentials::fromRegistry()->isConfigured()) {
-        @set_time_limit(Sync::CRON_BUDGET_SECONDS + 60);
-        $summary = Sync::worker()->run(Sync::CRON_BUDGET_SECONDS, 'cron');
+    $summary = fn_quissly_search_cron_work($store);
+    if ($summary !== null) {
         fn_set_notification($summary['stopped'] !== '' ? 'W' : 'N', 'Quissly', fn_quissly_search_summary($summary));
-        // Search bar suggestions from the catalog: once per store, when due (lib/Showcase/).
-        fn_quissly_search_showcase_tick($store);
     }
-    // Shopping activity for Quissly's analytics: the queued events (lib/Events/), after the
-    // version report when due. Also when not connected (any longer): the sender then empties the queue.
-    fn_quissly_search_version_report($store);
-    fn_quissly_search_events_send(40.0);
-    // What the store's plan includes (lib/Setup/PlanGate.php), asked again every 10 minutes.
-    fn_quissly_search_plan_refresh($store, false);
-    // A newer release from GitHub, checked once a day and installed (lib/Update/).
-    \Quissly\Search\Update\Updater::runIfDue($store, time());
 
     return defined('CONSOLE') ? [CONTROLLER_STATUS_OK] : [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
 }

@@ -287,8 +287,8 @@ msgid "last run [ago]"
 msgstr "ბოლო გაშვება: [ago]"
 
 msgctxt "Languages::quissly_search.dash_cron_missing"
-msgid "Automatic sync is not running. Product changes are queued, but they are only sent when you press a sync button above. To send them automatically, add this line to the server's crontab (every 5 minutes):"
-msgstr "ავტომატური სინქრონიზაცია არ მუშაობს. პროდუქტების ცვლილებები რიგში დგება, მაგრამ იგზავნება მხოლოდ მაშინ, როცა ზემოთ სინქრონიზაციის ღილაკს დააჭერთ. ავტომატურად გასაგზავნად სერვერის crontab-ში ეს ხაზი დაამატეთ (ყოველ 5 წუთში):"
+msgid "Automatic sync is not set up on the server. Product changes are queued and sent every few minutes while shoppers visit your store, or at once when you press a sync button above. To send them on time even when nobody visits, add this line to the server's crontab (every 5 minutes):"
+msgstr "სერვერზე ავტომატური სინქრონიზაცია არ არის დაყენებული. პროდუქტების ცვლილებები რიგში დგება და იგზავნება ყოველ რამდენიმე წუთში, სანამ მყიდველები მაღაზიას სტუმრობენ, ან მაშინვე, როცა ზემოთ სინქრონიზაციის ღილაკს დააჭერთ. რომ დროულად წავიდეს მაშინაც, როცა მაღაზიას არავინ სტუმრობს, სერვერის crontab-ში ეს ხაზი დაამატეთ (ყოველ 5 წუთში):"
 
 msgctxt "Languages::quissly_search.dash_recent_log"
 msgid "Sync log"
