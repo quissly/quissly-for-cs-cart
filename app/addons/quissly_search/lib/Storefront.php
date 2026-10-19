@@ -119,6 +119,7 @@ final class Storefront
                 'minChars'        => Config::MIN_QUERY_LENGTH,
                 'debounceMs'      => 200,
                 'labelSeeAll'     => $in['i18n']['seeAll'] ?? 'See all results',
+                'labelSearching'  => $in['i18n']['searching'] ?? 'Searching…',
             ], $flags) : '',
             'qchat_agent_id' => $agent,
             'qchat_script'   => self::QCHAT_SCRIPT,

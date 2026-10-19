@@ -36,6 +36,8 @@
 	var active = -1;
 	var timer = null;
 	var asked = 0;       // the latest request; older answers are dropped
+	var loading = null;  // the spinner, shown when an answer takes longer than LOADING_DELAY_MS
+	var LOADING_DELAY_MS = 150;
 
 	function el( tag, cls ) {
 		var n = document.createElement( tag );
@@ -95,12 +97,37 @@
 	}
 
 	function hide() {
+		stopLoading();
 		if ( box ) {
 			box.hidden = true;
 			box.innerHTML = '';
 		}
 		rows = [];
 		active = -1;
+	}
+
+	function stopLoading() {
+		clearTimeout( loading );
+		loading = null;
+	}
+
+	/** A spinner while Quissly answers (the Shopify app's), named for screen readers. */
+	function showLoading() {
+		ensureBox();
+		box.innerHTML = '';
+		rows = [];
+		active = -1;
+		var wait = el( 'div', 'quissly-quick__loading' );
+		wait.setAttribute( 'role', 'status' );
+		var spinner = el( 'span', 'quissly-quick__spinner' );
+		spinner.setAttribute( 'aria-hidden', 'true' );
+		wait.appendChild( spinner );
+		var label = el( 'span', 'quissly-quick__sr' );
+		label.textContent = CFG.labelSearching || 'Searching…';
+		wait.appendChild( label );
+		box.appendChild( wait );
+		box.hidden = false;
+		place();
 	}
 
 	/** Under the overlay's bar, or floating under the theme's box. */
@@ -204,9 +231,14 @@
 		}
 		timer = setTimeout( function () {
 			var mine = ++asked;
+			stopLoading();
+			loading = setTimeout( function () {
+				if ( mine === asked && input === node ) { showLoading(); }
+			}, LOADING_DELAY_MS );
 			ask( term ).then( function ( list ) {
 				// A late answer for text that has changed since is dropped.
 				if ( mine === asked && input === node && ( node.value || '' ).trim() === term ) {
+					stopLoading();
 					render( list );
 				}
 			} );
