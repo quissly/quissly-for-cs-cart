@@ -77,12 +77,12 @@ function fn_quissly_search_summary(array $summary): string
 function fn_quissly_search_console_post(int $timeout): callable
 {
     return static function (string $url, string $body) use ($timeout): ?array {
-        $response = Http::post($url, $body, [
+        $response = Http::post($url, $body, \Quissly\Search\HttpLog::extra([
             'headers'            => ['Content-Type: application/json'],
             'timeout'            => $timeout,
             'connection_timeout' => min($timeout, 20),
             'execution_timeout'  => $timeout,
-        ]);
+        ]));
         $status = Http::getStatus();
         if ($response === false || !is_int($status) || $status === 0) {
             return null;
@@ -96,7 +96,7 @@ function fn_quissly_search_console_post(int $timeout): callable
 function fn_quissly_search_console_get(int $timeout): callable
 {
     return static function (string $url, array $headers) use ($timeout): ?array {
-        $response = Http::get($url, [], ['headers' => $headers, 'timeout' => $timeout, 'connection_timeout' => $timeout, 'execution_timeout' => $timeout]);
+        $response = Http::get($url, [], \Quissly\Search\HttpLog::extra(['headers' => $headers, 'timeout' => $timeout, 'connection_timeout' => $timeout, 'execution_timeout' => $timeout]));
         $status = Http::getStatus();
 
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
@@ -154,7 +154,7 @@ function fn_quissly_search_onboarding(): Onboarding
 function fn_quissly_search_store_billing(): StoreBilling
 {
     $post = static function (string $url, string $body, array $headers): ?array {
-        $response = Http::post($url, $body, ['headers' => array_merge(['Content-Type: application/json'], $headers), 'timeout' => 15]);
+        $response = Http::post($url, $body, \Quissly\Search\HttpLog::extra(['headers' => array_merge(['Content-Type: application/json'], $headers), 'timeout' => 15]));
         $status = Http::getStatus();
 
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
@@ -176,6 +176,37 @@ function fn_quissly_search_setup_json(array $data): void
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+/**
+ * One QSearch, as Test connection always sent ('test', 1 result): whether Quissly answers this
+ * store's searches, recorded for the status pages (HealthStore) - a refusal (401/402/403) with
+ * Quissly's own reason.
+ *
+ * @return array{ok:bool, refused:bool, status:int, detail:string, count:int}
+ */
+function fn_quissly_search_probe(Credentials $credentials): array
+{
+    try {
+        $result = (new Client($credentials))->qsearch('test', 'admin_test_connection', 1, 1, SortMap::Q_RELEVANCE, SortMap::T_DESC);
+        HealthStore::recordSuccess();
+
+        return ['ok' => true, 'refused' => false, 'status' => 200, 'detail' => '', 'count' => (int) $result->numTotalResults];
+    } catch (AuthException $e) {
+        HealthStore::recordFailure($e->getHttpStatus(), $e->detail());
+
+        return ['ok' => false, 'refused' => true, 'status' => $e->getHttpStatus(), 'detail' => $e->detail(), 'count' => 0];
+    } catch (QuisslyException $e) {
+        return ['ok' => false, 'refused' => false, 'status' => $e->getHttpStatus(), 'detail' => '', 'count' => 0];
+    }
+}
+
+/** The merchant's text for Quissly refusing the store's searches (lib/Refusal.php). */
+function fn_quissly_search_refusal_text(int $status, string $detail, string $source): string
+{
+    return \Quissly\Search\Refusal::text($status, $detail, $source, static function (string $key, array $params): string {
+        return (string) __($key, $params);
+    });
 }
 
 /** A Setup message: a langvar name, or Quissly's own words passed through. */
@@ -572,8 +603,21 @@ try {
             \Tygh\Settings::instance()->updateValue('enable_qchat', 'Y', 'quissly_search');
         }
         $onboarding->complete();
-        (new DbSyncStore())->log('Quissly Setup finished; ' . ($services === [] ? 'qsearch' : implode(' and ', $services)) . ' is live.', time());
-        fn_set_notification('N', __('notice'), __($search ? 'quissly_search.su_live_now' : 'quissly_search.su_live_chat_now'));
+        // Search is switched on: one search says whether Quissly answers it, so the status pages
+        // do not show "Active" for a store whose searches Quissly refuses (no plan it knows of -
+        // a plan chosen for manual invoice - found by a tester on 1.0.18).
+        $credentials = Credentials::fromRegistry();
+        $probe = $search ? fn_quissly_search_probe($credentials) : null;
+        $store = new DbSyncStore();
+        if ($probe !== null && $probe['refused']) {
+            $store->log(sprintf('Quissly Setup finished, but Quissly refused the first search (HTTP %d%s).', $probe['status'], $probe['detail'] !== '' ? ': ' . $probe['detail'] : ''), time());
+            fn_set_notification('W', __('warning'), __('quissly_search.su_live_refused', [
+                '[reason]' => fn_quissly_search_refusal_text($probe['status'], $probe['detail'], $credentials->source()),
+            ]));
+        } else {
+            $store->log('Quissly Setup finished; ' . ($services === [] ? 'qsearch' : implode(' and ', $services)) . ' is live.', time());
+            fn_set_notification('N', __('notice'), __($search ? 'quissly_search.su_live_now' : 'quissly_search.su_live_chat_now'));
+        }
         fn_quissly_search_setup_json(['ok' => true, 'redirect' => fn_url('quissly_search.dashboard')]);
     }
 
@@ -691,27 +735,13 @@ try {
             return [CONTROLLER_STATUS_REDIRECT, $return_url];
         }
 
-        try {
-            $result = (new Client($credentials))->qsearch('test', 'admin_test_connection', 1, 1, SortMap::Q_RELEVANCE, SortMap::T_DESC);
-            HealthStore::recordSuccess();
-            fn_set_notification(
-                'N',
-                __('notice'),
-                __('quissly_search.test_connection_ok', ['[count]' => $result->numTotalResults])
-            );
-        } catch (AuthException $e) {
-            HealthStore::recordFailure($e->getHttpStatus(), $e->getMessage());
-            fn_set_notification(
-                'E',
-                __('error'),
-                __('quissly_search.test_connection_auth_fail', ['[status]' => $e->getHttpStatus()])
-            );
-        } catch (QuisslyException $e) {
-            fn_set_notification(
-                'W',
-                __('warning'),
-                __('quissly_search.test_connection_fail', ['[status]' => $e->getHttpStatus()])
-            );
+        $probe = fn_quissly_search_probe($credentials);
+        if ($probe['ok']) {
+            fn_set_notification('N', __('notice'), __('quissly_search.test_connection_ok', ['[count]' => $probe['count']]));
+        } elseif ($probe['refused']) {
+            fn_set_notification('E', __('error'), fn_quissly_search_refusal_text($probe['status'], $probe['detail'], $credentials->source()));
+        } else {
+            fn_set_notification('W', __('warning'), __('quissly_search.test_connection_fail', ['[status]' => $probe['status']]));
         }
 
         return [CONTROLLER_STATUS_REDIRECT, $return_url];
@@ -890,12 +920,12 @@ try {
 
     if ($mode === 'panel') {
         $post = static function (string $url, string $body): ?array {
-            $response = Http::post($url, $body, [
+            $response = Http::post($url, $body, \Quissly\Search\HttpLog::extra([
                 'headers'            => ['Content-Type: application/json'],
                 'timeout'            => PanelSession::TIMEOUT_SECONDS,
                 'connection_timeout' => PanelSession::TIMEOUT_SECONDS,
                 'execution_timeout'  => PanelSession::TIMEOUT_SECONDS,
-            ]);
+            ]));
             $status = Http::getStatus();
             if ($response === false || !is_int($status) || $status === 0) {
                 return null;

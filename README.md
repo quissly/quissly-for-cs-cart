@@ -34,8 +34,10 @@ Open **Add-ons → Quissly**. Until setup is finished, every Quissly page opens 
 
 1. **Your details** - your email (Quissly's account and billing emails go there; it cannot be
    changed later, and it must be on a real, public domain), your store name and a short "What do
-   you sell?" (drafted from your catalog - check it). **Save & continue** creates your Quissly
-   account and connects the store - there is nothing to copy or paste.
+   you sell?" (drafted from your catalog - check it). Quissly confirms the email: press **Send
+   code** under it and enter the 6-digit code it emails you (it expires in 10 minutes; **Send a
+   new code** after a minute). **Save & continue** creates your Quissly account and connects the
+   store - there is nothing to copy or paste.
 2. **Choose a plan** - Search or Chat, monthly or annual, paid by **Manual invoice** (the default)
    or **Credit card**. The free search plan starts at once. Once chosen, the plan is changed in
    **Billing**, not here.
@@ -164,7 +166,10 @@ reach `github.com` and `raw.githubusercontent.com` over HTTPS. A store whose fil
 | Search sometimes falls back to CS-Cart's | Quissly took too long to answer (a few seconds); check the server's connection to `api.quissly.com`. |
 
 Errors are also logged under **Administration → Logs**. The add-on never logs your key or token,
-so log lines are safe to send to Quissly support.
+so log lines are safe to send to Quissly support. CS-Cart also logs every outgoing request there
+("Requests: http" under Settings → Logging); for the add-on's requests to Quissly it keeps only
+the address and the sizes, never what was sent or answered (before 1.0.19 it kept both - clear
+Administration → Logs, or its "Requests" entries, if you ran an earlier version).
 
 ## What the add-on adds to your store
 

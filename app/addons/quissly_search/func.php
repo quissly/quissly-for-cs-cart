@@ -706,7 +706,7 @@ function fn_quissly_search_quick_rows(array $ids): array
 function fn_quissly_search_http_get(int $timeout): callable
 {
     return static function (string $url, array $headers) use ($timeout): ?array {
-        $response = \Tygh\Http::get($url, [], ['headers' => $headers, 'timeout' => $timeout]);
+        $response = \Tygh\Http::get($url, [], \Quissly\Search\HttpLog::extra(['headers' => $headers, 'timeout' => $timeout]));
         $status = \Tygh\Http::getStatus();
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
     };
@@ -715,7 +715,7 @@ function fn_quissly_search_http_get(int $timeout): callable
 function fn_quissly_search_http_post(int $timeout): callable
 {
     return static function (string $url, string $body) use ($timeout): ?array {
-        $response = \Tygh\Http::post($url, $body, ['headers' => ['Content-Type: application/json'], 'timeout' => $timeout]);
+        $response = \Tygh\Http::post($url, $body, \Quissly\Search\HttpLog::extra(['headers' => ['Content-Type: application/json'], 'timeout' => $timeout]));
         $status = \Tygh\Http::getStatus();
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
     };
@@ -724,7 +724,7 @@ function fn_quissly_search_http_post(int $timeout): callable
 function fn_quissly_search_http_put(int $timeout): callable
 {
     return static function (string $url, string $body, array $headers) use ($timeout): ?array {
-        $response = \Tygh\Http::put($url, $body, ['headers' => array_merge(['Content-Type: application/json'], $headers), 'timeout' => $timeout]);
+        $response = \Tygh\Http::put($url, $body, \Quissly\Search\HttpLog::extra(['headers' => array_merge(['Content-Type: application/json'], $headers), 'timeout' => $timeout]));
         $status = \Tygh\Http::getStatus();
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
     };
@@ -1268,12 +1268,12 @@ function fn_quissly_search_showcase_facts(string $language = ''): array
 function fn_quissly_search_lookup_namespace(DbSyncStore $store): string
 {
     $post = static function (string $url, string $body): ?array {
-        $response = \Tygh\Http::post($url, $body, ['headers' => ['Content-Type: application/json'], 'timeout' => 10]);
+        $response = \Tygh\Http::post($url, $body, \Quissly\Search\HttpLog::extra(['headers' => ['Content-Type: application/json'], 'timeout' => 10]));
         $status = \Tygh\Http::getStatus();
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
     };
     $get = static function (string $url, array $headers): ?array {
-        $response = \Tygh\Http::get($url, [], ['headers' => $headers, 'timeout' => 10]);
+        $response = \Tygh\Http::get($url, [], \Quissly\Search\HttpLog::extra(['headers' => $headers, 'timeout' => 10]));
         $status = \Tygh\Http::getStatus();
         return $response === false || !is_int($status) || $status === 0 ? null : ['status' => $status, 'body' => (string) $response];
     };
@@ -1372,7 +1372,35 @@ function fn_quissly_search_event_order(array $order): bool
 }
 
 /**
- * Hook post_add_to_cart: an add_to_cart event per product added (not for a cart update).
+ * The cart's amounts before an add to cart (hook pre_add_to_cart), for post_add_to_cart's event.
+ *
+ * @param array<string, float>|null $set the amounts to keep; null reads them
+ * @return array<string, float>
+ */
+function fn_quissly_search_cart_before(?array $set = null): array
+{
+    static $amounts = [];
+    if ($set !== null) {
+        $amounts = $set;
+    }
+
+    return $amounts;
+}
+
+/** Hook pre_add_to_cart: note the cart's amounts, so post_add_to_cart reports what was really added. */
+function fn_quissly_search_pre_add_to_cart($product_data, $cart, $auth, $update)
+{
+    try {
+        fn_quissly_search_cart_before(\Quissly\Search\Events\CartAdds::amounts((array) ($cart['products'] ?? [])));
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'pre_add_to_cart');
+    }
+}
+
+/**
+ * Hook post_add_to_cart: an add_to_cart event per product line that grew, by what it grew (not for a
+ * cart update). CS-Cart lowers an amount beyond the stock to what is left: asked for 5000 with 300
+ * left, 300 were added (lib/Events/CartAdds).
  */
 function fn_quissly_search_post_add_to_cart($product_data, $cart, $auth, $update, $ids)
 {
@@ -1380,16 +1408,9 @@ function fn_quissly_search_post_add_to_cart($product_data, $cart, $auth, $update
         return;
     }
     try {
-        foreach ($ids as $productId) {
-            $amount = 1;
-            foreach ((array) $product_data as $key => $data) {
-                if ((int) ($data['product_id'] ?? $key) === (int) $productId) {
-                    $amount = (float) ($data['amount'] ?? 1);
-                    break;
-                }
-            }
-            [$catalogId, $variantId] = fn_quissly_search_event_ids((int) $productId);
-            fn_quissly_search_event_shopper(EventBody::ADD_TO_CART, EventBody::addToCart($catalogId, $variantId, $amount));
+        foreach (\Quissly\Search\Events\CartAdds::added(fn_quissly_search_cart_before(), (array) ($cart['products'] ?? []), $ids) as $line) {
+            [$catalogId, $variantId] = fn_quissly_search_event_ids($line['product_id']);
+            fn_quissly_search_event_shopper(EventBody::ADD_TO_CART, EventBody::addToCart($catalogId, $variantId, $line['amount']));
         }
     } catch (\Throwable $e) {
         fn_quissly_search_failed($e, 'post_add_to_cart');
@@ -1588,13 +1609,13 @@ function fn_quissly_search_integrations_post(string $error): bool
     $response = \Tygh\Http::post(
         \Quissly\Search\Config::BASE_URL . \Quissly\Search\Diagnostics\ErrorReport::PATH,
         (string) json_encode(\Quissly\Search\Diagnostics\ErrorReport::body($error), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-        [
+        \Quissly\Search\HttpLog::extra([
             // X-Platform too: the firewall in front of api.quissly.com refuses a request without it (an HTML 403).
             'headers'            => ['Content-Type: application/json', 'X-Platform: ' . \Quissly\Search\Config::PLATFORM, 'X-Integrations-Token: ' . $token],
             'timeout'            => 5,
             'connection_timeout' => 5,
             'execution_timeout'  => 5,
-        ]
+        ])
     );
     $status = (int) \Tygh\Http::getStatus();
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Quissly\Search\Admin;
 
+use Quissly\Search\Refusal;
 use Quissly\Search\StatusReport;
 
 /**
@@ -96,7 +97,13 @@ final class DashboardView
         if (!$active && !empty($m['status']['reasons'])) {
             $items = '';
             foreach ($m['status']['reasons'] as $reason) {
-                $items .= '<li>' . self::e(self::t(self::REASONS[$reason] ?? (string) $reason)) . '</li>';
+                $alert = $m['status']['auth_alert'] ?? null;
+                $text = $reason === 'auth_error' && !empty($alert)
+                    ? Refusal::text((int) $alert['status'], (string) ($alert['detail'] ?? ''), (string) ($m['status']['source'] ?? ''), static function (string $key, array $params): string {
+                        return self::t($key, $params);
+                    })
+                    : self::t(self::REASONS[$reason] ?? (string) $reason);
+                $items .= '<li>' . self::e($text) . '</li>';
             }
             $html .= '<ul class="quissly-dash__reasons">' . $items . '</ul>';
         }

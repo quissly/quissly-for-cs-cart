@@ -8,23 +8,18 @@ namespace Quissly\Search;
  * Maps CS-Cart storefront sort controls to Quissly's sort_by / sort_type codes,
  * and back to the effective CS-Cart sort key/order to render.
  *
- * AUTHORITATIVE Quissly sort_by mapping (corrected 2026-06; the earlier docs had
- * date=1, on-sale=2, price=3, which mislabeled price as date):
+ * Quissly's sort_by codes, as its search engine reads them (since 2026-06-22):
  *
- *   0 = relevance (default)   1 = on-sale   2 = price   3 = date   4 = popularity
+ *   0 = relevance (default)   1 = price (discounted_price)   2 = discount (discount_percent)
  *
- * sort_type: 1 = asc, 2 = desc.
- *
- * Verified LIVE against prod (qsearch_test.sh, query "კრემი", 191 results):
- *   - relevance (0)        : baseline order
- *   - on-sale (1)          : reorders   -> HONORED
- *   - price (2) asc & desc : reorders, asc != desc -> HONORED
- *   - date (3)             : returns relevance order -> NOT honored
- *   - popularity (4)       : returns relevance order -> NOT honored
+ * Any other number is relevance. sort_type: 1 = asc, 2 = desc. Until 2026-10-19 this map
+ * sent 2 for price - read as "price" from a June test in which sorting by discount also
+ * reordered the results - so a price sort ordered by discount (found testing PrestaShop).
+ * The engine sorts on discounted_price, which ProductMapper therefore always sends.
  *
  * Of CS-Cart's native storefront sort controls (name/price/date/popularity), only
  * `price` maps to a Quissly-honored sort. Relevance is the default (Quissly's
- * natural order). On-sale is honored by Quissly but has no native CS-Cart control,
+ * natural order). Discount is honored by Quissly but has no native CS-Cart control,
  * so it is not exposed (that would require a custom UI control — out of v1 scope).
  *
  * Pure logic, no CS-Cart dependency except the optional `__()` label lookup in
@@ -32,12 +27,10 @@ namespace Quissly\Search;
  */
 final class SortMap
 {
-    /** Quissly sort_by codes (corrected authoritative mapping). */
-    public const Q_RELEVANCE  = 0;
-    public const Q_ON_SALE    = 1;
-    public const Q_PRICE      = 2;
-    public const Q_DATE       = 3;
-    public const Q_POPULARITY = 4;
+    /** Quissly sort_by codes. */
+    public const Q_RELEVANCE = 0;
+    public const Q_PRICE     = 1;
+    public const Q_DISCOUNT  = 2;
 
     /** Quissly sort_type codes. */
     public const T_ASC  = 1;

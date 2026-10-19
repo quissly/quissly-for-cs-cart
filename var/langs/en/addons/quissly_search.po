@@ -2261,3 +2261,27 @@ msgstr "Enter the 6-digit code from your email to continue."
 msgctxt "Languages::quissly_search.su_code_invalid"
 msgid "Enter the 6-digit code we emailed you."
 msgstr "Enter the 6-digit code we emailed you."
+
+msgctxt "Languages::quissly_search.refused_401"
+msgid "Quissly did not accept this store's key (HTTP 401)."
+msgstr "Quissly did not accept this store's key (HTTP 401)."
+
+msgctxt "Languages::quissly_search.refused_402"
+msgid "Quissly is waiting for a payment for this store's plan (HTTP 402) - see Billing."
+msgstr "Quissly is waiting for a payment for this store's plan (HTTP 402) - see Billing."
+
+msgctxt "Languages::quissly_search.refused_403"
+msgid "Quissly refuses this store's searches (HTTP 403). Usually the store has no active plan with search yet - see Billing; a plan chosen for manual invoice works once Quissly activates it."
+msgstr "Quissly refuses this store's searches (HTTP 403). Usually the store has no active plan with search yet - see Billing; a plan chosen for manual invoice works once Quissly activates it."
+
+msgctxt "Languages::quissly_search.refused_said"
+msgid "Quissly said: “[detail]”."
+msgstr "Quissly said: “[detail]”."
+
+msgctxt "Languages::quissly_search.refused_check_config"
+msgid "The key comes from config.local.php: check the bearer token, private key and environment there."
+msgstr "The key comes from config.local.php: check the bearer token, private key and environment there."
+
+msgctxt "Languages::quissly_search.su_live_refused"
+msgid "Setup is finished, but Quissly refused the first search, so the store keeps CS-Cart's search for now. [reason]"
+msgstr "Setup is finished, but Quissly refused the first search, so the store keeps CS-Cart's search for now. [reason]"

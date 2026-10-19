@@ -74,10 +74,16 @@ final class PanelSession
         return ['ok' => true, 'access_token' => $access, 'refresh_token' => $refresh, 'error' => ''];
     }
 
-    /** The iframe URL: the panel, bootstrapped with the session. */
+    /**
+     * The iframe URL: the panel, bootstrapped with the session.
+     *
+     * The tokens go in the fragment (#), which the browser never sends to a server, so they stay
+     * out of access logs and Referer headers; the panel reads them there first (the query string
+     * only for older links) and removes them from its address.
+     */
     public static function embedUrl(string $panelUrl, string $accessToken, string $refreshToken): string
     {
-        return rtrim($panelUrl, '/') . '/?' . http_build_query(
+        return rtrim($panelUrl, '/') . '/#' . http_build_query(
             ['access_token' => $accessToken, 'refresh_token' => $refreshToken],
             '',
             '&',

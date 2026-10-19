@@ -446,8 +446,9 @@ final class SearchInterceptor
     {
         Logger::error('QSearch auth/plan failure surfaced to merchant', ['status' => $e->getHttpStatus()]);
         // Persist so the admin status page can alert the merchant — the failure
-        // happened in the shopper's session, which the admin never sees.
-        HealthStore::recordFailure($e->getHttpStatus(), $e->getMessage());
+        // happened in the shopper's session, which the admin never sees. Quissly's own reason is
+        // what the status pages show (Refusal).
+        HealthStore::recordFailure($e->getHttpStatus(), $e->detail());
     }
 
     /**

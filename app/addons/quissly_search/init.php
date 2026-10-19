@@ -38,7 +38,8 @@ require_once __DIR__ . '/autoload.php';
  *  - `variation_group_save_group` (the Product variations add-on) — generated
  *    variations are written without fn_update_product, so the group's products (and
  *    any product taken out of it) are queued here.
- *  - `post_add_to_cart`, `pre_add_to_wishlist` (the wishlist add-on), `change_order_status`
+ *  - `pre_add_to_cart` + `post_add_to_cart` (what the cart line really grew by), `pre_add_to_wishlist`
+ *    (the wishlist add-on), `change_order_status`
  *    — shopping activity for Quissly's analytics (lib/Events/, func.php): an add to cart,
  *    an add to the wishlist, an order becoming paid. Queue only: the cron sends them.
  *  - `set_notification_pre` — an error notice on one of the add-on's pages is reported to
@@ -59,6 +60,7 @@ fn_register_hooks(
     'change_company_status_pre',
     'update_company',
     'dispatch_before_display',
+    'pre_add_to_cart',
     'post_add_to_cart',
     'pre_add_to_wishlist',
     'change_order_status',

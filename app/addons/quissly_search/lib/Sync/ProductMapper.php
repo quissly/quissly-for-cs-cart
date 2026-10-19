@@ -13,8 +13,10 @@ namespace Quissly\Search\Sync;
  *  - title, description, category, images and original_price are REQUIRED on /add:
  *    description falls back to the short description, then the title; category to
  *    'uncategorized'; original_price is always a number (null is rejected);
- *  - discounted_price is the selling price when CS-Cart's list price is higher,
- *    else null ("not on sale");
+ *  - discounted_price is ALWAYS the selling price, and original_price the list price when
+ *    it is higher, else the selling price too (the Quissly Shopify app's and the Magento
+ *    plugin's rule): Quissly sorts by price on discounted_price, and a record without it went
+ *    last in a price sort (2026-10-19);
  *  - in_stock: tracking disabled or backorders allowed means buyable, else amount > 0;
  *  - up to 10 images, main image first, duplicates dropped.
  *
@@ -22,7 +24,7 @@ namespace Quissly\Search\Sync;
  * the WooCommerce plugin sends: each variant is a full
  * ProductItem - the required fields (title, description, category, images,
  * original_price) copied from the parent where the child has none, because /add does
- * not inherit them - with price and stock only where they differ from the parent,
+ * not inherit them - with its own selling price and stock always,
  * and its sku and option values in its own `metadata` (plus `selected_options`, the
  * [{name, value}] form Quissly builds facets from, naming every option that varies
  * within the group). The parent is the FIRST variant: in CS-Cart it is itself one of
@@ -142,7 +144,7 @@ final class ProductMapper
             'title'            => $title,
             'description'      => self::description($product, $title),
             'original_price'   => $onSale ? $listPrice : ($price ?? 0.0),
-            'discounted_price' => $onSale ? $price : null,
+            'discounted_price' => $price ?? 0.0,
             'category'         => $category !== '' ? $category : 'uncategorized',
             'in_stock'         => self::inStock($product),
             'images'           => self::images((array) ($product['images'] ?? [])),
@@ -153,7 +155,7 @@ final class ProductMapper
 
     /**
      * One option of the group as a variant of $parent: required fields present
-     * (inherited when it has none), its sale price whenever it is on sale, its own stock
+     * (inherited when it has none), its own selling price and its own stock
      * always, the options that vary within the group in metadata.
      *
      * @param array<string,mixed>  $own     the option's own record
@@ -182,12 +184,10 @@ final class ProductMapper
             'original_price' => $own['original_price'] > 0 ? $own['original_price'] : $parent['original_price'],
             'url'            => $own['url'] !== '' ? $own['url'] : $parent['url'],
         ];
-        // Its selling price whenever it is on sale - also when the parent's is the same: Quissly
-        // keeps each variant as a record of its own and shows its own price (a sale applied to
-        // the whole product, every variant at -20%, was shown at full price in the chat).
-        if ($own['discounted_price'] !== null) {
-            $variant['discounted_price'] = $own['discounted_price'];
-        }
+        // Always its own selling price, on sale or not: Quissly keeps each variant as a record
+        // of its own, shows its own price (a sale applied to the whole product, every variant at
+        // -20%, was shown at full price in the chat) and sorts by it.
+        $variant['discounted_price'] = $own['discounted_price'] > 0 ? $own['discounted_price'] : $variant['original_price'];
         // Always its own: a variant without in_stock is stored as in stock (ProductItem's default),
         // so a product sold out in every option - the parent rolled up to false, like each variant -
         // showed every option as available.

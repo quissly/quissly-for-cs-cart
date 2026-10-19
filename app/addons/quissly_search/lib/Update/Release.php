@@ -85,6 +85,55 @@ final class Release
      */
     public static function parse($json, string $asset, string $packagePrefix): ?array
     {
+        return self::parseProblem($json, $asset, $packagePrefix) === '' ? self::offered($json, $asset, $packagePrefix) : null;
+    }
+
+    /**
+     * Why parse() offers nothing for a GitHub "latest release" answer ('' when it offers it), for
+     * the sync log: a release that is ignored without a word looks like no release at all.
+     *
+     * @param mixed $json the decoded answer
+     */
+    public static function parseProblem($json, string $asset, string $packagePrefix): string
+    {
+        if (!is_array($json)) {
+            return 'GitHub answered something that is not a release';
+        }
+        if (!empty($json['draft'])) {
+            return 'it is a draft';
+        }
+        if (!empty($json['prerelease'])) {
+            return 'it is a pre-release';
+        }
+        if (!preg_match('/^v?(\d+\.\d+\.\d+)$/', (string) ($json['tag_name'] ?? ''))) {
+            return 'its tag is not a version number';
+        }
+        $names = [];
+        $elsewhere = false;
+        foreach ((array) ($json['assets'] ?? []) as $item) {
+            $url = is_array($item) ? (string) ($item['browser_download_url'] ?? '') : '';
+            if (strpos($url, $packagePrefix) === 0) {
+                $names[(string) ($item['name'] ?? '')] = true;
+            } elseif ($url !== '') {
+                $elsewhere = true;
+            }
+        }
+        if (!isset($names[$asset])) {
+            return $elsewhere ? 'its files are not on Quissly\'s GitHub repository' : 'it has no ' . $asset;
+        }
+        if (!isset($names[$asset . '.sig'])) {
+            return $elsewhere ? 'its signature is not on Quissly\'s GitHub repository' : 'it is not signed (no ' . $asset . '.sig)';
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<string, mixed> $json a release parseProblem() found nothing wrong with
+     * @return array{version: string, package: string, signature: string}|null
+     */
+    private static function offered($json, string $asset, string $packagePrefix): ?array
+    {
         if (!is_array($json) || !empty($json['draft']) || !empty($json['prerelease'])) {
             return null;
         }

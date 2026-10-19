@@ -2261,3 +2261,27 @@ msgstr "გასაგრძელებლად შეიყვანეთ �
 msgctxt "Languages::quissly_search.su_code_invalid"
 msgid "Enter the 6-digit code we emailed you."
 msgstr "შეიყვანეთ ელფოსტაზე გამოგზავნილი 6-ნიშნა კოდი."
+
+msgctxt "Languages::quissly_search.refused_401"
+msgid "Quissly did not accept this store's key (HTTP 401)."
+msgstr "Quissly-მ ამ მაღაზიის გასაღები არ მიიღო (HTTP 401)."
+
+msgctxt "Languages::quissly_search.refused_402"
+msgid "Quissly is waiting for a payment for this store's plan (HTTP 402) - see Billing."
+msgstr "Quissly ამ მაღაზიის ტარიფის გადახდას ელოდება (HTTP 402) - იხილეთ „გადახდა“."
+
+msgctxt "Languages::quissly_search.refused_403"
+msgid "Quissly refuses this store's searches (HTTP 403). Usually the store has no active plan with search yet - see Billing; a plan chosen for manual invoice works once Quissly activates it."
+msgstr "Quissly უარს ამბობს ამ მაღაზიის ძიებებზე (HTTP 403). ჩვეულებრივ მაღაზიას ჯერ არ აქვს აქტიური ტარიფი ძიებით - იხილეთ „გადახდა“; ინვოისით არჩეული ტარიფი იმუშავებს, როცა Quissly მას გააქტიურებს."
+
+msgctxt "Languages::quissly_search.refused_said"
+msgid "Quissly said: “[detail]”."
+msgstr "Quissly-ს პასუხი: „[detail]“."
+
+msgctxt "Languages::quissly_search.refused_check_config"
+msgid "The key comes from config.local.php: check the bearer token, private key and environment there."
+msgstr "გასაღები config.local.php-დან მოდის: შეამოწმეთ იქ bearer ტოკენი, პირადი გასაღები და გარემო."
+
+msgctxt "Languages::quissly_search.su_live_refused"
+msgid "Setup is finished, but Quissly refused the first search, so the store keeps CS-Cart's search for now. [reason]"
+msgstr "დაყენება დასრულდა, მაგრამ Quissly-მ პირველ ძიებაზე უარი თქვა, ამიტომ მაღაზია ჯერ CS-Cart-ის ძიებას იყენებს. [reason]"

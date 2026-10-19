@@ -41,7 +41,11 @@ final class AdminStatusView
             $items = [];
             foreach ((array) $report['reasons'] as $reason) {
                 $key = self::REASON_LABELS[$reason] ?? null;
-                $items[] = '<li>' . self::escape($key ? self::t($key) : (string) $reason) . '</li>';
+                $text = $key ? self::t($key) : (string) $reason;
+                if ($reason === 'auth_error' && !empty($report['auth_alert'])) {
+                    $text = self::refusal($report);
+                }
+                $items[] = '<li>' . self::escape($text) . '</li>';
             }
             $rows[] = self::row(self::t('quissly_search.inactive_reason'), '<ul>' . implode('', $items) . '</ul>');
         }
@@ -95,6 +99,16 @@ final class AdminStatusView
     private static function t(string $key): string
     {
         return function_exists('__') ? (string) __($key) : $key;
+    }
+
+    /** Why Quissly refuses the store's searches, by status and in Quissly's words (Refusal). */
+    private static function refusal(array $report): string
+    {
+        $alert = $report['auth_alert'];
+
+        return Refusal::text((int) $alert['status'], (string) ($alert['detail'] ?? ''), (string) ($report['source'] ?? ''), static function (string $key, array $params): string {
+            return function_exists('__') ? (string) __($key, $params) : $key;
+        });
     }
 
     private static function url(string $dispatch): string

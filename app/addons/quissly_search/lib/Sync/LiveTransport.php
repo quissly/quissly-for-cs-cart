@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Quissly\Search\Sync;
 
+use Quissly\Search\HttpLog;
 use Tygh\Http;
 
 /**
@@ -29,12 +30,12 @@ final class LiveTransport
             return self::curl($method, $url, $headers, (string) $body);
         }
 
-        $extra = [
+        $extra = HttpLog::extra([
             'headers'            => $headers,
             'timeout'            => self::TIMEOUT_SECONDS,
             'connection_timeout' => 10,
             'execution_timeout'  => self::TIMEOUT_SECONDS,
-        ];
+        ]);
         if ($method === 'GET') {
             $response = Http::get($url, [], $extra);
         } elseif ($method === 'PUT') {
