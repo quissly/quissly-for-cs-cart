@@ -133,6 +133,16 @@ reach `github.com` and `raw.githubusercontent.com` over HTTPS. A store whose fil
   the device type and operating system. Shopping activity sends product ids, quantities, prices
   and order totals. **No name, email, address or IP address is ever sent.**
 - Requests are signed on your server; no key or token ever reaches the browser.
+- **Error reports:** when something in the add-on fails - a PHP error in its files, a call to Quissly
+  that is refused or not answered, a Setup step, an error in one of its scripts in a shopper's browser
+  - it tells Quissly what failed and where in the add-on, with the add-on's, CS-Cart's and PHP's
+  versions, so Quissly can fix it. The same problem is sent at most once an hour, with a count. The
+  messages carry no key, no shopper data, no email or IP address and no query text. A failure in the
+  add-on never stops your store: the product is still saved, the cart and the order go on, and a search
+  CS-Cart's own search answers.
+- **Once installed** (and again when you connect), the add-on tells Quissly what the store runs on -
+  your store's address, CS-Cart's and PHP's versions and settings, the add-ons and theme in use, the
+  languages, currency and number of products - so Quissly can help if something does not work.
 
 ## Switching off and removing
 

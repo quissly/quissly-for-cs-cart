@@ -4,7 +4,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: Georgian\n"
-"Language: ka\n"
+"Language: ka_GE\n"
 
 msgctxt "Addons::name::quissly_search"
 msgid "Quissly search"
@@ -2217,3 +2217,47 @@ msgstr "არჩეულია [count] / [max]"
 msgctxt "Languages::quissly_search.most_loved_full"
 msgid "[count] of [max] picked - remove one to pick another"
 msgstr "არჩეულია [count] / [max] - სხვის ასარჩევად ერთი წაშალეთ"
+
+msgctxt "Languages::quissly_search.block_failed"
+msgid "This section could not be shown. The error has been sent to Quissly."
+msgstr "ამ ნაწილის ჩვენება ვერ მოხერხდა. შეცდომა Quissly-ს გაეგზავნა."
+
+msgctxt "Languages::quissly_search.save_failed"
+msgid "Some Quissly settings could not be saved. The error has been sent to Quissly."
+msgstr "Quissly-ს ზოგიერთი პარამეტრის შენახვა ვერ მოხერხდა. შეცდომა Quissly-ს გაეგზავნა."
+
+msgctxt "Languages::quissly_search.su_verify_intro"
+msgid "We'll email a 6-digit code to [email] to confirm it's yours."
+msgstr "[email]-ზე გამოვგზავნით 6-ნიშნა კოდს, რომ დავადასტუროთ, რომ ეს მისამართი თქვენია."
+
+msgctxt "Languages::quissly_search.su_verify_sent"
+msgid "We sent a 6-digit code to [email]. It expires in 10 minutes."
+msgstr "6-ნიშნა კოდი გაიგზავნა [email]-ზე. ის 10 წუთის განმავლობაში მოქმედებს."
+
+msgctxt "Languages::quissly_search.su_verify_label"
+msgid "Verification code"
+msgstr "დადასტურების კოდი"
+
+msgctxt "Languages::quissly_search.su_verify_send"
+msgid "Send code"
+msgstr "კოდის გაგზავნა"
+
+msgctxt "Languages::quissly_search.su_verify_resend"
+msgid "Send a new code"
+msgstr "ახალი კოდის გაგზავნა"
+
+msgctxt "Languages::quissly_search.su_verify_sending"
+msgid "Sending…"
+msgstr "იგზავნება…"
+
+msgctxt "Languages::quissly_search.su_block_code_not_sent"
+msgid "Confirm the email with a code to continue."
+msgstr "გასაგრძელებლად დაადასტურეთ ელფოსტა კოდით."
+
+msgctxt "Languages::quissly_search.su_block_code_missing"
+msgid "Enter the 6-digit code from your email to continue."
+msgstr "გასაგრძელებლად შეიყვანეთ ელფოსტაზე მიღებული 6-ნიშნა კოდი."
+
+msgctxt "Languages::quissly_search.su_code_invalid"
+msgid "Enter the 6-digit code we emailed you."
+msgstr "შეიყვანეთ ელფოსტაზე გამოგზავნილი 6-ნიშნა კოდი."

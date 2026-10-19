@@ -23,6 +23,7 @@
  *   items      the picks the page opened with, in order: [{sku, name, image, note}]
  *   text       the words it writes
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['most-loved-picker.js', new Error()]); // where this script starts (report.js)
 (function () {
     'use strict';
 
@@ -422,3 +423,4 @@
         boot();
     }
 })();
+(window.quisslyMarks = window.quisslyMarks || []).push(['most-loved-picker.js', new Error(), 1]); // and ends

@@ -21,6 +21,7 @@
  *   reload     the page's own URL, loaded again after a step completes
  *   text       the few words the script writes itself
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['setup.js', new Error()]); // where this script starts (report.js)
 (function () {
     'use strict';
 
@@ -207,6 +208,103 @@
             return connectForm ? $('[name="' + name + '"]', connectForm) : null;
         }
 
+        // ---- Email code: Quissly's sign-up takes the account's email only with a code it mailed there
+        // (POST /external/open-source/send-code). The box sits under the email field once the address
+        // is valid; the code goes with Save as verification_code. Drawn only when this plugin's server
+        // can ask for a code (config.endpoints.send_code).
+        var CODE = /^\d{6}$/;
+        var verify = null;
+        var codeSentTo = '';
+        var sendingCode = false;
+
+        function sameEmail(a, b) {
+            var left = (a || '').trim().toLowerCase();
+            return left !== '' && left === (b || '').trim().toLowerCase();
+        }
+
+        function verifyText(key, fallback, email) {
+            return ((text.verify || {})[key] || fallback).replace('[email]', email || '');
+        }
+
+        function buildVerify() {
+            var email = field('email');
+            if (!email || !(config.endpoints || {}).send_code) {
+                return null;
+            }
+            var box = document.createElement('div');
+            box.className = 'q-email-verify';
+            box.hidden = true;
+            box.innerHTML = '<p class="q-email-verify__text" data-q-verify-text></p>'
+                + '<div class="q-field q-email-verify__code" data-q-verify-code hidden><label for="q-email-code"></label>'
+                + '<input id="q-email-code" name="verification_code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"></div>'
+                + '<p class="q-help q-help--error" data-q-verify-error hidden></p>'
+                + '<div class="q-email-verify__actions"><button type="button" class="q-btn q-btn--quiet q-btn--small" data-q-verify-send></button></div>';
+            $('label', box).textContent = verifyText('label', 'Verification code');
+            var wrap = email.closest('.q-field') || email;
+            wrap.parentNode.insertBefore(box, wrap.nextSibling);
+            var code = $('[name="verification_code"]', box);
+            code.addEventListener('input', function () {
+                var digits = code.value.replace(/\D/g, '').slice(0, 6);
+                if (digits !== code.value) {
+                    code.value = digits;
+                }
+                checkFields();
+            });
+            $('[data-q-verify-send]', box).addEventListener('click', sendCode);
+            return {box: box, code: code};
+        }
+
+        function verifyError(message) {
+            var box = $('[data-q-verify-error]', verify.box);
+            box.textContent = message || '';
+            box.hidden = !message;
+        }
+
+        // The box as the email now stands: a code belongs to the address it was sent to.
+        function renderVerify() {
+            if (!verify) {
+                return;
+            }
+            var email = field('email').value.trim();
+            var sent = sameEmail(codeSentTo, email);
+            verify.box.hidden = email === '' || !!emailProblem(email);
+            $('[data-q-verify-text]', verify.box).textContent = sent
+                ? verifyText('sent', 'We sent a 6-digit code to [email]. It expires in 10 minutes.', codeSentTo)
+                : verifyText('intro', "We'll email a 6-digit code to [email] to confirm it's yours.", email);
+            $('[data-q-verify-code]', verify.box).hidden = !sent;
+            if (!sent && verify.code.value) {
+                verify.code.value = '';
+            }
+            var button = $('[data-q-verify-send]', verify.box);
+            button.disabled = sendingCode;
+            button.textContent = sendingCode
+                ? verifyText('sending', 'Sending…')
+                : verifyText(sent ? 'resend' : 'send', sent ? 'Send a new code' : 'Send code');
+        }
+
+        function sendCode() {
+            var email = field('email').value.trim();
+            if (sendingCode || !email || emailProblem(email)) {
+                return;
+            }
+            sendingCode = true;
+            verifyError('');
+            renderVerify();
+            post('send_code', {email: email}).then(function (result) {
+                sendingCode = false;
+                if (result && result.ok) {
+                    codeSentTo = email;
+                } else {
+                    // A refused resend (the one-minute wait) leaves the code field up.
+                    verifyError((result && result.message) || text.error);
+                }
+                checkFields();
+                if (result && result.ok) {
+                    verify.code.focus();
+                }
+            });
+        }
+
         // Why Save is disabled, in the bar beside it: the first problem only (the Shopify app's).
         function blocker() {
             var blockers = text.blockers || {};
@@ -218,6 +316,11 @@
             }
             if (email && emailProblem(email.value)) {
                 return blockers.emailInvalid;
+            }
+            if (verify && !CODE.test(verify.code.value.trim())) {
+                return sameEmail(codeSentTo, email.value)
+                    ? (blockers.codeMissing || 'Enter the 6-digit code from your email to continue.')
+                    : (blockers.codeNotSent || 'Confirm the email with a code to continue.');
             }
             if (name && !name.value.trim()) {
                 return blockers.nameMissing;
@@ -232,6 +335,7 @@
         }
 
         function checkFields() {
+            renderVerify();
             Object.keys(checks).forEach(function (name) {
                 var input = field(name);
                 var box = $('[data-q-field-error="' + name + '"]');
@@ -256,6 +360,7 @@
         }
 
         if (connectForm) {
+            verify = buildVerify();
             Object.keys(checks).concat(['description']).forEach(function (name) {
                 var input = $('[name="' + name + '"]', connectForm);
                 if (input) {
@@ -710,3 +815,4 @@
         boot();
     }
 })();
+(window.quisslyMarks = window.quisslyMarks || []).push(['setup.js', new Error(), 1]); // and ends

@@ -411,6 +411,7 @@ final class Updater
         }
         $store->log($message, $now);
         $store->setState(self::PROBLEM_STATE, ['message' => $message, 'at' => $now]);
+        \Quissly\Search\Diagnostics\ErrorCapture::refused('update', $message);
     }
 
     /** GitHub's "latest release" address; $config['quissly_update_url'] replaces it on a dev store. */

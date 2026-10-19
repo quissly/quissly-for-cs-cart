@@ -1,7 +1,9 @@
 {*
     quissly_search storefront scripts (their markup is in footer.post.tpl). Each loads
-    only where lib/Storefront.php says the feature is on the page.
+    only where lib/Storefront.php says the feature is on the page; report.js (errors in them, for
+    Quissly) on every page.
 *}
+{script src="js/addons/quissly_search/report.js"}
 {if $addons.gdpr.status == "A"}
 {* The GDPR add-on's cookie banner (Klaro) reads this add-on's service texts from here. *}
 <script>

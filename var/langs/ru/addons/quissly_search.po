@@ -4,7 +4,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: Russian\n"
-"Language: ru\n"
+"Language: ru_RU\n"
 
 msgctxt "Addons::name::quissly_search"
 msgid "Quissly search"
@@ -2217,3 +2217,47 @@ msgstr "Выбрано [count] из [max]"
 msgctxt "Languages::quissly_search.most_loved_full"
 msgid "[count] of [max] picked - remove one to pick another"
 msgstr "Выбрано [count] из [max] - уберите один, чтобы выбрать другой"
+
+msgctxt "Languages::quissly_search.block_failed"
+msgid "This section could not be shown. The error has been sent to Quissly."
+msgstr "Этот раздел не удалось показать. Ошибка отправлена в Quissly."
+
+msgctxt "Languages::quissly_search.save_failed"
+msgid "Some Quissly settings could not be saved. The error has been sent to Quissly."
+msgstr "Некоторые настройки Quissly не удалось сохранить. Ошибка отправлена в Quissly."
+
+msgctxt "Languages::quissly_search.su_verify_intro"
+msgid "We'll email a 6-digit code to [email] to confirm it's yours."
+msgstr "Мы отправим 6-значный код на [email], чтобы подтвердить, что это ваш адрес."
+
+msgctxt "Languages::quissly_search.su_verify_sent"
+msgid "We sent a 6-digit code to [email]. It expires in 10 minutes."
+msgstr "Мы отправили 6-значный код на [email]. Он действует 10 минут."
+
+msgctxt "Languages::quissly_search.su_verify_label"
+msgid "Verification code"
+msgstr "Код подтверждения"
+
+msgctxt "Languages::quissly_search.su_verify_send"
+msgid "Send code"
+msgstr "Отправить код"
+
+msgctxt "Languages::quissly_search.su_verify_resend"
+msgid "Send a new code"
+msgstr "Отправить новый код"
+
+msgctxt "Languages::quissly_search.su_verify_sending"
+msgid "Sending…"
+msgstr "Отправка…"
+
+msgctxt "Languages::quissly_search.su_block_code_not_sent"
+msgid "Confirm the email with a code to continue."
+msgstr "Чтобы продолжить, подтвердите адрес кодом."
+
+msgctxt "Languages::quissly_search.su_block_code_missing"
+msgid "Enter the 6-digit code from your email to continue."
+msgstr "Чтобы продолжить, введите 6-значный код из письма."
+
+msgctxt "Languages::quissly_search.su_code_invalid"
+msgid "Enter the 6-digit code we emailed you."
+msgstr "Введите 6-значный код из письма."

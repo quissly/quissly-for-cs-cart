@@ -51,6 +51,13 @@ final class Config
      */
     public const PLATFORM = 'cs-cart';
 
+    /**
+     * Quissly's integrations token (X-Integrations-Token) for /v2beta/integrations/errors - the same
+     * for every store, so not a secret: this file is public. $config['quissly_integrations_token']
+     * in config.local.php replaces it. Empty = the add-on's error reports are kept, not sent.
+     */
+    public const INTEGRATIONS_TOKEN = '3wej2Q6Rfb3c79GvneDPhj1FDhB9oz_dxgNWqpehCE4';
+
     /** Fallback page size when CS-Cart hands us a zero/empty items-per-page. */
     public const DEFAULT_PAGE_SIZE = 20;
 

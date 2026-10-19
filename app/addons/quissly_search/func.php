@@ -48,36 +48,99 @@ function fn_quissly_search_admin_user(): array
 }
 
 /**
+ * A hook of the add-on failed: reported to Quissly (lib/Diagnostics/) and logged, and goes no
+ * further - the store's own work (the save, the cart, the order, the page) goes on without it.
+ */
+function fn_quissly_search_failed(\Throwable $e, string $in): void
+{
+    try {
+        \Quissly\Search\Diagnostics\ErrorCapture::exception($e, $in);
+        \Quissly\Search\Logger::notice('Quissly hook failed', ['in' => $in, 'exception' => get_class($e), 'at' => basename($e->getFile()) . ':' . $e->getLine()]);
+    } catch (\Throwable $ignored) {
+        // Reporting never gets in the store's way.
+    }
+}
+
+/**
+ * POST quissly_search.client_error (storefront and admin): an error in one of the add-on's scripts,
+ * sent by js/addons/quissly_search/report.js, kept for Quissly (lib/Diagnostics/). A body cap and a
+ * per-visitor limit (10 in 10 minutes); answers 204 and stops.
+ */
+function fn_quissly_search_client_error(): void
+{
+    $raw = (string) file_get_contents('php://input', false, null, 0, 8192);
+    $report = json_decode($raw, true);
+    $status = 204;
+    if (!is_array($report) || strlen($raw) > 6000) {
+        $status = 400;
+    } elseif (!(new \Quissly\Search\Media\DbRateLimiter())->allow('jserr|' . (string) ($_SERVER['REMOTE_ADDR'] ?? ''), 10, 600, time())) {
+        $status = 429;
+    } else {
+        $shopper = \Quissly\Search\Shopper::deviceAndOs((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        \Quissly\Search\Diagnostics\ErrorCapture::browser($report, trim((string) ($shopper['device'] ?? '') . ' ' . (string) ($shopper['os'] ?? '')));
+    }
+    http_response_code($status);
+    header('Cache-Control: no-store');
+    exit;
+}
+
+/**
+ * Hook set_notification_pre: an error notice on one of the add-on's pages (Configuration
+ * included) is reported to Quissly, as what the merchant was told.
+ */
+function fn_quissly_search_set_notification_pre($type, $title, $message, $message_state, $extra, $init_message)
+{
+    $dispatch = (string) ($_REQUEST['dispatch'] ?? '');
+    $ours = strpos($dispatch, 'quissly_search.') === 0
+        || (strpos($dispatch, 'addons.') === 0 && ($_REQUEST['addon'] ?? '') === 'quissly_search');
+    if ($type === 'E' && $ours && is_scalar($message)) {
+        \Quissly\Search\Diagnostics\ErrorCapture::refused('admin_notice', strip_tags((string) $message));
+    }
+}
+
+/**
  * X-Quissly-Search on a storefront request carrying ?quissly_debug=1 (lib/SearchOrigin):
  * after the controller ran the search, before any output.
  */
 function fn_quissly_search_dispatch_before_display()
 {
-    $value = \Quissly\Search\SearchSignal::headerValue();
-    if (AREA === 'C' && $value !== null && \Quissly\Search\SearchOrigin::asked($_REQUEST) && !headers_sent()) {
-        header('X-Quissly-Search: ' . $value);
-    }
-    // The cron's work every few minutes while shoppers visit, for a store without a server cron.
-    $cryptKey = (string) \Tygh\Registry::get('config.crypt_key');
-    if (AREA === 'C' && $cryptKey !== '') {
-        \Quissly\Search\VisitTick::maybe(
-            rtrim((string) \Tygh\Registry::get('config.dir.var'), '/') . '/quissly_search_tick',
-            (string) fn_url('quissly_search.tick?token=' . \Quissly\Search\VisitTick::token($cryptKey), 'C'),
-            time()
-        );
+    try {
+        $value = \Quissly\Search\SearchSignal::headerValue();
+        if (AREA === 'C' && $value !== null && \Quissly\Search\SearchOrigin::asked($_REQUEST) && !headers_sent()) {
+            header('X-Quissly-Search: ' . $value);
+        }
+        // The cron's work every few minutes while shoppers visit, for a store without a server cron.
+        $cryptKey = (string) \Tygh\Registry::get('config.crypt_key');
+        if (AREA === 'C' && $cryptKey !== '') {
+            \Quissly\Search\VisitTick::maybe(
+                rtrim((string) \Tygh\Registry::get('config.dir.var'), '/') . '/quissly_search_tick',
+                (string) fn_url('quissly_search.tick?token=' . \Quissly\Search\VisitTick::token($cryptKey), 'C'),
+                time()
+            );
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'dispatch_before_display');
     }
     // The daily update check, for a store whose cron is not set up: at the end of an admin
     // page, once the page is built (the cron dispatch runs it too; lib/Update/).
     if (AREA === 'A') {
         register_shutdown_function(static function () {
-            $store = new DbSyncStore();
-            \Quissly\Search\Update\Updater::runIfDue($store, time());
-            fn_quissly_search_version_report($store);
-            // Shopping events wait for the cron; a store without one sends them here, a few
-            // seconds' worth, when the cron has not run for 10 minutes.
-            if ((int) ($store->getState('last_cron')['at'] ?? 0) < time() - 600) {
-                fn_quissly_search_events_send(5.0);
+            try {
+                $store = new DbSyncStore();
+                \Quissly\Search\Update\Updater::runIfDue($store, time());
+                fn_quissly_search_version_report($store);
+                // Shopping events wait for the cron; a store without one sends them here, a few
+                // seconds' worth, when the cron has not run for 10 minutes.
+                if ((int) ($store->getState('last_cron')['at'] ?? 0) < time() - 600) {
+                    \Quissly\Search\Diagnostics\ErrorCapture::persist();
+                    fn_quissly_search_error_report($store);
+                    fn_quissly_search_events_send(5.0);
+                }
+            } catch (\Throwable $e) {
+                fn_quissly_search_failed($e, 'admin page end');
             }
+            // ErrorCapture's own shutdown function ran before this one.
+            \Quissly\Search\Diagnostics\ErrorCapture::persist();
         });
     }
 }
@@ -102,6 +165,9 @@ function fn_quissly_search_cron_work(DbSyncStore $store): ?array
     // Shopping activity for Quissly's analytics: the queued events (lib/Events/), after the
     // version report when due. Also when not connected (any longer): the sender then empties the queue.
     fn_quissly_search_version_report($store);
+    // The add-on's own errors (lib/Diagnostics/): what this request hit so far first.
+    \Quissly\Search\Diagnostics\ErrorCapture::persist();
+    fn_quissly_search_error_report($store);
     fn_quissly_search_events_send(40.0);
     // What the store's plan includes (lib/Setup/PlanGate.php), asked again every 10 minutes.
     fn_quissly_search_plan_refresh($store, false);
@@ -125,11 +191,17 @@ function fn_quissly_search_uninstall()
  */
 function fn_quissly_search_debug_badge(): string
 {
-    return \Quissly\Search\SearchOrigin::badge(\Quissly\Search\SearchOrigin::asked($_REQUEST), [
-        'quissly' => (string) __('quissly_search.origin_quissly'),
-        'native'  => (string) __('quissly_search.origin_native'),
-        'skipped' => (string) __('quissly_search.origin_skipped'),
-    ]);
+    try {
+        return \Quissly\Search\SearchOrigin::badge(\Quissly\Search\SearchOrigin::asked($_REQUEST), [
+            'quissly' => (string) __('quissly_search.origin_quissly'),
+            'native'  => (string) __('quissly_search.origin_native'),
+            'skipped' => (string) __('quissly_search.origin_skipped'),
+        ]);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'debug badge');
+
+        return '';
+    }
 }
 
 /**
@@ -140,6 +212,13 @@ function fn_quissly_search_catalog_handler()
     if (\Quissly\Search\Update\Updater::reinstalling()) {
         return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
     }
+
+    return fn_quissly_search_setting_block('catalog', 'fn_quissly_search_catalog_block');
+}
+
+/** Configuration's catalog block, drawn by fn_quissly_search_catalog_handler(). */
+function fn_quissly_search_catalog_block(): string
+{
     return fn_quissly_search_info_row(CatalogView::render(CatalogFeatures::catalog(), CatalogFeatures::choices(new DbSyncStore())));
 }
 
@@ -150,6 +229,21 @@ function fn_quissly_search_catalog_handler()
 function fn_quissly_search_info_row(string $html): string
 {
     return '<div class="control-group setting-wide"><div class="controls">' . $html . '</div></div>';
+}
+
+/**
+ * A Configuration block, drawn by $draw: one that fails says so in its place, is reported to
+ * Quissly (lib/Diagnostics/), and the rest of the page is drawn as usual.
+ */
+function fn_quissly_search_setting_block(string $name, callable $draw): string
+{
+    try {
+        return (string) $draw();
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, $name . ' settings');
+
+        return fn_quissly_search_info_row('<p class="text-error">' . htmlspecialchars((string) __('quissly_search.block_failed'), ENT_QUOTES, 'UTF-8') . '</p>');
+    }
 }
 
 /**
@@ -170,6 +264,13 @@ function fn_quissly_search_status_handler()
     if (\Quissly\Search\Update\Updater::reinstalling()) {
         return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
     }
+
+    return fn_quissly_search_setting_block('status', 'fn_quissly_search_status_block');
+}
+
+/** Configuration's status block, drawn by fn_quissly_search_status_handler(). */
+function fn_quissly_search_status_block(): string
+{
     $credentials = Credentials::fromRegistry();
     $admin = fn_quissly_search_admin_user();
 
@@ -242,7 +343,14 @@ function fn_quissly_search_get_products_before_select(
     &$lang_code,
     &$having
 ) {
-    SearchInterceptor::interceptBeforeSelect($params, $condition, $sortings, $total, $items_per_page);
+    // A failure puts the query back as it was: CS-Cart's own search answers.
+    $before = [$params, $condition, $sortings, $total, $items_per_page];
+    try {
+        SearchInterceptor::interceptBeforeSelect($params, $condition, $sortings, $total, $items_per_page);
+    } catch (\Throwable $e) {
+        [$params, $condition, $sortings, $total, $items_per_page] = $before;
+        fn_quissly_search_failed($e, 'get_products_before_select');
+    }
 }
 
 /**
@@ -259,8 +367,12 @@ function fn_quissly_search_get_products_before_select(
  */
 function fn_quissly_search_products_sorting(&$sorting, &$simple_mode)
 {
-    if (empty($simple_mode) && is_array($sorting)) {
-        SortMap::registerRelevanceSorting($sorting);
+    try {
+        if (empty($simple_mode) && is_array($sorting)) {
+            SortMap::registerRelevanceSorting($sorting);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'products_sorting');
     }
 }
 
@@ -274,7 +386,11 @@ function fn_quissly_search_products_sorting(&$sorting, &$simple_mode)
  */
 function fn_quissly_search_update_product_post($product_data, $product_id, $lang_code, $create)
 {
-    Sync::productSaved((int) $product_id);
+    try {
+        Sync::productSaved((int) $product_id);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'update_product_post');
+    }
 }
 
 /**
@@ -285,14 +401,22 @@ function fn_quissly_search_update_product_post($product_data, $product_id, $lang
  */
 function fn_quissly_search_delete_product_pre($product_id, $status)
 {
-    Sync::productDeleting((int) $product_id);
+    try {
+        Sync::productDeleting((int) $product_id);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'delete_product_pre');
+    }
 }
 
 /** @param int|string $product_id */
 function fn_quissly_search_delete_product_post($product_id, $product_deleted)
 {
-    if ($product_deleted) {
-        Sync::productDeleted((int) $product_id);
+    try {
+        if ($product_deleted) {
+            Sync::productDeleted((int) $product_id);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'delete_product_post');
     }
 }
 
@@ -302,7 +426,11 @@ function fn_quissly_search_delete_product_post($product_id, $product_deleted)
  */
 function fn_quissly_search_update_product_amount(&$new_amount, $product_id, $cart_id, $tracking, $notify, $order_info, $amount_delta, $current_amount, $original_amount, $sign)
 {
-    Sync::amountChanged((int) $product_id, $current_amount, $new_amount);
+    try {
+        Sync::amountChanged((int) $product_id, $current_amount, $new_amount);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'update_product_amount');
+    }
 }
 
 /**
@@ -312,8 +440,12 @@ function fn_quissly_search_update_product_amount(&$new_amount, $product_id, $car
  */
 function fn_quissly_search_tools_change_status($params, $result)
 {
-    if ($result) {
-        Sync::statusChanged((array) $params);
+    try {
+        if ($result) {
+            Sync::statusChanged((array) $params);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'tools_change_status');
     }
 }
 
@@ -324,8 +456,12 @@ function fn_quissly_search_tools_change_status($params, $result)
  */
 function fn_quissly_search_change_company_status_pre($company_id, $status_to, $reason, $status_from, $skip_query, $notify)
 {
-    if ($status_to !== $status_from) {
-        Sync::vendorChanged((int) $company_id);
+    try {
+        if ($status_to !== $status_from) {
+            Sync::vendorChanged((int) $company_id);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'change_company_status_pre');
     }
 }
 
@@ -336,8 +472,12 @@ function fn_quissly_search_change_company_status_pre($company_id, $status_to, $r
  */
 function fn_quissly_search_update_company($company_data, $company_id, $lang_code, $action)
 {
-    if ($action === 'update' && isset($company_data['status'])) {
-        Sync::vendorChanged((int) $company_id);
+    try {
+        if ($action === 'update' && isset($company_data['status'])) {
+            Sync::vendorChanged((int) $company_id);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'update_company');
     }
 }
 
@@ -354,13 +494,17 @@ function fn_quissly_search_update_company($company_data, $company_id, $lang_code
  */
 function fn_quissly_search_variation_group_save_group($service, $group, $events)
 {
-    $ids = is_object($group) && method_exists($group, 'getProductIds') ? (array) $group->getProductIds() : [];
-    foreach ((array) $events as $event) {
-        if ($event instanceof \Tygh\Addons\ProductVariations\Product\Group\Events\ProductRemovedEvent) {
-            $ids[] = $event->getProduct()->getProductId();
+    try {
+        $ids = is_object($group) && method_exists($group, 'getProductIds') ? (array) $group->getProductIds() : [];
+        foreach ((array) $events as $event) {
+            if ($event instanceof \Tygh\Addons\ProductVariations\Product\Group\Events\ProductRemovedEvent) {
+                $ids[] = $event->getProduct()->getProductId();
+            }
         }
+        Sync::productsSaved(array_map('intval', $ids));
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'variation_group_save_group');
     }
-    Sync::productsSaved(array_map('intval', $ids));
 }
 
 /**
@@ -373,7 +517,11 @@ function fn_quissly_search_variation_group_save_group($service, $group, $events)
  */
 function fn_quissly_search_product_bundle_service_update_bundle($bundle_data, $bundle_id)
 {
-    Sync::bundleChanged((int) $bundle_id);
+    try {
+        Sync::bundleChanged((int) $bundle_id);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'product_bundle_service_update_bundle');
+    }
 }
 
 /**
@@ -383,13 +531,21 @@ function fn_quissly_search_product_bundle_service_update_bundle($bundle_data, $b
  */
 function fn_quissly_search_product_bundle_service_update_links($bundle_id, $products_data, $data)
 {
-    Sync::bundleChanged(0, array_map('intval', array_column((array) $data, 'product_id')));
+    try {
+        Sync::bundleChanged(0, array_map('intval', array_column((array) $data, 'product_id')));
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'product_bundle_service_update_links');
+    }
 }
 
 /** @param int|string $bundle_id */
 function fn_quissly_search_product_bundle_service_delete_bundle_pre($bundle_id)
 {
-    Sync::bundleChanged((int) $bundle_id);
+    try {
+        Sync::bundleChanged((int) $bundle_id);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'product_bundle_service_delete_bundle_pre');
+    }
 }
 
 /**
@@ -405,10 +561,25 @@ function fn_quissly_search_storefront()
     if ($result !== null) {
         return $result;
     }
+    try {
+        $result = fn_quissly_search_storefront_build();
+    } catch (\Throwable $e) {
+        // Nothing of Quissly on this page, which CS-Cart draws as usual.
+        $result = [];
+        fn_quissly_search_failed($e, 'storefront');
+    }
+
+    return $result;
+}
+
+/** @return array<string, mixed> fn_quissly_search_storefront()'s answer */
+function fn_quissly_search_storefront_build(): array
+{
     $credentials = Credentials::fromRegistry();
     $store = new DbSyncStore();
     $configured = $credentials->isConfigured();
-    $result = Storefront::build([
+
+    return Storefront::build([
         'configured'    => $configured,
         'gate_open'     => $configured && SyncWorker::isGateOpen($store),
         'features'      => Features::all(),
@@ -471,8 +642,6 @@ function fn_quissly_search_storefront()
             'imageFallbackQuery' => __('quissly_search.sf_image_fallback'),
         ],
     ]);
-
-    return $result;
 }
 
 /**
@@ -641,6 +810,13 @@ function fn_quissly_search_suggestions_handler()
     if (\Quissly\Search\Update\Updater::reinstalling()) {
         return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
     }
+
+    return fn_quissly_search_setting_block('suggestions', 'fn_quissly_search_suggestions_block');
+}
+
+/** Configuration's suggestions block, drawn by fn_quissly_search_suggestions_handler(). */
+function fn_quissly_search_suggestions_block(): string
+{
     $store = new DbSyncStore();
     $current = fn_quissly_search_admin_suggestions($store);
 
@@ -663,6 +839,13 @@ function fn_quissly_search_buttons_handler()
     if (\Quissly\Search\Update\Updater::reinstalling()) {
         return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
     }
+
+    return fn_quissly_search_setting_block('buttons', 'fn_quissly_search_buttons_block');
+}
+
+/** Configuration's buttons block, drawn by fn_quissly_search_buttons_handler(). */
+function fn_quissly_search_buttons_block(): string
+{
     $store = new DbSyncStore();
 
     return fn_quissly_search_info_row(\Quissly\Search\Admin\SuggestionsView::buttons(
@@ -725,6 +908,13 @@ function fn_quissly_search_most_loved_handler()
     if (\Quissly\Search\Update\Updater::reinstalling()) {
         return ''; // an update rebuilding the settings: drawn for nobody (lib/Update/Updater.php)
     }
+
+    return fn_quissly_search_setting_block('most_loved', 'fn_quissly_search_most_loved_block');
+}
+
+/** Configuration's most loved block, drawn by fn_quissly_search_most_loved_handler(). */
+function fn_quissly_search_most_loved_block(): string
+{
     $picks = fn_quissly_search_most_loved_picks();
     $list = [];
     foreach ([[$picks['shown'], false], [$picks['backups'], true]] as [$codes, $backup]) {
@@ -1189,16 +1379,20 @@ function fn_quissly_search_post_add_to_cart($product_data, $cart, $auth, $update
     if ($update || !is_array($ids)) {
         return;
     }
-    foreach ($ids as $productId) {
-        $amount = 1;
-        foreach ((array) $product_data as $key => $data) {
-            if ((int) ($data['product_id'] ?? $key) === (int) $productId) {
-                $amount = (float) ($data['amount'] ?? 1);
-                break;
+    try {
+        foreach ($ids as $productId) {
+            $amount = 1;
+            foreach ((array) $product_data as $key => $data) {
+                if ((int) ($data['product_id'] ?? $key) === (int) $productId) {
+                    $amount = (float) ($data['amount'] ?? 1);
+                    break;
+                }
             }
+            [$catalogId, $variantId] = fn_quissly_search_event_ids((int) $productId);
+            fn_quissly_search_event_shopper(EventBody::ADD_TO_CART, EventBody::addToCart($catalogId, $variantId, $amount));
         }
-        [$catalogId, $variantId] = fn_quissly_search_event_ids((int) $productId);
-        fn_quissly_search_event_shopper(EventBody::ADD_TO_CART, EventBody::addToCart($catalogId, $variantId, $amount));
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'post_add_to_cart');
     }
 }
 
@@ -1208,11 +1402,15 @@ function fn_quissly_search_post_add_to_cart($product_data, $cart, $auth, $update
  */
 function fn_quissly_search_pre_add_to_wishlist($product_data, $wishlist, $auth)
 {
-    foreach ((array) $product_data as $key => $data) {
-        $productId = (int) ($data['product_id'] ?? $key);
-        if ($productId > 0) {
-            fn_quissly_search_event_shopper(EventBody::WISHLIST, EventBody::wishlist(fn_quissly_search_event_ids($productId)[0]));
+    try {
+        foreach ((array) $product_data as $key => $data) {
+            $productId = (int) ($data['product_id'] ?? $key);
+            if ($productId > 0) {
+                fn_quissly_search_event_shopper(EventBody::WISHLIST, EventBody::wishlist(fn_quissly_search_event_ids($productId)[0]));
+            }
         }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'pre_add_to_wishlist');
     }
 }
 
@@ -1224,9 +1422,13 @@ function fn_quissly_search_pre_add_to_wishlist($product_data, $wishlist, $auth)
  */
 function fn_quissly_search_change_order_status($status_to, $status_from, $order_info, $force_notification = [], $order_statuses = [], $place_order = false)
 {
-    $paid = function_exists('fn_get_order_paid_statuses') ? (array) fn_get_order_paid_statuses() : ['P', 'C'];
-    if (in_array($status_to, $paid, true) && !in_array($status_from, $paid, true) && is_array($order_info)) {
-        fn_quissly_search_event_order($order_info);
+    try {
+        $paid = function_exists('fn_get_order_paid_statuses') ? (array) fn_get_order_paid_statuses() : ['P', 'C'];
+        if (in_array($status_to, $paid, true) && !in_array($status_from, $paid, true) && is_array($order_info)) {
+            fn_quissly_search_event_order($order_info);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'change_order_status');
     }
 }
 
@@ -1277,11 +1479,223 @@ function fn_quissly_search_version_report(DbSyncStore $store): void
         $result = \Quissly\Search\Events\VersionReport::track($stored, $version, time());
         $state = $result['state'];
         if ($result['report'] && Credentials::fromRegistry()->isConfigured()) {
-            (new \Quissly\Search\Events\DbEventQueue())->add(EventBody::envelope(\Quissly\Search\Events\VersionReport::EVENT, \Quissly\Search\Events\VersionReport::metadata($state), null, [], fn_quissly_search_event_shop(), EventBody::SOURCE_STORE, \Quissly\Search\Shopper::newUuid(), time()), time());
+            $metadata = \Quissly\Search\Events\VersionReport::metadata($state);
+            // A new store's first report also says what it runs on (lib/Diagnostics/InstallReport).
+            if (\Quissly\Search\Diagnostics\InstallReport::isFirst($stored)) {
+                $metadata += \Quissly\Search\Diagnostics\InstallReport::metadata(
+                    fn_quissly_search_install_facts(),
+                    (array) ($store->getState(\Quissly\Search\Diagnostics\ErrorReport::STATE) ?? [])
+                );
+            }
+            (new \Quissly\Search\Events\DbEventQueue())->add(EventBody::envelope(\Quissly\Search\Events\VersionReport::EVENT, $metadata, null, [], fn_quissly_search_event_shop(), EventBody::SOURCE_STORE, \Quissly\Search\Shopper::newUuid(), time()), time());
             $state['reported_at'] = time();
         }
         if ($state !== $stored) {
             $store->setState(\Quissly\Search\Events\VersionReport::STATE, $state);
+        }
+    } catch (\Throwable $e) {
+        return;
+    }
+}
+
+/**
+ * What this installation runs on, for the first version report (lib/Diagnostics/InstallReport).
+ * Facts only - nothing secret or personal. Never throws: what cannot be read is left out.
+ *
+ * @return array<string, mixed>
+ */
+function fn_quissly_search_install_facts(): array
+{
+    $facts = [];
+    $read = static function (string $key, callable $fact) use (&$facts): void {
+        try {
+            $facts[$key] = $fact();
+        } catch (\Throwable $e) {
+            // Left out.
+        }
+    };
+    $read('platform_version', static fn () => (defined('PRODUCT_VERSION') ? PRODUCT_VERSION : '') . (defined('PRODUCT_EDITION') ? ' ' . PRODUCT_EDITION : ''));
+    $read('multivendor', static fn () => function_exists('fn_allowed_for') && fn_allowed_for('MULTIVENDOR'));
+    $read('php_version', static fn () => PHP_VERSION);
+    $read('php_sapi', static fn () => PHP_SAPI);
+    $read('php_extensions', static function (): array {
+        $loaded = [];
+        foreach (['curl', 'openssl', 'json', 'zip', 'sodium', 'mbstring', 'intl'] as $extension) {
+            $loaded[$extension] = extension_loaded($extension);
+        }
+
+        return $loaded;
+    });
+    $read('memory_limit', static fn () => (string) ini_get('memory_limit'));
+    $read('max_execution_time', static fn () => (int) ini_get('max_execution_time'));
+    $read('addons', static function (): array {
+        $on = [];
+        foreach (['gdpr', 'wishlist', 'product_variations', 'product_bundles', 'seo', 'master_products'] as $addon) {
+            $on[$addon] = \Tygh\Registry::get('addons.' . $addon . '.status') === 'A';
+        }
+
+        return $on;
+    });
+    $read('themes', static fn () => array_values(array_unique(array_map('strval', (array) db_get_fields('SELECT theme_name FROM ?:storefronts')))));
+    $read('languages', static fn () => array_map('strval', (array) db_get_fields("SELECT lang_code FROM ?:languages WHERE status = 'A'")));
+    $read('main_language', static fn () => fn_quissly_search_main_language());
+    $read('currency', static fn () => defined('CART_PRIMARY_CURRENCY') ? (string) CART_PRIMARY_CURRENCY : '');
+    $read('products', static fn () => (int) db_get_field("SELECT COUNT(*) FROM ?:products WHERE status = 'A'"));
+    $read('updates_can_write', static function (): bool {
+        $root = rtrim((string) \Tygh\Registry::get('config.dir.root'), '/');
+
+        return is_writable(__DIR__) && is_writable($root . '/js/addons/quissly_search') && is_writable(rtrim((string) \Tygh\Registry::get('config.dir.var'), '/'));
+    });
+    $read('server_time', static fn () => gmdate('Y-m-d\TH:i:s\Z'));
+
+    return $facts;
+}
+
+/**
+ * Right after the store connects (Quissly Setup, Connect): its first version report - with what it
+ * runs on - and any problem kept from before, sent now rather than by the next cron run. A few
+ * seconds at most; never throws.
+ */
+function fn_quissly_search_report_now(): void
+{
+    try {
+        $store = new DbSyncStore();
+        fn_quissly_search_version_report($store);
+        \Quissly\Search\Diagnostics\ErrorCapture::persist();
+        fn_quissly_search_error_report($store);
+        fn_quissly_search_events_send(4.0);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'report after connect');
+    }
+}
+
+/** Quissly's integrations token (lib/Config.php; config.local.php may replace it), '' = none. */
+function fn_quissly_search_integrations_token(): string
+{
+    return trim((string) (\Tygh\Registry::get('config.quissly_integrations_token') ?: \Quissly\Search\Config::INTEGRATIONS_TOKEN));
+}
+
+/**
+ * One message to Quissly's log: POST /v2beta/integrations/errors with the integrations token (no store
+ * key - it works before Connect, and while the add-on is being installed). True when Quissly took it.
+ */
+function fn_quissly_search_integrations_post(string $error): bool
+{
+    $token = fn_quissly_search_integrations_token();
+    if ($token === '') {
+        return false;
+    }
+    $response = \Tygh\Http::post(
+        \Quissly\Search\Config::BASE_URL . \Quissly\Search\Diagnostics\ErrorReport::PATH,
+        (string) json_encode(\Quissly\Search\Diagnostics\ErrorReport::body($error), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        [
+            // X-Platform too: the firewall in front of api.quissly.com refuses a request without it (an HTML 403).
+            'headers'            => ['Content-Type: application/json', 'X-Platform: ' . \Quissly\Search\Config::PLATFORM, 'X-Integrations-Token: ' . $token],
+            'timeout'            => 5,
+            'connection_timeout' => 5,
+            'execution_timeout'  => 5,
+        ]
+    );
+    $status = (int) \Tygh\Http::getStatus();
+
+    return $response !== false && $status >= 200 && $status < 300;
+}
+
+/**
+ * addon.xml's before_install function: CS-Cart calls it once it has read the add-on, before the
+ * tables, settings, language files and install functions. It only arranges the check at the end of
+ * the installing request (fn_quissly_search_install_outcome). Must not touch the database: CS-Cart
+ * counts a database error here as a failed installation.
+ */
+function fn_quissly_search_before_install()
+{
+    register_shutdown_function('fn_quissly_search_install_outcome');
+}
+
+/**
+ * The end of the installing request: an add-on CS-Cart did not install (it removes a failed one) tells
+ * Quissly why, as far as CS-Cart said (lib/Diagnostics/InstallReport::failureText). Never throws.
+ */
+function fn_quissly_search_install_outcome()
+{
+    try {
+        if ((string) db_get_field('SELECT status FROM ?:addons WHERE addon = ?s', 'quissly_search') !== '') {
+            return;
+        }
+        $notices = [];
+        foreach ((array) (\Tygh\Tygh::$app['session']['notifications'] ?? []) as $notice) {
+            if (in_array($notice['type'] ?? '', ['E', 'W'], true)) {
+                $notices[] = strip_tags((string) ($notice['message'] ?? ''));
+            }
+        }
+        fn_quissly_search_integrations_post(\Quissly\Search\Diagnostics\InstallReport::failureText(
+            $notices,
+            error_get_last(),
+            [
+                'shop'             => fn_quissly_search_event_shop(),
+                'version'          => \Quissly\Search\Update\Release::versionIn((string) @file_get_contents(__DIR__ . '/addon.xml')) ?? '',
+                'platform_version' => (defined('PRODUCT_VERSION') ? PRODUCT_VERSION : '') . (defined('PRODUCT_EDITION') ? ' ' . PRODUCT_EDITION : ''),
+                'php_version'      => PHP_VERSION,
+            ],
+            defined('DIR_ROOT') ? (string) DIR_ROOT : ''
+        ));
+    } catch (\Throwable $e) {
+        return;
+    }
+}
+
+/**
+ * Send the add-on's own messages to Quissly's log (POST /v2beta/integrations/errors, with Quissly's
+ * integrations token - no store key, so also before the store is connected): once, that it was
+ * installed (lib/Diagnostics/InstallReport), then its errors (lib/Diagnostics/ErrorReport), at most
+ * ErrorReport::BATCH a run, a few seconds each at most. The first one Quissly does not take stops the
+ * run; every error report not taken is counted as unsent again. Never throws.
+ */
+function fn_quissly_search_error_report(DbSyncStore $store): void
+{
+    try {
+        if (fn_quissly_search_integrations_token() === '') {
+            return;
+        }
+        $post = 'fn_quissly_search_integrations_post';
+        $now = time();
+        $versions = [
+            'shop'             => fn_quissly_search_event_shop(),
+            'service'          => Credentials::fromRegistry()->isConfigured() ? QChatDirectory::cachedSearchServiceId($store) : '',
+            'version'          => \Quissly\Search\Update\Release::versionIn((string) @file_get_contents(__DIR__ . '/addon.xml')) ?? '',
+            'platform_version' => (defined('PRODUCT_VERSION') ? PRODUCT_VERSION : '') . (defined('PRODUCT_EDITION') ? ' ' . PRODUCT_EDITION : ''),
+            'php_version'      => PHP_VERSION,
+        ];
+
+        // Installed: once, with what the store runs on.
+        $ping = (array) ($store->getState(\Quissly\Search\Diagnostics\InstallReport::PING_STATE) ?? []);
+        if (\Quissly\Search\Diagnostics\InstallReport::pingDue($ping, $now)) {
+            $delivered = $post(\Quissly\Search\Diagnostics\InstallReport::pingText(fn_quissly_search_install_facts(), $versions));
+            $store->setState(\Quissly\Search\Diagnostics\InstallReport::PING_STATE, \Quissly\Search\Diagnostics\InstallReport::afterPing($ping, $delivered, $now));
+            if (!$delivered) {
+                return;
+            }
+        }
+
+        $stored = (array) ($store->getState(\Quissly\Search\Diagnostics\ErrorReport::STATE) ?? []);
+        if ($stored === []) {
+            return;
+        }
+        $result = \Quissly\Search\Diagnostics\ErrorReport::due($stored, $versions, $now);
+        $state = $result['state'];
+        $stopped = false;
+        foreach ($result['reports'] as $i => $metadata) {
+            if ($stopped || $i >= \Quissly\Search\Diagnostics\ErrorReport::BATCH) {
+                $state = \Quissly\Search\Diagnostics\ErrorReport::unsent($state, $metadata, true);
+                continue;
+            }
+            if (!$post(\Quissly\Search\Diagnostics\ErrorReport::text($metadata))) {
+                $stopped = true;
+                $state = \Quissly\Search\Diagnostics\ErrorReport::unsent($state, $metadata, false);
+            }
+        }
+        if ($state !== $stored) {
+            $store->setState(\Quissly\Search\Diagnostics\ErrorReport::STATE, $state);
         }
     } catch (\Throwable $e) {
         return;

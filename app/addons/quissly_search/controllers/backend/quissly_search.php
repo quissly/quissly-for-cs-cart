@@ -166,6 +166,10 @@ function fn_quissly_search_store_billing(): StoreBilling
 /** Answer a Setup step with JSON and stop: no page, no notification queue. */
 function fn_quissly_search_setup_json(array $data): void
 {
+    // A step that failed is reported to Quissly (lib/Diagnostics/), with what the merchant was told.
+    if (($data['ok'] ?? null) === false) {
+        \Quissly\Search\Diagnostics\ErrorCapture::refused('admin_refused', (string) ($data['message'] ?? ''));
+    }
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
@@ -268,598 +272,645 @@ function fn_quissly_search_setup_draft(string $shopName): string
     }
 }
 
-if (in_array($mode, ['dashboard', 'panel', 'billing', 'billing_manage'], true) && !fn_quissly_search_onboarding()->isComplete()) {
-    return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.setup'];
-}
-
-if ($mode === 'setup') {
-    $onboarding = fn_quissly_search_onboarding();
-    if ($onboarding->isComplete()) {
-        return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
+// A failure is reported to Quissly (lib/Diagnostics/), then CS-Cart shows it as before.
+try {
+    // POST quissly_search.client_error: an error in one of the add-on's scripts (func.php).
+    if ($mode === 'client_error' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        fn_quissly_search_client_error();
     }
-    $step = $onboarding->step();
-    $credentials = Credentials::fromRegistry();
-    $billing = $step === Onboarding::STEP_DETAILS ? null : fn_quissly_search_store_billing();
-    $admin = fn_quissly_search_admin_user();
-    $text = static function (string $key): string {
-        return (string) __('quissly_search.' . $key);
-    };
-    $endpoint = static function (string $mode): array {
-        return ['url' => fn_url('quissly_search.' . $mode), 'params' => new \stdClass()];
-    };
-    Tygh::$app['view']->assign('quissly_setup_html', SetupPage::render([
-        'step'          => $step,
-        'admin_email'   => (string) ($admin['email'] ?? ''),
-        'account_email' => $credentials->accountEmail(),
-        'store_name'    => SetupInput::suggestName((string) Registry::get('settings.Company.company_name')),
-        'description'   => $step === Onboarding::STEP_DETAILS ? fn_quissly_search_setup_draft(trim((string) Registry::get('settings.Company.company_name'))) : '',
-        'domain'        => (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
-        'plans'         => $billing !== null ? $billing->plans() : null,
-        'subscriptions' => $billing !== null ? $billing->subscriptions() : null,
-        'logo_url'      => Registry::get('config.current_location') . '/design/backend/media/images/addons/quissly_search/quissly-wordmark.svg',
-        // The plan is chosen: its step is closed until setup is finished (Billing changes it).
-        'locked'        => $step === Onboarding::STEP_GOLIVE && $onboarding->isPlanLocked(),
-        'services'      => $onboarding->services(),
-        'config'        => [
-            'reload'    => fn_url('quissly_search.setup'),
-            'csrf'      => ['security_hash' => fn_generate_security_hash()],
-            'endpoints' => [
-                'connect' => $endpoint('setup_connect'),
-                'plan'    => $endpoint('setup_plan'),
-                'status'  => $endpoint('setup_status'),
-                'finish'  => $endpoint('setup_finish'),
+
+    if (in_array($mode, ['dashboard', 'panel', 'billing', 'billing_manage'], true) && !fn_quissly_search_onboarding()->isComplete()) {
+        return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.setup'];
+    }
+
+    if ($mode === 'setup') {
+        $onboarding = fn_quissly_search_onboarding();
+        if ($onboarding->isComplete()) {
+            return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
+        }
+        $step = $onboarding->step();
+        $credentials = Credentials::fromRegistry();
+        $billing = $step === Onboarding::STEP_DETAILS ? null : fn_quissly_search_store_billing();
+        $admin = fn_quissly_search_admin_user();
+        $text = static function (string $key): string {
+            return (string) __('quissly_search.' . $key);
+        };
+        $endpoint = static function (string $mode): array {
+            return ['url' => fn_url('quissly_search.' . $mode), 'params' => new \stdClass()];
+        };
+        Tygh::$app['view']->assign('quissly_setup_html', SetupPage::render([
+            'step'          => $step,
+            'admin_email'   => (string) ($admin['email'] ?? ''),
+            'account_email' => $credentials->accountEmail(),
+            'store_name'    => SetupInput::suggestName((string) Registry::get('settings.Company.company_name')),
+            'description'   => $step === Onboarding::STEP_DETAILS ? fn_quissly_search_setup_draft(trim((string) Registry::get('settings.Company.company_name'))) : '',
+            'domain'        => (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
+            'plans'         => $billing !== null ? $billing->plans() : null,
+            'subscriptions' => $billing !== null ? $billing->subscriptions() : null,
+            'logo_url'      => Registry::get('config.current_location') . '/design/backend/media/images/addons/quissly_search/quissly-wordmark.svg',
+            // The plan is chosen: its step is closed until setup is finished (Billing changes it).
+            'locked'        => $step === Onboarding::STEP_GOLIVE && $onboarding->isPlanLocked(),
+            'services'      => $onboarding->services(),
+            'config'        => [
+                'reload'    => fn_url('quissly_search.setup'),
+                'csrf'      => ['security_hash' => fn_generate_security_hash()],
+                'endpoints' => [
+                    'connect'   => $endpoint('setup_connect'),
+                    'send_code' => $endpoint('setup_send_code'),
+                    'plan'    => $endpoint('setup_plan'),
+                    'status'  => $endpoint('setup_status'),
+                    'finish'  => $endpoint('setup_finish'),
+                ],
+                'text'      => [
+                    'connecting'  => $text('su_connecting'),
+                    'saving'      => $text('su_saving'),
+                    'goingLive'   => $text('su_going_live'),
+                    'pickPlan'    => $text('su_pick_plan'),
+                    'invoiceNote' => $text('su_invoice_note'),
+                    'saveYear'    => $text('su_save_year'),
+                    'payTimeout'  => $text('su_pay_timeout'),
+                    'payNotYet'   => $text('su_pay_not_yet'),
+                    'error'       => $text('su_error'),
+                    'compare'       => $text('su_compare'),
+                    'compareBack'   => $text('su_compare_back'),
+                    'emailRequired' => $text('su_email_required'),
+                    'emailInvalid'  => $text('su_email_invalid'),
+                    'emailTooLong'  => $text('su_email_too_long'),
+                    'emailPublic'   => $text('su_email_public'),
+                    'nameInvalid'   => $text('su_name_invalid'),
+                    // Why Save is disabled, in the bar beside it: the first problem only.
+                    'blockers'      => [
+                        'emailMissing' => $text('su_block_email_missing'),
+                        'emailInvalid' => $text('su_block_email_invalid'),
+                        'nameMissing'  => $text('su_block_name_missing'),
+                        'nameInvalid'  => $text('su_block_name_invalid'),
+                        'sellMissing'  => $text('su_block_sell_missing'),
+                        'codeNotSent'  => $text('su_block_code_not_sent'),
+                        'codeMissing'  => $text('su_block_code_missing'),
+                        'none'         => $text('su_nothing_charged'),
+                    ],
+                    // The emailed code under the email field ([email] is the address).
+                    'verify'      => [
+                        'intro'   => $text('su_verify_intro'),
+                        'sent'    => $text('su_verify_sent'),
+                        'label'   => $text('su_verify_label'),
+                        'send'    => $text('su_verify_send'),
+                        'resend'  => $text('su_verify_resend'),
+                        'sending' => $text('su_verify_sending'),
+                    ],
+                    'chipWorking' => $text('su_setting_up'),
+                    'chipReady'   => $text('su_ready'),
+                    'states'      => [
+                        'done'    => $text('su_done'),
+                        'running' => $text('su_running'),
+                        'pending' => $text('su_pending'),
+                        'failed'  => $text('su_failed'),
+                    ],
+                    // Go live, by phase: the one sentence on what is left, the account setup card's
+                    // words, and the note beside Finish.
+                    'intro'       => [
+                        'building'  => $text('su_intro_building'),
+                        'importing' => $text('su_intro_importing'),
+                        'failed'    => $text('su_intro_failed'),
+                        'ready'     => $text('su_intro_ready'),
+                    ],
+                    'body'        => [
+                        'building' => $text('su_body_building'),
+                        'built'    => $text('su_body_built'),
+                    ],
+                    'note'        => [
+                        'building' => $text('su_note_building'),
+                        'waiting'  => $text('su_note_waiting'),
+                        'ready'    => $text('su_note_ready'),
+                    ],
+                ],
             ],
-            'text'      => [
-                'connecting'  => $text('su_connecting'),
-                'saving'      => $text('su_saving'),
-                'goingLive'   => $text('su_going_live'),
-                'pickPlan'    => $text('su_pick_plan'),
-                'invoiceNote' => $text('su_invoice_note'),
-                'saveYear'    => $text('su_save_year'),
-                'payTimeout'  => $text('su_pay_timeout'),
-                'payNotYet'   => $text('su_pay_not_yet'),
-                'error'       => $text('su_error'),
-                'compare'       => $text('su_compare'),
-                'compareBack'   => $text('su_compare_back'),
-                'emailRequired' => $text('su_email_required'),
-                'emailInvalid'  => $text('su_email_invalid'),
-                'emailTooLong'  => $text('su_email_too_long'),
-                'emailPublic'   => $text('su_email_public'),
-                'nameInvalid'   => $text('su_name_invalid'),
-                // Why Save is disabled, in the bar beside it: the first problem only.
-                'blockers'      => [
-                    'emailMissing' => $text('su_block_email_missing'),
-                    'emailInvalid' => $text('su_block_email_invalid'),
-                    'nameMissing'  => $text('su_block_name_missing'),
-                    'nameInvalid'  => $text('su_block_name_invalid'),
-                    'sellMissing'  => $text('su_block_sell_missing'),
-                    'none'         => $text('su_nothing_charged'),
-                ],
-                'chipWorking' => $text('su_setting_up'),
-                'chipReady'   => $text('su_ready'),
-                'states'      => [
-                    'done'    => $text('su_done'),
-                    'running' => $text('su_running'),
-                    'pending' => $text('su_pending'),
-                    'failed'  => $text('su_failed'),
-                ],
-                // Go live, by phase: the one sentence on what is left, the account setup card's
-                // words, and the note beside Finish.
-                'intro'       => [
-                    'building'  => $text('su_intro_building'),
-                    'importing' => $text('su_intro_importing'),
-                    'failed'    => $text('su_intro_failed'),
-                    'ready'     => $text('su_intro_ready'),
-                ],
-                'body'        => [
-                    'building' => $text('su_body_building'),
-                    'built'    => $text('su_body_built'),
-                ],
-                'note'        => [
-                    'building' => $text('su_note_building'),
-                    'waiting'  => $text('su_note_waiting'),
-                    'ready'    => $text('su_note_ready'),
-                ],
-            ],
-        ],
-    ]));
+        ]));
 
-    return [CONTROLLER_STATUS_OK];
-}
+        return [CONTROLLER_STATUS_OK];
+    }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_connect') {
-    // What Quissly's backend accepts (the Shopify app's checks), refused here rather than
-    // half-way through creating the account.
-    $problem = SetupInput::emailProblem((string) ($_REQUEST['email'] ?? ''));
-    if ($problem !== '') {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_email_' . $problem)]);
+    // Quissly mails the sign-up code to the email Setup will create the account with (lib/Connect/Connector).
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_send_code') {
+        $problem = SetupInput::emailProblem((string) ($_REQUEST['email'] ?? ''));
+        if ($problem !== '') {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_email_' . $problem)]);
+        }
+        $result = (new Connector(Credentials::credentialStore(), fn_quissly_search_console_post(Connector::SEND_CODE_TIMEOUT_SECONDS)))->sendCode(
+            (string) $_REQUEST['email'],
+            (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
+            Credentials::fromRegistry()->source() === Credentials::SOURCE_CONFIG
+        );
+        fn_quissly_search_setup_json(['ok' => $result['ok'], 'message' => $result['ok'] ? '' : fn_quissly_search_setup_text($result['message'])]);
     }
-    // Quissly Setup asks for both (the Shopify app's rule).
-    if (trim((string) ($_REQUEST['store_name'] ?? '')) === '' || trim((string) ($_REQUEST['description'] ?? '')) === '') {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_required_both')]);
-    }
-    if (!SetupInput::isNameValid((string) ($_REQUEST['store_name'] ?? ''))) {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_name_chars')]);
-    }
-    if (mb_strlen(trim((string) $_REQUEST['description'])) > 500) {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_description_long')]);
-    }
-    @set_time_limit(Connector::TIMEOUT_SECONDS + 60);
-    $onboarding = fn_quissly_search_onboarding();
-    $inSetup = !$onboarding->isComplete();
-    $admin = fn_quissly_search_admin_user();
-    $typed = trim((string) ($_REQUEST['store_name'] ?? ''));
-    $companyName = $typed !== '' ? mb_substr($typed, 0, 100) : trim((string) Registry::get('settings.Company.company_name'));
-    $environment = trim((string) Registry::get('config.quissly_environment'));
-    $result = (new Connector(Credentials::credentialStore(), fn_quissly_search_console_post(Connector::TIMEOUT_SECONDS)))->connect(
-        (string) ($_REQUEST['email'] ?? ''),
-        [
-            'domain'            => (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
-            'name'              => $companyName !== '' ? $companyName : null,
-            'first_name'        => isset($admin['firstname']) ? (string) $admin['firstname'] : null,
-            'last_name'         => isset($admin['lastname']) ? (string) $admin['lastname'] : null,
-            'environment'       => $environment !== '' ? $environment : \Quissly\Search\Config::DEFAULT_ENVIRONMENT,
-            'already_connected' => Credentials::fromRegistry()->source() === Credentials::SOURCE_CONFIG,
-            'description'       => trim((string) ($_REQUEST['description'] ?? '')),
-        ]
-    );
-    if (!$result['ok']) {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
-    }
-    fn_quissly_search_refresh_qchat(new DbSyncStore(), Credentials::fromRegistry());
-    if ($inSetup) {
-        // The first sync starts once the new service has settled (Onboarding::HOLD_SECONDS).
-        fn_quissly_search_onboarding()->connected();
-    }
-    fn_quissly_search_setup_json(['ok' => true]);
-}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_plan') {
-    if (!Credentials::fromRegistry()->isConfigured()) {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_connect_first')]);
-    }
-    $onboarding = fn_quissly_search_onboarding();
-    // The plan is chosen once during setup (the Shopify app's rule): a stale tab posting again
-    // would otherwise start a second plan. Billing changes it afterwards.
-    if ($onboarding->isPlanLocked()) {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_plan_locked')]);
-    }
-    $billing = fn_quissly_search_store_billing();
-    $op = (string) ($_REQUEST['op'] ?? '');
-
-    if ($op === 'checkout') {
-        $checkout = $billing->checkout((string) ($_REQUEST['plan_id'] ?? ''), (string) ($_REQUEST['billing_cycle'] ?? 'monthly'));
-        if (!$checkout['ok']) {
-            fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($checkout['message'])]);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_connect') {
+        // What Quissly's backend accepts (the Shopify app's checks), refused here rather than
+        // half-way through creating the account.
+        $problem = SetupInput::emailProblem((string) ($_REQUEST['email'] ?? ''));
+        if ($problem !== '') {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_email_' . $problem)]);
         }
-        if ($checkout['kind'] === 'free_activated') {
-            $onboarding->planChosen([(string) ($_REQUEST['family'] ?? '') ?: 'qsearch']);
-            fn_quissly_search_setup_json(['ok' => true, 'kind' => 'active']);
+        // Quissly Setup asks for both (the Shopify app's rule).
+        if (trim((string) ($_REQUEST['store_name'] ?? '')) === '' || trim((string) ($_REQUEST['description'] ?? '')) === '') {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_required_both')]);
         }
-        fn_quissly_search_setup_json(['ok' => true, 'kind' => 'pay', 'pay_url' => $checkout['pay_url']]);
-    }
-    if ($op === 'check' || $op === 'keep') {
-        $subscriptions = $billing->subscriptions();
-        PlanGate::remember(new DbSyncStore(), $subscriptions, time());
-        if ($subscriptions === null) {
-            fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text(StoreBilling::message(0, ''))]);
+        if (!SetupInput::isNameValid((string) ($_REQUEST['store_name'] ?? ''))) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_name_chars')]);
         }
-        $live = StoreBilling::livePlans($subscriptions);
-        $family = (string) ($_REQUEST['family'] ?? '');
-        $active = $family !== '' ? isset($live[$family]) : $live !== [];
-        if ($active) {
-            $onboarding->planChosen(array_keys($live));
+        if (mb_strlen(trim((string) $_REQUEST['description'])) > 500) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_description_long')]);
         }
-        fn_quissly_search_setup_json(['ok' => true, 'active' => $active, 'message' => $active ? '' : (string) __('quissly_search.su_pay_not_yet')]);
-    }
-    // A paid plan paid by manual invoice: no checkout, recorded, on to Go live. Quissly's store
-    // billing API has no invoice option yet, so the choice stays in the store (and its log).
-    if ($op === 'invoice') {
-        $planId = (string) ($_REQUEST['plan_id'] ?? '');
-        $plan = null;
-        foreach ((array) (($billing->plans() ?? [])['plans'] ?? []) as $row) {
-            if ((string) ($row['id'] ?? '') === $planId && empty($row['is_free'])) {
-                $plan = $row;
-            }
+        // The six digits Quissly mailed to the email (setup_send_code); its sign-up refuses without them.
+        $code = trim((string) ($_REQUEST['verification_code'] ?? ''));
+        if (preg_match('/^\d{6}$/', $code) !== 1) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_code_invalid')]);
         }
-        if ($plan === null) {
-            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_pick_plan')]);
+        @set_time_limit(Connector::TIMEOUT_SECONDS + 60);
+        $onboarding = fn_quissly_search_onboarding();
+        $inSetup = !$onboarding->isComplete();
+        $admin = fn_quissly_search_admin_user();
+        $typed = trim((string) ($_REQUEST['store_name'] ?? ''));
+        $companyName = $typed !== '' ? mb_substr($typed, 0, 100) : trim((string) Registry::get('settings.Company.company_name'));
+        $environment = trim((string) Registry::get('config.quissly_environment'));
+        $result = (new Connector(Credentials::credentialStore(), fn_quissly_search_console_post(Connector::TIMEOUT_SECONDS)))->connect(
+            (string) ($_REQUEST['email'] ?? ''),
+            [
+                'domain'            => (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
+                'name'              => $companyName !== '' ? $companyName : null,
+                'first_name'        => isset($admin['firstname']) ? (string) $admin['firstname'] : null,
+                'last_name'         => isset($admin['lastname']) ? (string) $admin['lastname'] : null,
+                'environment'       => $environment !== '' ? $environment : \Quissly\Search\Config::DEFAULT_ENVIRONMENT,
+                'already_connected' => Credentials::fromRegistry()->source() === Credentials::SOURCE_CONFIG,
+                'description'       => trim((string) ($_REQUEST['description'] ?? '')),
+                'verification_code' => $code,
+            ]
+        );
+        if (!$result['ok']) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
         }
-        $family = (string) ($plan['family'] ?? 'qsearch');
-        $name = SetupPage::planName($family, (string) ($plan['tier'] ?? ''));
-        $cycle = ($_REQUEST['billing_cycle'] ?? '') === 'annual' ? 'annual' : 'monthly';
-        $onboarding->planChosen([$family]);
-        $store = new DbSyncStore();
-        $store->setState('setup_invoice', ['plan_id' => $planId, 'plan' => $name, 'family' => $family, 'cycle' => $cycle, 'at' => time()]);
-        $store->log(sprintf('Plan chosen for manual invoice: %s, billed %s.', $name, $cycle), time());
-        fn_quissly_search_setup_json(['ok' => true, 'kind' => 'invoice']);
-    }
-    // Only while the plans cannot be loaded, so a Quissly outage never strands a merchant.
-    if ($op === 'later' && $billing->plans() === null) {
-        $onboarding->planChosen();
+        fn_quissly_search_refresh_qchat(new DbSyncStore(), Credentials::fromRegistry());
+        // Quissly hears of the new store at once: what it runs on, and any problem so far.
+        fn_quissly_search_report_now();
+        if ($inSetup) {
+            // The first sync starts once the new service has settled (Onboarding::HOLD_SECONDS).
+            fn_quissly_search_onboarding()->connected();
+        }
         fn_quissly_search_setup_json(['ok' => true]);
     }
-    fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_pick_plan')]);
-}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_status') {
-    $onboarding = fn_quissly_search_onboarding();
-    if (($_REQUEST['retry'] ?? '') === '1' && $onboarding->syncFailed()) {
-        $store = new DbSyncStore();
-        $store->setState(SyncWorker::STATE_REFUSAL, null);
-        Sync::worker()->startFullSync((new ProductSource())->activeIds());
-    }
-    if (!$onboarding->isComplete()) {
-        fn_quissly_search_setup_advance($onboarding);
-    }
-    $status = fn_quissly_search_onboarding()->status(!empty((new DbSyncStore())->getState(QChatDirectory::STATE)['agent_id']));
-    foreach ($status['rows'] as $key => $row) {
-        $status['rows'][$key]['detail'] = $row['detail'] === null ? '' : (string) __($row['detail'][0], $row['detail'][1]);
-    }
-    $status['technical'] = $status['technical'] === null ? '' : (string) __($status['technical'][0], $status['technical'][1]);
-    fn_quissly_search_setup_json(['ok' => true] + $status);
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_finish') {
-    $onboarding = fn_quissly_search_onboarding();
-    // "Do this later" (the Shopify app's): Setup is done, nothing is switched on for now.
-    if (($_REQUEST['later'] ?? '') === '1') {
-        if (!$onboarding->canSaveForLater()) {
-            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_still_building')]);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_plan') {
+        if (!Credentials::fromRegistry()->isConfigured()) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_connect_first')]);
         }
-        fn_quissly_search_setup_advance($onboarding);
+        $onboarding = fn_quissly_search_onboarding();
+        // The plan is chosen once during setup (the Shopify app's rule): a stale tab posting again
+        // would otherwise start a second plan. Billing changes it afterwards.
+        if ($onboarding->isPlanLocked()) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_plan_locked')]);
+        }
+        $billing = fn_quissly_search_store_billing();
+        $op = (string) ($_REQUEST['op'] ?? '');
+
+        if ($op === 'checkout') {
+            $checkout = $billing->checkout((string) ($_REQUEST['plan_id'] ?? ''), (string) ($_REQUEST['billing_cycle'] ?? 'monthly'));
+            if (!$checkout['ok']) {
+                fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($checkout['message'])]);
+            }
+            if ($checkout['kind'] === 'free_activated') {
+                $onboarding->planChosen([(string) ($_REQUEST['family'] ?? '') ?: 'qsearch']);
+                fn_quissly_search_setup_json(['ok' => true, 'kind' => 'active']);
+            }
+            fn_quissly_search_setup_json(['ok' => true, 'kind' => 'pay', 'pay_url' => $checkout['pay_url']]);
+        }
+        if ($op === 'check' || $op === 'keep') {
+            $subscriptions = $billing->subscriptions();
+            PlanGate::remember(new DbSyncStore(), $subscriptions, time());
+            if ($subscriptions === null) {
+                fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text(StoreBilling::message(0, ''))]);
+            }
+            $live = StoreBilling::livePlans($subscriptions);
+            $family = (string) ($_REQUEST['family'] ?? '');
+            $active = $family !== '' ? isset($live[$family]) : $live !== [];
+            if ($active) {
+                $onboarding->planChosen(array_keys($live));
+            }
+            fn_quissly_search_setup_json(['ok' => true, 'active' => $active, 'message' => $active ? '' : (string) __('quissly_search.su_pay_not_yet')]);
+        }
+        // A paid plan paid by manual invoice: no checkout, recorded, on to Go live. Quissly's store
+        // billing API has no invoice option yet, so the choice stays in the store (and its log).
+        if ($op === 'invoice') {
+            $planId = (string) ($_REQUEST['plan_id'] ?? '');
+            $plan = null;
+            foreach ((array) (($billing->plans() ?? [])['plans'] ?? []) as $row) {
+                if ((string) ($row['id'] ?? '') === $planId && empty($row['is_free'])) {
+                    $plan = $row;
+                }
+            }
+            if ($plan === null) {
+                fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_pick_plan')]);
+            }
+            $family = (string) ($plan['family'] ?? 'qsearch');
+            $name = SetupPage::planName($family, (string) ($plan['tier'] ?? ''));
+            $cycle = ($_REQUEST['billing_cycle'] ?? '') === 'annual' ? 'annual' : 'monthly';
+            $onboarding->planChosen([$family]);
+            $store = new DbSyncStore();
+            $store->setState('setup_invoice', ['plan_id' => $planId, 'plan' => $name, 'family' => $family, 'cycle' => $cycle, 'at' => time()]);
+            $store->log(sprintf('Plan chosen for manual invoice: %s, billed %s.', $name, $cycle), time());
+            fn_quissly_search_setup_json(['ok' => true, 'kind' => 'invoice']);
+        }
+        // Only while the plans cannot be loaded, so a Quissly outage never strands a merchant.
+        if ($op === 'later' && $billing->plans() === null) {
+            $onboarding->planChosen();
+            fn_quissly_search_setup_json(['ok' => true]);
+        }
+        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_pick_plan')]);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_status') {
+        $onboarding = fn_quissly_search_onboarding();
+        if (($_REQUEST['retry'] ?? '') === '1' && $onboarding->syncFailed()) {
+            $store = new DbSyncStore();
+            $store->setState(SyncWorker::STATE_REFUSAL, null);
+            Sync::worker()->startFullSync((new ProductSource())->activeIds());
+        }
+        if (!$onboarding->isComplete()) {
+            fn_quissly_search_setup_advance($onboarding);
+        }
+        $status = fn_quissly_search_onboarding()->status(!empty((new DbSyncStore())->getState(QChatDirectory::STATE)['agent_id']));
+        foreach ($status['rows'] as $key => $row) {
+            $status['rows'][$key]['detail'] = $row['detail'] === null ? '' : (string) __($row['detail'][0], $row['detail'][1]);
+        }
+        $status['technical'] = $status['technical'] === null ? '' : (string) __($status['technical'][0], $status['technical'][1]);
+        fn_quissly_search_setup_json(['ok' => true] + $status);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'setup_finish') {
+        $onboarding = fn_quissly_search_onboarding();
+        // "Do this later" (the Shopify app's): Setup is done, nothing is switched on for now.
+        if (($_REQUEST['later'] ?? '') === '1') {
+            if (!$onboarding->canSaveForLater()) {
+                fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_still_building')]);
+            }
+            fn_quissly_search_setup_advance($onboarding);
+            $onboarding->complete();
+            (new DbSyncStore())->log('Quissly Setup saved without going live; QSearch stays off until it is switched on.', time());
+            fn_set_notification('N', __('notice'), __('quissly_search.su_saved_later'));
+            fn_quissly_search_setup_json(['ok' => true, 'redirect' => fn_url('quissly_search.dashboard')]);
+        }
+        if (!$onboarding->isReady() || $onboarding->holdRemaining() > 0) {
+            fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_not_ready')]);
+        }
+        // What the plan includes goes live: search (also with no plan known), and the assistant
+        // with a chat plan once its agent is known - a chat-only plan leaves search off.
+        $services = $onboarding->services();
+        $search = $services === [] || in_array('qsearch', $services, true);
+        if ($search) {
+            fn_quissly_search_set_search(true);
+        }
+        if (in_array('qchat', $services, true) && !empty((new DbSyncStore())->getState(QChatDirectory::STATE)['agent_id'])) {
+            \Tygh\Settings::instance()->updateValue('enable_qchat', 'Y', 'quissly_search');
+        }
         $onboarding->complete();
-        (new DbSyncStore())->log('Quissly Setup saved without going live; QSearch stays off until it is switched on.', time());
-        fn_set_notification('N', __('notice'), __('quissly_search.su_saved_later'));
+        (new DbSyncStore())->log('Quissly Setup finished; ' . ($services === [] ? 'qsearch' : implode(' and ', $services)) . ' is live.', time());
+        fn_set_notification('N', __('notice'), __($search ? 'quissly_search.su_live_now' : 'quissly_search.su_live_chat_now'));
         fn_quissly_search_setup_json(['ok' => true, 'redirect' => fn_url('quissly_search.dashboard')]);
     }
-    if (!$onboarding->isReady() || $onboarding->holdRemaining() > 0) {
-        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.su_not_ready')]);
-    }
-    // What the plan includes goes live: search (also with no plan known), and the assistant
-    // with a chat plan once its agent is known - a chat-only plan leaves search off.
-    $services = $onboarding->services();
-    $search = $services === [] || in_array('qsearch', $services, true);
-    if ($search) {
-        fn_quissly_search_set_search(true);
-    }
-    if (in_array('qchat', $services, true) && !empty((new DbSyncStore())->getState(QChatDirectory::STATE)['agent_id'])) {
-        \Tygh\Settings::instance()->updateValue('enable_qchat', 'Y', 'quissly_search');
-    }
-    $onboarding->complete();
-    (new DbSyncStore())->log('Quissly Setup finished; ' . ($services === [] ? 'qsearch' : implode(' and ', $services)) . ' is live.', time());
-    fn_set_notification('N', __('notice'), __($search ? 'quissly_search.su_live_now' : 'quissly_search.su_live_chat_now'));
-    fn_quissly_search_setup_json(['ok' => true, 'redirect' => fn_url('quissly_search.dashboard')]);
-}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'connect') {
-    @set_time_limit(Connector::TIMEOUT_SECONDS + Sync::ADMIN_BUDGET_SECONDS + 60);
-    $admin = fn_quissly_search_admin_user();
-    $companyName = trim((string) Registry::get('settings.Company.company_name'));
-    $environment = trim((string) Registry::get('config.quissly_environment'));
-    $result = (new Connector(Credentials::credentialStore(), fn_quissly_search_console_post(Connector::TIMEOUT_SECONDS)))->connect(
-        (string) ($_REQUEST['email'] ?? ''),
-        [
-            'domain'            => (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
-            'name'              => $companyName !== '' ? $companyName : null,
-            'first_name'        => isset($admin['firstname']) ? (string) $admin['firstname'] : null,
-            'last_name'         => isset($admin['lastname']) ? (string) $admin['lastname'] : null,
-            'environment'       => $environment !== '' ? $environment : \Quissly\Search\Config::DEFAULT_ENVIRONMENT,
-            'already_connected' => Credentials::fromRegistry()->source() === Credentials::SOURCE_CONFIG,
-        ]
-    );
-    if (!$result['ok']) {
-        fn_set_notification('E', __('error'), $result['message']);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'connect') {
+        @set_time_limit(Connector::TIMEOUT_SECONDS + Sync::ADMIN_BUDGET_SECONDS + 60);
+        $admin = fn_quissly_search_admin_user();
+        $companyName = trim((string) Registry::get('settings.Company.company_name'));
+        $environment = trim((string) Registry::get('config.quissly_environment'));
+        $result = (new Connector(Credentials::credentialStore(), fn_quissly_search_console_post(Connector::TIMEOUT_SECONDS)))->connect(
+            (string) ($_REQUEST['email'] ?? ''),
+            [
+                'domain'            => (string) parse_url((string) fn_url('', 'C', 'https'), PHP_URL_HOST),
+                'name'              => $companyName !== '' ? $companyName : null,
+                'first_name'        => isset($admin['firstname']) ? (string) $admin['firstname'] : null,
+                'last_name'         => isset($admin['lastname']) ? (string) $admin['lastname'] : null,
+                'environment'       => $environment !== '' ? $environment : \Quissly\Search\Config::DEFAULT_ENVIRONMENT,
+                'already_connected' => Credentials::fromRegistry()->source() === Credentials::SOURCE_CONFIG,
+            ]
+        );
+        if (!$result['ok']) {
+            fn_set_notification('E', __('error'), $result['message']);
 
-        return [CONTROLLER_STATUS_REDIRECT, 'addons.update?addon=quissly_search'];
-    }
+            return [CONTROLLER_STATUS_REDIRECT, 'addons.update?addon=quissly_search'];
+        }
 
-    // Provisioning creates the chat agent but does not return its id: look it up now, so
-    // turning QChat on later needs nothing else (a miss is retried from the Dashboard).
-    fn_quissly_search_refresh_qchat(new DbSyncStore(), Credentials::fromRegistry());
+        // Provisioning creates the chat agent but does not return its id: look it up now, so
+        // turning QChat on later needs nothing else (a miss is retried from the Dashboard).
+        fn_quissly_search_refresh_qchat(new DbSyncStore(), Credentials::fromRegistry());
+        // Quissly hears of the new store at once: what it runs on, and any problem so far.
+        fn_quissly_search_report_now();
 
-    // Connected: the initial sync starts now (the WooCommerce plugin's wizard does the same).
-    $worker = Sync::worker();
-    $worker->startFullSync((new ProductSource())->activeIds());
-    $summary = $worker->run(Sync::ADMIN_BUDGET_SECONDS, 'connect');
-    fn_set_notification('N', __('notice'), __('quissly_search.connect_ok') . ' ' . fn_quissly_search_summary($summary));
-
-    return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'sync_now') {
-    if (!Credentials::fromRegistry()->isConfigured()) {
-        fn_set_notification('E', __('error'), __('quissly_search.not_configured'));
+        // Connected: the initial sync starts now (the WooCommerce plugin's wizard does the same).
+        $worker = Sync::worker();
+        $worker->startFullSync((new ProductSource())->activeIds());
+        $summary = $worker->run(Sync::ADMIN_BUDGET_SECONDS, 'connect');
+        fn_set_notification('N', __('notice'), __('quissly_search.connect_ok') . ' ' . fn_quissly_search_summary($summary));
 
         return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
     }
-    @set_time_limit(Sync::ADMIN_BUDGET_SECONDS + 60);
-    $worker = Sync::worker();
-    if (($_REQUEST['full'] ?? '') === 'Y') {
-        $worker->startFullSync((new ProductSource())->activeIds());
-    }
-    $summary = $worker->run(Sync::ADMIN_BUDGET_SECONDS, 'admin');
-    fn_set_notification($summary['stopped'] !== '' ? 'W' : 'N', __('notice'), fn_quissly_search_summary($summary));
 
-    return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
-}
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'sync_now') {
+        if (!Credentials::fromRegistry()->isConfigured()) {
+            fn_set_notification('E', __('error'), __('quissly_search.not_configured'));
 
-// Configuration's Most loved picker (js/addons/quissly_search/most-loved-picker.js): read only.
-if ($mode === 'most_loved_search') {
-    fn_quissly_search_setup_json(fn_quissly_search_most_loved_search((string) ($_REQUEST['q'] ?? ''), (int) ($_REQUEST['page'] ?? 1)));
-}
+            return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
+        }
+        @set_time_limit(Sync::ADMIN_BUDGET_SECONDS + 60);
+        $worker = Sync::worker();
+        if (($_REQUEST['full'] ?? '') === 'Y') {
+            $worker->startFullSync((new ProductSource())->activeIds());
+        }
+        $summary = $worker->run(Sync::ADMIN_BUDGET_SECONDS, 'admin');
+        fn_set_notification($summary['stopped'] !== '' ? 'W' : 'N', __('notice'), fn_quissly_search_summary($summary));
 
-if ($mode === 'cron') {
-    $store = new DbSyncStore();
-    $store->setState('last_cron', ['at' => time()]);
-    $summary = fn_quissly_search_cron_work($store);
-    if ($summary !== null) {
-        fn_set_notification($summary['stopped'] !== '' ? 'W' : 'N', 'Quissly', fn_quissly_search_summary($summary));
+        return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
     }
 
-    return defined('CONSOLE') ? [CONTROLLER_STATUS_OK] : [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
-}
+    // Configuration's Most loved picker (js/addons/quissly_search/most-loved-picker.js): read only.
+    if ($mode === 'most_loved_search') {
+        fn_quissly_search_setup_json(fn_quissly_search_most_loved_search((string) ($_REQUEST['q'] ?? ''), (int) ($_REQUEST['page'] ?? 1)));
+    }
 
-if ($mode === 'dashboard') {
-    $store = new DbSyncStore();
-    $credentials = Credentials::fromRegistry();
-    $connected = $credentials->isConfigured();
-    Tygh::$app['view']->assign('quissly_dashboard_html', DashboardView::render([
-        'connected'       => $connected,
-        'environment'     => $connected ? $credentials->environment() : '',
-        'status'          => StatusReport::build($credentials, $store),
-        'features'        => fn_quissly_search_feature_notes(\Quissly\Search\Features::all(), $store, $credentials),
-        'active_products' => (new ProductSource())->countActive(),
-        'synced'          => $store->countSynced(),
-        'queued'          => $store->countQueued(),
-        'waiting'         => $store->waiting(),
-        'progress'        => $store->getState(SyncWorker::STATE_PROGRESS),
-        'initial_sync'    => SyncWorker::isGateOpen($store),
-        'gate_blocked'    => $store->getState(SyncWorker::STATE_GATE_BLOCKED),
-        'refusal'         => $store->getState(SyncWorker::STATE_REFUSAL),
-        'last_run'        => $store->getState(SyncWorker::STATE_LAST_RUN),
-        'last_cron_at'    => isset($store->getState('last_cron')['at']) ? (int) $store->getState('last_cron')['at'] : null,
-        'cron_command'    => 'php ' . rtrim(DIR_ROOT, '/') . '/' . Registry::get('config.admin_index') . ' --dispatch=quissly_search.cron',
-        'log'             => $store->recentLog(DashboardView::LOG_LINES),
-        'now'             => time(),
-        'urls'            => [
-            'sync_now'        => fn_url('quissly_search.sync_now'),
-            'test_connection' => fn_url('quissly_search.test_connection?redirect_to=dashboard'),
-            'settings'        => fn_url('addons.update?addon=quissly_search'),
-            'panel'           => fn_url('quissly_search.panel'),
-        ],
-        'security_hash'   => fn_generate_security_hash(),
-    ]));
+    if ($mode === 'cron') {
+        $store = new DbSyncStore();
+        $store->setState('last_cron', ['at' => time()]);
+        $summary = fn_quissly_search_cron_work($store);
+        if ($summary !== null) {
+            fn_set_notification($summary['stopped'] !== '' ? 'W' : 'N', 'Quissly', fn_quissly_search_summary($summary));
+        }
 
-    return [CONTROLLER_STATUS_OK];
-}
+        return defined('CONSOLE') ? [CONTROLLER_STATUS_OK] : [CONTROLLER_STATUS_REDIRECT, 'quissly_search.dashboard'];
+    }
 
-if ($mode === 'test_connection') {
-    $return_url = ($_REQUEST['redirect_to'] ?? '') === 'dashboard' ? 'quissly_search.dashboard' : 'addons.update?addon=quissly_search';
+    if ($mode === 'dashboard') {
+        $store = new DbSyncStore();
+        $credentials = Credentials::fromRegistry();
+        $connected = $credentials->isConfigured();
+        Tygh::$app['view']->assign('quissly_dashboard_html', DashboardView::render([
+            'connected'       => $connected,
+            'environment'     => $connected ? $credentials->environment() : '',
+            'status'          => StatusReport::build($credentials, $store),
+            'features'        => fn_quissly_search_feature_notes(\Quissly\Search\Features::all(), $store, $credentials),
+            'active_products' => (new ProductSource())->countActive(),
+            'synced'          => $store->countSynced(),
+            'queued'          => $store->countQueued(),
+            'waiting'         => $store->waiting(),
+            'progress'        => $store->getState(SyncWorker::STATE_PROGRESS),
+            'initial_sync'    => SyncWorker::isGateOpen($store),
+            'gate_blocked'    => $store->getState(SyncWorker::STATE_GATE_BLOCKED),
+            'refusal'         => $store->getState(SyncWorker::STATE_REFUSAL),
+            'last_run'        => $store->getState(SyncWorker::STATE_LAST_RUN),
+            'last_cron_at'    => isset($store->getState('last_cron')['at']) ? (int) $store->getState('last_cron')['at'] : null,
+            'cron_command'    => 'php ' . rtrim(DIR_ROOT, '/') . '/' . Registry::get('config.admin_index') . ' --dispatch=quissly_search.cron',
+            'log'             => $store->recentLog(DashboardView::LOG_LINES),
+            'now'             => time(),
+            'urls'            => [
+                'sync_now'        => fn_url('quissly_search.sync_now'),
+                'test_connection' => fn_url('quissly_search.test_connection?redirect_to=dashboard'),
+                'settings'        => fn_url('addons.update?addon=quissly_search'),
+                'panel'           => fn_url('quissly_search.panel'),
+            ],
+            'security_hash'   => fn_generate_security_hash(),
+        ]));
 
-    $credentials = Credentials::fromRegistry();
-    if (!$credentials->isConfigured()) {
-        fn_set_notification('E', __('error'), __('quissly_search.not_configured'));
+        return [CONTROLLER_STATUS_OK];
+    }
+
+    if ($mode === 'test_connection') {
+        $return_url = ($_REQUEST['redirect_to'] ?? '') === 'dashboard' ? 'quissly_search.dashboard' : 'addons.update?addon=quissly_search';
+
+        $credentials = Credentials::fromRegistry();
+        if (!$credentials->isConfigured()) {
+            fn_set_notification('E', __('error'), __('quissly_search.not_configured'));
+
+            return [CONTROLLER_STATUS_REDIRECT, $return_url];
+        }
+
+        try {
+            $result = (new Client($credentials))->qsearch('test', 'admin_test_connection', 1, 1, SortMap::Q_RELEVANCE, SortMap::T_DESC);
+            HealthStore::recordSuccess();
+            fn_set_notification(
+                'N',
+                __('notice'),
+                __('quissly_search.test_connection_ok', ['[count]' => $result->numTotalResults])
+            );
+        } catch (AuthException $e) {
+            HealthStore::recordFailure($e->getHttpStatus(), $e->getMessage());
+            fn_set_notification(
+                'E',
+                __('error'),
+                __('quissly_search.test_connection_auth_fail', ['[status]' => $e->getHttpStatus()])
+            );
+        } catch (QuisslyException $e) {
+            fn_set_notification(
+                'W',
+                __('warning'),
+                __('quissly_search.test_connection_fail', ['[status]' => $e->getHttpStatus()])
+            );
+        }
 
         return [CONTROLLER_STATUS_REDIRECT, $return_url];
     }
 
-    try {
-        $result = (new Client($credentials))->qsearch('test', 'admin_test_connection', 1, 1, SortMap::Q_RELEVANCE, SortMap::T_DESC);
-        HealthStore::recordSuccess();
-        fn_set_notification(
-            'N',
-            __('notice'),
-            __('quissly_search.test_connection_ok', ['[count]' => $result->numTotalResults])
-        );
-    } catch (AuthException $e) {
-        HealthStore::recordFailure($e->getHttpStatus(), $e->getMessage());
-        fn_set_notification(
-            'E',
-            __('error'),
-            __('quissly_search.test_connection_auth_fail', ['[status]' => $e->getHttpStatus()])
-        );
-    } catch (QuisslyException $e) {
-        fn_set_notification(
-            'W',
-            __('warning'),
-            __('quissly_search.test_connection_fail', ['[status]' => $e->getHttpStatus()])
-        );
+    if ($mode === 'billing') {
+        $billing = fn_quissly_search_store_billing();
+        $text = static function (string $key): string {
+            return (string) __('quissly_search.' . $key);
+        };
+        $subscriptions = $billing->subscriptions();
+        PlanGate::remember(new DbSyncStore(), $subscriptions, time());
+        Tygh::$app['view']->assign('quissly_billing_html', BillingPage::render(
+            BillingPage::view(
+                $billing->plans(),
+                $subscriptions,
+                static function (string $id) use ($billing): ?array {
+                    return $billing->usage($id);
+                },
+                $billing->invoices()
+            ),
+            [
+                'endpoint' => fn_url('quissly_search.billing_manage'),
+                'reload'   => fn_url('quissly_search.billing'),
+                'csrf'     => ['security_hash' => fn_generate_security_hash()],
+                'text'     => [
+                    'working'       => $text('bi_working'),
+                    'error'         => $text('su_error'),
+                    'payWaiting'    => $text('bi_pay_waiting'),
+                    'payTimeout'    => $text('bi_pay_timeout'),
+                    'close'         => $text('bi_close'),
+                    'titleChange'   => $text('bi_title_change'),
+                    'titleTopup'    => $text('bi_title_topup'),
+                    'titleCancel'   => $text('bi_title_cancel'),
+                    'titlePay'      => $text('bi_title_pay'),
+                    'titleError'    => $text('bi_title_error'),
+                    'confirmCancel' => $text('bi_cancel_plan'),
+                    'titleRefund'   => $text('bi_request_refund'),
+                    'titleClaim'    => $text('bi_claim_title'),
+                    'confirmRefund' => $text('bi_refund'),
+                    'sendClaim'     => $text('bi_send_request'),
+                    'claimLength'   => $text('bi_claim_length'),
+                    'claimCount'    => '%1 / %2',
+                    'topupRange'    => $text('bi_at_range'),
+                ],
+            ]
+        ));
+
+        return [CONTROLLER_STATUS_OK];
     }
 
-    return [CONTROLLER_STATUS_REDIRECT, $return_url];
-}
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'billing_manage') {
+        $billing = fn_quissly_search_store_billing();
+        $op = (string) ($_REQUEST['op'] ?? '');
+        $id = (string) ($_REQUEST['id'] ?? '');
+        $planId = (string) ($_REQUEST['plan_id'] ?? '');
+        $money = static function ($value, string $currency): string {
+            $symbols = ['USD' => '$', 'EUR' => '€', 'GBP' => '£'];
+            $number = number_format((float) $value, 2);
 
-if ($mode === 'billing') {
-    $billing = fn_quissly_search_store_billing();
-    $text = static function (string $key): string {
-        return (string) __('quissly_search.' . $key);
-    };
-    $subscriptions = $billing->subscriptions();
-    PlanGate::remember(new DbSyncStore(), $subscriptions, time());
-    Tygh::$app['view']->assign('quissly_billing_html', BillingPage::render(
-        BillingPage::view(
-            $billing->plans(),
-            $subscriptions,
-            static function (string $id) use ($billing): ?array {
-                return $billing->usage($id);
-            },
-            $billing->invoices()
-        ),
-        [
-            'endpoint' => fn_url('quissly_search.billing_manage'),
-            'reload'   => fn_url('quissly_search.billing'),
-            'csrf'     => ['security_hash' => fn_generate_security_hash()],
-            'text'     => [
-                'working'       => $text('bi_working'),
-                'error'         => $text('su_error'),
-                'payWaiting'    => $text('bi_pay_waiting'),
-                'payTimeout'    => $text('bi_pay_timeout'),
-                'close'         => $text('bi_close'),
-                'titleChange'   => $text('bi_title_change'),
-                'titleTopup'    => $text('bi_title_topup'),
-                'titleCancel'   => $text('bi_title_cancel'),
-                'titlePay'      => $text('bi_title_pay'),
-                'titleError'    => $text('bi_title_error'),
-                'confirmCancel' => $text('bi_cancel_plan'),
-                'titleRefund'   => $text('bi_request_refund'),
-                'titleClaim'    => $text('bi_claim_title'),
-                'confirmRefund' => $text('bi_refund'),
-                'sendClaim'     => $text('bi_send_request'),
-                'claimLength'   => $text('bi_claim_length'),
-                'claimCount'    => '%1 / %2',
-                'topupRange'    => $text('bi_at_range'),
-            ],
-        ]
-    ));
-
-    return [CONTROLLER_STATUS_OK];
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'billing_manage') {
-    $billing = fn_quissly_search_store_billing();
-    $op = (string) ($_REQUEST['op'] ?? '');
-    $id = (string) ($_REQUEST['id'] ?? '');
-    $planId = (string) ($_REQUEST['plan_id'] ?? '');
-    $money = static function ($value, string $currency): string {
-        $symbols = ['USD' => '$', 'EUR' => '€', 'GBP' => '£'];
-        $number = number_format((float) $value, 2);
-
-        return isset($symbols[$currency]) ? $symbols[$currency] . $number : $currency . ' ' . $number;
-    };
-    $done = static function (array $result, string $notice): void {
-        if ($result['ok']) {
-            fn_set_notification('N', __('notice'), $notice);
-            fn_quissly_search_setup_json(['ok' => true, 'done' => true]);
-        }
-        fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
-    };
-
-    switch ($op) {
-        case 'checkout':
-            $checkout = $billing->checkout($planId, (string) ($_REQUEST['billing_cycle'] ?? ''), max(0.0, (float) ($_REQUEST['auto_topup_max_usd'] ?? 0)));
-            if ($checkout['ok'] && $checkout['kind'] === 'free_activated') {
-                fn_set_notification('N', __('notice'), __('quissly_search.bi_free_on'));
+            return isset($symbols[$currency]) ? $symbols[$currency] . $number : $currency . ' ' . $number;
+        };
+        $done = static function (array $result, string $notice): void {
+            if ($result['ok']) {
+                fn_set_notification('N', __('notice'), $notice);
                 fn_quissly_search_setup_json(['ok' => true, 'done' => true]);
             }
-            fn_quissly_search_setup_json($checkout['ok']
-                ? ['ok' => true, 'pay_url' => $checkout['pay_url']]
-                : ['ok' => false, 'message' => fn_quissly_search_setup_text($checkout['message'])]);
-            // no break: answered
-        case 'check':
-            $subscriptions = $billing->subscriptions();
-            PlanGate::remember(new DbSyncStore(), $subscriptions, time());
-            $active = $subscriptions !== null && isset(StoreBilling::livePlans($subscriptions)[(string) ($_REQUEST['family'] ?? '')]);
-            if ($active) {
-                fn_set_notification('N', __('notice'), __('quissly_search.bi_paid_on'));
-            }
-            fn_quissly_search_setup_json(['ok' => true, 'active' => $active]);
-            // no break: answered
-        case 'change_preview':
-            $result = $billing->manage($op, $id, ['plan_id' => $planId]);
-            if (!$result['ok']) {
-                fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
-            }
-            $preview = $result['data'];
-            $kind = (string) ($preview['kind'] ?? '');
-            if ($kind === 'upgrade') {
-                $summary = __('quissly_search.bi_preview_upgrade', ['[amount]' => $money($preview['charge_now'] ?? 0, (string) ($preview['currency'] ?? 'USD'))]);
-            } elseif ($kind === 'downgrade') {
-                $summary = __('quissly_search.bi_preview_downgrade', ['[date]' => BillingPage::date((string) ($preview['effective_at'] ?? ''))]);
-            } elseif ($kind === 'trial_swap') {
-                $summary = __('quissly_search.bi_preview_trial');
-            } else {
-                $summary = __('quissly_search.bi_preview_other');
-            }
-            fn_quissly_search_setup_json(['ok' => true, 'summary' => (string) $summary, 'confirm' => (string) __('quissly_search.bi_change_plan')]);
-            // no break: answered
-        case 'change':
-            $result = $billing->manage($op, $id, ['plan_id' => $planId]);
-            $kind = (string) ($result['data']['kind'] ?? '');
-            $done($result, (string) ($kind === 'scheduled'
-                ? __('quissly_search.bi_done_scheduled', ['[date]' => BillingPage::date((string) ($result['data']['subscription']['current_period_end'] ?? ''))])
-                : ($kind === 'processing' ? __('quissly_search.bi_done_processing') : __('quissly_search.bi_done_changed'))));
-            // no break: answered
-        case 'topup_preview':
-            $result = $billing->manage($op, $id);
-            if (!$result['ok']) {
-                fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
-            }
-            fn_quissly_search_setup_json(['ok' => true, 'confirm' => (string) __('quissly_search.bi_buy_now'), 'summary' => (string) __('quissly_search.bi_preview_topup', [
-                '[count]'  => number_format((int) ($result['data']['requests'] ?? 0)),
-                '[amount]' => $money($result['data']['charge_now'] ?? 0, (string) ($result['data']['currency'] ?? 'USD')),
-            ])]);
-            // no break: answered
-        case 'topup':
-            $result = $billing->manage($op, $id, ['idempotency_key' => (string) ($_REQUEST['idempotency_key'] ?? '')]);
-            $done($result, (string) (($result['data']['kind'] ?? '') === 'processing'
-                ? __('quissly_search.bi_topup_processing')
-                : __('quissly_search.bi_topup_added', ['[count]' => number_format((int) ($result['data']['requests'] ?? 0))])));
-            // no break: answered
-        case 'cancel':
-        case 'resume':
-        case 'abort':
-            $done($billing->manage($op, $id), (string) __(['cancel' => 'quissly_search.bi_done_cancel', 'resume' => 'quissly_search.bi_done_resume', 'abort' => 'quissly_search.bi_done_abort'][$op]));
-            // no break: answered
-        case 'auto_topup':
-            $max = max(0.0, round((float) ($_REQUEST['max_usd'] ?? 0), 2));
-            $done($billing->manage($op, $id, ['max_usd' => $max]), (string) ($max > 0
-                ? __('quissly_search.bi_at_saved_on', ['[price]' => $money($max, 'USD')])
-                : __('quissly_search.bi_at_saved_off')));
-            // no break: answered
-        case 'refund_preview':
-            $result = $billing->manage($op, $id);
-            if (!$result['ok']) {
-                fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
-            }
-            fn_quissly_search_setup_json(['ok' => true] + BillingPage::refundAnswer($result['data']));
-            // no break: answered
-        case 'refund':
-            $result = $billing->manage($op, $id);
-            $amount = $money($result['data']['amount'] ?? 0, (string) ($result['data']['currency'] ?? 'USD'));
-            $done($result, (string) __(!empty($result['data']['ends_plan']) ? 'quissly_search.bi_refund_done_ends' : 'quissly_search.bi_refund_done_extras', ['[amount]' => $amount]));
-            // no break: answered
-        case 'refund_claim':
-            $reason = trim((string) ($_REQUEST['reason'] ?? ''));
-            $length = function_exists('mb_strlen') ? mb_strlen($reason) : strlen($reason);
-            if ($length < BillingPage::CLAIM_MIN || $length > BillingPage::CLAIM_MAX) {
-                fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.bi_claim_length')]);
-            }
-            $result = $billing->manage($op, $id, ['reason' => $reason]);
-            $done($result, (string) __('quissly_search.bi_claim_sent', [
-                '[ticket]' => (string) ($result['data']['ticket_number'] ?? $result['data']['ticket_id'] ?? ''),
-                '[days]'   => (int) ($result['data']['reply_within_business_days'] ?? 3),
-            ]));
-            // no break: answered
-        case 'payment_method':
-        case 'invoice_pdf':
-            $result = $billing->manage($op, $id);
-            fn_quissly_search_setup_json($result['ok']
-                ? ['ok' => true, 'url' => (string) ($result['data']['url'] ?? $result['data']['pay_url'] ?? '')]
-                : ['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
-    }
-    fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.bi_unknown')]);
-}
+            fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
+        };
 
-if ($mode === 'panel') {
-    $post = static function (string $url, string $body): ?array {
-        $response = Http::post($url, $body, [
-            'headers'            => ['Content-Type: application/json'],
-            'timeout'            => PanelSession::TIMEOUT_SECONDS,
-            'connection_timeout' => PanelSession::TIMEOUT_SECONDS,
-            'execution_timeout'  => PanelSession::TIMEOUT_SECONDS,
-        ]);
-        $status = Http::getStatus();
-        if ($response === false || !is_int($status) || $status === 0) {
-            return null;
+        switch ($op) {
+            case 'checkout':
+                $checkout = $billing->checkout($planId, (string) ($_REQUEST['billing_cycle'] ?? ''), max(0.0, (float) ($_REQUEST['auto_topup_max_usd'] ?? 0)));
+                if ($checkout['ok'] && $checkout['kind'] === 'free_activated') {
+                    fn_set_notification('N', __('notice'), __('quissly_search.bi_free_on'));
+                    fn_quissly_search_setup_json(['ok' => true, 'done' => true]);
+                }
+                fn_quissly_search_setup_json($checkout['ok']
+                    ? ['ok' => true, 'pay_url' => $checkout['pay_url']]
+                    : ['ok' => false, 'message' => fn_quissly_search_setup_text($checkout['message'])]);
+                // no break: answered
+            case 'check':
+                $subscriptions = $billing->subscriptions();
+                PlanGate::remember(new DbSyncStore(), $subscriptions, time());
+                $active = $subscriptions !== null && isset(StoreBilling::livePlans($subscriptions)[(string) ($_REQUEST['family'] ?? '')]);
+                if ($active) {
+                    fn_set_notification('N', __('notice'), __('quissly_search.bi_paid_on'));
+                }
+                fn_quissly_search_setup_json(['ok' => true, 'active' => $active]);
+                // no break: answered
+            case 'change_preview':
+                $result = $billing->manage($op, $id, ['plan_id' => $planId]);
+                if (!$result['ok']) {
+                    fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
+                }
+                $preview = $result['data'];
+                $kind = (string) ($preview['kind'] ?? '');
+                if ($kind === 'upgrade') {
+                    $summary = __('quissly_search.bi_preview_upgrade', ['[amount]' => $money($preview['charge_now'] ?? 0, (string) ($preview['currency'] ?? 'USD'))]);
+                } elseif ($kind === 'downgrade') {
+                    $summary = __('quissly_search.bi_preview_downgrade', ['[date]' => BillingPage::date((string) ($preview['effective_at'] ?? ''))]);
+                } elseif ($kind === 'trial_swap') {
+                    $summary = __('quissly_search.bi_preview_trial');
+                } else {
+                    $summary = __('quissly_search.bi_preview_other');
+                }
+                fn_quissly_search_setup_json(['ok' => true, 'summary' => (string) $summary, 'confirm' => (string) __('quissly_search.bi_change_plan')]);
+                // no break: answered
+            case 'change':
+                $result = $billing->manage($op, $id, ['plan_id' => $planId]);
+                $kind = (string) ($result['data']['kind'] ?? '');
+                $done($result, (string) ($kind === 'scheduled'
+                    ? __('quissly_search.bi_done_scheduled', ['[date]' => BillingPage::date((string) ($result['data']['subscription']['current_period_end'] ?? ''))])
+                    : ($kind === 'processing' ? __('quissly_search.bi_done_processing') : __('quissly_search.bi_done_changed'))));
+                // no break: answered
+            case 'topup_preview':
+                $result = $billing->manage($op, $id);
+                if (!$result['ok']) {
+                    fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
+                }
+                fn_quissly_search_setup_json(['ok' => true, 'confirm' => (string) __('quissly_search.bi_buy_now'), 'summary' => (string) __('quissly_search.bi_preview_topup', [
+                    '[count]'  => number_format((int) ($result['data']['requests'] ?? 0)),
+                    '[amount]' => $money($result['data']['charge_now'] ?? 0, (string) ($result['data']['currency'] ?? 'USD')),
+                ])]);
+                // no break: answered
+            case 'topup':
+                $result = $billing->manage($op, $id, ['idempotency_key' => (string) ($_REQUEST['idempotency_key'] ?? '')]);
+                $done($result, (string) (($result['data']['kind'] ?? '') === 'processing'
+                    ? __('quissly_search.bi_topup_processing')
+                    : __('quissly_search.bi_topup_added', ['[count]' => number_format((int) ($result['data']['requests'] ?? 0))])));
+                // no break: answered
+            case 'cancel':
+            case 'resume':
+            case 'abort':
+                $done($billing->manage($op, $id), (string) __(['cancel' => 'quissly_search.bi_done_cancel', 'resume' => 'quissly_search.bi_done_resume', 'abort' => 'quissly_search.bi_done_abort'][$op]));
+                // no break: answered
+            case 'auto_topup':
+                $max = max(0.0, round((float) ($_REQUEST['max_usd'] ?? 0), 2));
+                $done($billing->manage($op, $id, ['max_usd' => $max]), (string) ($max > 0
+                    ? __('quissly_search.bi_at_saved_on', ['[price]' => $money($max, 'USD')])
+                    : __('quissly_search.bi_at_saved_off')));
+                // no break: answered
+            case 'refund_preview':
+                $result = $billing->manage($op, $id);
+                if (!$result['ok']) {
+                    fn_quissly_search_setup_json(['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
+                }
+                fn_quissly_search_setup_json(['ok' => true] + BillingPage::refundAnswer($result['data']));
+                // no break: answered
+            case 'refund':
+                $result = $billing->manage($op, $id);
+                $amount = $money($result['data']['amount'] ?? 0, (string) ($result['data']['currency'] ?? 'USD'));
+                $done($result, (string) __(!empty($result['data']['ends_plan']) ? 'quissly_search.bi_refund_done_ends' : 'quissly_search.bi_refund_done_extras', ['[amount]' => $amount]));
+                // no break: answered
+            case 'refund_claim':
+                $reason = trim((string) ($_REQUEST['reason'] ?? ''));
+                $length = function_exists('mb_strlen') ? mb_strlen($reason) : strlen($reason);
+                if ($length < BillingPage::CLAIM_MIN || $length > BillingPage::CLAIM_MAX) {
+                    fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.bi_claim_length')]);
+                }
+                $result = $billing->manage($op, $id, ['reason' => $reason]);
+                $done($result, (string) __('quissly_search.bi_claim_sent', [
+                    '[ticket]' => (string) ($result['data']['ticket_number'] ?? $result['data']['ticket_id'] ?? ''),
+                    '[days]'   => (int) ($result['data']['reply_within_business_days'] ?? 3),
+                ]));
+                // no break: answered
+            case 'payment_method':
+            case 'invoice_pdf':
+                $result = $billing->manage($op, $id);
+                fn_quissly_search_setup_json($result['ok']
+                    ? ['ok' => true, 'url' => (string) ($result['data']['url'] ?? $result['data']['pay_url'] ?? '')]
+                    : ['ok' => false, 'message' => fn_quissly_search_setup_text($result['message'])]);
         }
+        fn_quissly_search_setup_json(['ok' => false, 'message' => (string) __('quissly_search.bi_unknown')]);
+    }
 
-        return ['status' => $status, 'body' => (string) $response];
-    };
+    if ($mode === 'panel') {
+        $post = static function (string $url, string $body): ?array {
+            $response = Http::post($url, $body, [
+                'headers'            => ['Content-Type: application/json'],
+                'timeout'            => PanelSession::TIMEOUT_SECONDS,
+                'connection_timeout' => PanelSession::TIMEOUT_SECONDS,
+                'execution_timeout'  => PanelSession::TIMEOUT_SECONDS,
+            ]);
+            $status = Http::getStatus();
+            if ($response === false || !is_int($status) || $status === 0) {
+                return null;
+            }
 
-    Tygh::$app['view']->assign('quissly_panel_html', PanelView::render(Credentials::fromRegistry(), $post));
+            return ['status' => $status, 'body' => (string) $response];
+        };
 
-    return [CONTROLLER_STATUS_OK];
+        Tygh::$app['view']->assign('quissly_panel_html', PanelView::render(Credentials::fromRegistry(), $post));
+
+        return [CONTROLLER_STATUS_OK];
+    }
+
+    return [CONTROLLER_STATUS_NO_PAGE];
+} catch (\Throwable $e) {
+    \Quissly\Search\Diagnostics\ErrorCapture::exception($e, 'admin ' . $mode);
+    throw $e;
 }
-
-return [CONTROLLER_STATUS_NO_PAGE];

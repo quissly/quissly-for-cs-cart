@@ -215,6 +215,7 @@ final class SyncWorker
             case 'rejected':
                 $this->fail($ids, $attempts, $kind);
                 $this->store->log(sprintf('catalog %s rejected (HTTP %d) for %d products: %s', $kind, $outcome->httpStatus, count($ids), $outcome->detail), $this->now());
+                \Quissly\Search\Diagnostics\ErrorCapture::refused('sync', sprintf('catalog %s rejected (HTTP %d): %s', $kind, $outcome->httpStatus, $outcome->detail));
                 break;
             case 'refused':
                 $this->store->setState(self::STATE_REFUSAL, ['code' => $outcome->httpStatus, 'at' => $this->now()]);
@@ -287,6 +288,7 @@ final class SyncWorker
         $this->run['failed'] += count($ids);
         $this->bumpProgress('failed', $kind === 'delete' ? 0 : count($ids));
         $this->store->log(sprintf('catalog %s: gave up on %d products: %s', $kind, count($ids), implode(', ', $ids)), $this->now());
+        \Quissly\Search\Diagnostics\ErrorCapture::refused('sync', sprintf('catalog %s: gave up on %d products', $kind, count($ids)));
     }
 
     private function halt(string $reason): void
@@ -294,6 +296,7 @@ final class SyncWorker
         $this->stop = true;
         $this->stopReason = $reason;
         $this->store->log($reason . '; the queue is kept and the next run resumes.', $this->now());
+        \Quissly\Search\Diagnostics\ErrorCapture::refused('sync', $reason);
     }
 
     private function bumpProgress(string $key, int $by): void
@@ -323,6 +326,7 @@ final class SyncWorker
         } else {
             $this->store->setState(self::STATE_GATE_BLOCKED, ['at' => $this->now(), 'failed' => (int) $progress['failed']]);
             $this->store->log('Full sync finished WITHOUT Quissly accepting any product (' . (int) $progress['failed'] . ' failed); search stays on native CS-Cart search. Fix the cause and sync again.', $this->now());
+            \Quissly\Search\Diagnostics\ErrorCapture::refused('sync', 'Full sync finished without Quissly accepting any product (' . (int) $progress['failed'] . ' failed)');
         }
     }
 

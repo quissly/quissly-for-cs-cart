@@ -13,6 +13,9 @@ defined('BOOTSTRAP') or die('Access denied');
 // the classes resolve during installation too, when init.php has not yet loaded.
 require_once __DIR__ . '/autoload.php';
 
+// The add-on's own errors, reported to Quissly (lib/Diagnostics/).
+\Quissly\Search\Diagnostics\ErrorCapture::start();
+
 /*
  * Hooks:
  *  - `get_products_before_select` — the single interception point. Fires inside
@@ -38,6 +41,8 @@ require_once __DIR__ . '/autoload.php';
  *  - `post_add_to_cart`, `pre_add_to_wishlist` (the wishlist add-on), `change_order_status`
  *    — shopping activity for Quissly's analytics (lib/Events/, func.php): an add to cart,
  *    an add to the wishlist, an order becoming paid. Queue only: the cron sends them.
+ *  - `set_notification_pre` — an error notice on one of the add-on's pages is reported to
+ *    Quissly (lib/Diagnostics/).
  */
 fn_register_hooks(
     'get_products_before_select',
@@ -56,5 +61,6 @@ fn_register_hooks(
     'dispatch_before_display',
     'post_add_to_cart',
     'pre_add_to_wishlist',
-    'change_order_status'
+    'change_order_status',
+    'set_notification_pre'
 );

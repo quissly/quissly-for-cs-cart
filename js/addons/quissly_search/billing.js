@@ -17,6 +17,7 @@
  * Config (JSON in data-config on [data-q-billing]): endpoint, reload, csrf {name: value},
  * params {name: value} (merged into every POST), text {...}.
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['billing.js', new Error()]); // where this script starts (report.js)
 (function () {
     'use strict';
 
@@ -554,3 +555,4 @@
         boot();
     }
 })();
+(window.quisslyMarks = window.quisslyMarks || []).push(['billing.js', new Error(), 1]); // and ends

@@ -15,6 +15,7 @@
  *  - The "Suggestions" select ([data-q-mode]): its note, the read-only Automatic buttons
  *    ([data-q-auto]) and the Manual fields ([data-q-manual]) follow it.
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['config.js', new Error()]); // where this script starts (report.js)
 (function () {
     'use strict';
 
@@ -273,3 +274,4 @@
         boot();
     }
 })();
+(window.quisslyMarks = window.quisslyMarks || []).push(['config.js', new Error(), 1]); // and ends

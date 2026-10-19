@@ -7,6 +7,7 @@
  * the width - as the other plugins show them. Inlined by the status block (func.php
  * fn_quissly_search_status_handler), styled by design/backend/css/addons/quissly_search/settings.css.
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['settings-sections.js', new Error()]); // where this script starts (report.js)
 (function () {
     'use strict';
 
@@ -114,3 +115,4 @@
         start();
     }
 })();
+(window.quisslyMarks = window.quisslyMarks || []).push(['settings-sections.js', new Error(), 1]); // and ends

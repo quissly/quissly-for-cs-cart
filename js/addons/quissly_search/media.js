@@ -15,6 +15,7 @@
  * (lib/Storefront.php). Framework-free vanilla JS, no build step, no inline JS.
  * Pure encode/resize helpers are exposed on window.quisslyTest for testing.
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['media.js', new Error()]); // where this script starts (report.js)
 ( function () {
 	'use strict';
 
@@ -438,3 +439,4 @@
 		init();
 	}
 } )();
+(window.quisslyMarks = window.quisslyMarks || []).push(['media.js', new Error(), 1]); // and ends

@@ -16,6 +16,7 @@
  * the original input, so the native experience is always one key away.
  *
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['overlay.js', new Error()]); // where this script starts (report.js)
 ( function () {
 	'use strict';
 
@@ -867,3 +868,4 @@
 		}
 	} );
 } )();
+(window.quisslyMarks = window.quisslyMarks || []).push(['overlay.js', new Error(), 1]); // and ends

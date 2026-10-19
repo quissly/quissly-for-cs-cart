@@ -13,6 +13,7 @@
  * larger cards; phones always get the list. Config: the [data-quissly-quick] element's
  * data-quissly-config JSON (lib/Storefront.php). Framework-free vanilla JS, no inline JS.
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['quick.js', new Error()]); // where this script starts (report.js)
 ( function () {
 	'use strict';
 
@@ -264,3 +265,4 @@
 	window.addEventListener( 'resize', position );
 	window.addEventListener( 'scroll', position, true );
 }() );
+(window.quisslyMarks = window.quisslyMarks || []).push(['quick.js', new Error(), 1]); // and ends

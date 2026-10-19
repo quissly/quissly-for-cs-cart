@@ -7,6 +7,7 @@
  * A search is sent once per tab: reloading the results page, or coming back to it, is not
  * another search. (The same script as quissly-for-magento's quissly-events.js.)
  */
+(window.quisslyMarks = window.quisslyMarks || []).push(['events.js', new Error()]); // where this script starts (report.js)
 (function () {
     'use strict';
 
@@ -61,3 +62,4 @@
         // Analytics never gets in the shopper's way.
     }
 }());
+(window.quisslyMarks = window.quisslyMarks || []).push(['events.js', new Error(), 1]); // and ends

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.17</version>
+    <version>1.0.18</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>
@@ -272,5 +272,7 @@
     <functions>
         <!-- The automatic update's work folder (its last backup) goes with the add-on. -->
         <item for="uninstall">fn_quissly_search_uninstall</item>
+        <!-- An installation CS-Cart cannot finish is reported to Quissly (func.php). -->
+        <item for="before_install">fn_quissly_search_before_install</item>
     </functions>
 </addon>

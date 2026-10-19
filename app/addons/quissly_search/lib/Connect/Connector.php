@@ -18,6 +18,11 @@ use Quissly\Search\Config;
  * strands the first with everything synced to it — so connecting a store that is
  * already connected is refused.
  *
+ * Since 2026-10-19 the sign-up takes the email only with a code Quissly mailed there: Setup first
+ * asks for one (sendCode(): POST .../open-source/send-code {email, domain}), the merchant types it,
+ * and connect() sends it as `verification_code`. Six digits, ten minutes, five tries, a minute
+ * before a resend - Quissly's rules and words, passed through.
+ *
  * `platform` is 'cs-cart' (Config::CONSOLE_PLATFORM): the console stores it with the
  * key, and its sign-in (the embedded panel) refuses a key whose stored platform
  * differs — live 2026-09-21, a store registered as 'cscart' could not sign in.
@@ -25,6 +30,10 @@ use Quissly\Search\Config;
 final class Connector
 {
     public const PATH = '/api/v1/services/external/open-source';
+    public const SEND_CODE_PATH = '/api/v1/services/external/open-source/send-code';
+
+    /** Mailing a code is quick upstream; the merchant waits on this one. */
+    public const SEND_CODE_TIMEOUT_SECONDS = 30;
 
     /** Account creation does real work upstream (Magento found 60 s was not enough). */
     public const TIMEOUT_SECONDS = 300;
@@ -41,7 +50,48 @@ final class Connector
     }
 
     /**
-     * @param array{domain:string, name:?string, first_name:?string, last_name:?string, environment:string, already_connected:bool} $store
+     * Ask Quissly to mail a sign-up code to $email for this store's domain.
+     *
+     * @return array{ok:bool, message:string}
+     */
+    public function sendCode(string $email, string $domain, bool $alreadyConnected): array
+    {
+        $email = trim($email);
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return self::fail('quissly_search.connect_email_invalid');
+        }
+        if ($alreadyConnected || $this->credentials->hasAccount()) {
+            return self::fail('quissly_search.connect_already');
+        }
+        if ($domain === '') {
+            return self::fail('quissly_search.connect_no_domain');
+        }
+        $response = ($this->post)(Config::CONSOLE_URL . self::SEND_CODE_PATH, (string) json_encode(['email' => $email, 'domain' => $domain], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        return self::interpretSendCode($response);
+    }
+
+    /**
+     * @param ?array{status:int, body:string} $response
+     * @return array{ok:bool, message:string}
+     */
+    public static function interpretSendCode(?array $response): array
+    {
+        if ($response === null) {
+            return ['ok' => false, 'message' => self::t('quissly_search.connect_unreachable', ['[host]' => Config::CONSOLE_URL])];
+        }
+        if ($response['status'] >= 200 && $response['status'] < 300) {
+            return ['ok' => true, 'message' => ''];
+        }
+        $body = json_decode($response['body'], true);
+        // Quissly's own words ("Please wait a minute before requesting another code.") are what help.
+        $detail = is_array($body) && isset($body['detail']) && is_string($body['detail']) && trim($body['detail']) !== '' ? $body['detail'] : '';
+
+        return ['ok' => false, 'message' => $detail !== '' ? $detail : self::t('quissly_search.connect_failed', ['[detail]' => 'HTTP ' . $response['status']])];
+    }
+
+    /**
+     * @param array{domain:string, name:?string, first_name:?string, last_name:?string, environment:string, already_connected:bool, verification_code?:string} $store
      * @return array{ok:bool, message:string}
      */
     public function connect(string $email, array $store): array
@@ -97,6 +147,11 @@ final class Connector
         $display = trim(($store['first_name'] ?? '') . ' ' . ($store['last_name'] ?? ''));
         if ($display !== '') {
             $payload['display_name'] = $display;
+        }
+        // The code Quissly mailed to the email (sendCode()); the sign-up refuses without it.
+        $code = trim((string) ($store['verification_code'] ?? ''));
+        if ($code !== '') {
+            $payload['verification_code'] = $code;
         }
 
         return $payload;

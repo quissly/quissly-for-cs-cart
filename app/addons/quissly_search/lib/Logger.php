@@ -24,6 +24,10 @@ final class Logger
     public static function error(string $message, array $context = []): void
     {
         self::write($message, $context);
+        // Reported to Quissly too (lib/Diagnostics/ErrorReport.php).
+        if (class_exists(Diagnostics\ErrorCapture::class)) {
+            Diagnostics\ErrorCapture::problem($message, $context);
+        }
     }
 
     /**
