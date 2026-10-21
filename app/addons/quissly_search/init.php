@@ -7,6 +7,7 @@
  * interception hook.
  *
  * release t
+ * just a comment
  */
 
 defined('BOOTSTRAP') or die('Access denied');
