@@ -320,12 +320,13 @@ final class ProductSource
      */
     private function productOptions(int $productId, string $tracking): array
     {
+        // ?:product_options un-aliased: see optionVariantIds().
         $options = db_get_hash_array(
-            'SELECT o.option_id, d.option_name FROM ?:product_options o'
-            . ' LEFT JOIN ?:product_options_descriptions d ON d.option_id = o.option_id AND d.lang_code = ?s'
-            . ' WHERE o.status = ?s AND o.option_type IN (?a)'
-            . ' AND (o.product_id = ?i OR (o.product_id = 0 AND o.option_id IN (SELECT option_id FROM ?:product_global_option_links WHERE product_id = ?i)))'
-            . ' ORDER BY o.position, o.option_id',
+            'SELECT ?:product_options.option_id, d.option_name FROM ?:product_options'
+            . ' LEFT JOIN ?:product_options_descriptions d ON d.option_id = ?:product_options.option_id AND d.lang_code = ?s'
+            . ' WHERE ?:product_options.status = ?s AND ?:product_options.option_type IN (?a)'
+            . ' AND (?:product_options.product_id = ?i OR (?:product_options.product_id = 0 AND ?:product_options.option_id IN (SELECT option_id FROM ?:product_global_option_links WHERE product_id = ?i)))'
+            . ' ORDER BY ?:product_options.position, ?:product_options.option_id',
             'option_id',
             CART_LANGUAGE,
             'A',
@@ -404,21 +405,31 @@ final class ProductSource
      */
     public function optionVariantIds(): array
     {
-        $rows = db_get_array(
-            'SELECT o.product_id, o.option_id, v.variant_id FROM ?:product_options o'
-            . ' JOIN ?:product_option_variants v ON v.option_id = o.option_id'
-            . ' JOIN ?:products p ON p.product_id = o.product_id AND p.status = ?s'
-            . ' WHERE o.product_id > 0 AND o.status = ?s AND o.option_type IN (?a) AND v.status = ?s'
-            . ' UNION ALL SELECT l.product_id, o.option_id, v.variant_id FROM ?:product_global_option_links l'
-            . ' JOIN ?:product_options o ON o.option_id = l.option_id AND o.product_id = 0'
-            . ' JOIN ?:product_option_variants v ON v.option_id = o.option_id'
+        // ?:product_options is never aliased, and these are two queries, not a UNION: on CS-Cart
+        // Ultimate's storefront (a company selected) a SELECT whose first table is a shared one
+        // (product_options, product_features, product_filters, pages, profile_fields) gets
+        // `INNER JOIN ?:ult_objects_sharing ON ... = ?:product_options.option_id` added
+        // (fn_ult_db_query_process) - an alias left that name undefined and the query died
+        // ("Unknown column"), which broke the chat's add to cart. Unaliased, the sharing applies.
+        $own = db_get_array(
+            'SELECT ?:product_options.product_id, ?:product_options.option_id, v.variant_id FROM ?:product_options'
+            . ' JOIN ?:product_option_variants v ON v.option_id = ?:product_options.option_id'
+            . ' JOIN ?:products p ON p.product_id = ?:product_options.product_id AND p.status = ?s'
+            . ' WHERE ?:product_options.product_id > 0 AND ?:product_options.status = ?s'
+            . ' AND ?:product_options.option_type IN (?a) AND v.status = ?s',
+            'A', 'A', self::CHOICE_TYPES, 'A'
+        );
+        $global = db_get_array(
+            'SELECT l.product_id, ?:product_options.option_id, v.variant_id FROM ?:product_options'
+            . ' JOIN ?:product_global_option_links l ON l.option_id = ?:product_options.option_id'
+            . ' JOIN ?:product_option_variants v ON v.option_id = ?:product_options.option_id'
             . ' JOIN ?:products p ON p.product_id = l.product_id AND p.status = ?s'
-            . ' WHERE o.status = ?s AND o.option_type IN (?a) AND v.status = ?s',
-            'A', 'A', self::CHOICE_TYPES, 'A',
+            . ' WHERE ?:product_options.product_id = 0 AND ?:product_options.status = ?s'
+            . ' AND ?:product_options.option_type IN (?a) AND v.status = ?s',
             'A', 'A', self::CHOICE_TYPES, 'A'
         );
         $ids = [];
-        foreach ($rows ?: [] as $row) {
+        foreach (array_merge($own ?: [], $global ?: []) as $row) {
             $ids[ProductMapper::optionVariantId((int) $row['product_id'], (int) $row['option_id'], (int) $row['variant_id'])] = (int) $row['product_id'];
         }
 
@@ -432,11 +443,12 @@ final class ProductSource
      */
     public function hasOptionValue(int $productId, int $optionId, int $variantId): bool
     {
+        // ?:product_options un-aliased: see optionVariantIds().
         return (bool) db_get_field(
-            'SELECT 1 FROM ?:product_options o'
-            . ' JOIN ?:product_option_variants v ON v.option_id = o.option_id AND v.variant_id = ?i AND v.status = ?s'
-            . ' WHERE o.option_id = ?i AND o.status = ?s AND o.option_type IN (?a)'
-            . ' AND (o.product_id = ?i OR (o.product_id = 0 AND o.option_id IN (SELECT option_id FROM ?:product_global_option_links WHERE product_id = ?i)))',
+            'SELECT 1 FROM ?:product_options'
+            . ' JOIN ?:product_option_variants v ON v.option_id = ?:product_options.option_id AND v.variant_id = ?i AND v.status = ?s'
+            . ' WHERE ?:product_options.option_id = ?i AND ?:product_options.status = ?s AND ?:product_options.option_type IN (?a)'
+            . ' AND (?:product_options.product_id = ?i OR (?:product_options.product_id = 0 AND ?:product_options.option_id IN (SELECT option_id FROM ?:product_global_option_links WHERE product_id = ?i)))',
             $variantId,
             'A',
             $optionId,

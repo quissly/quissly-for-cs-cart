@@ -24,8 +24,9 @@ them on, voice search, image search and the QChat shopping assistant.
 ### 1. Upload the add-on
 
 Download **[quissly-for-cs-cart.zip](https://github.com/quissly/quissly-for-cs-cart/releases/latest/download/quissly-for-cs-cart.zip)**
-(always the latest version). In the CS-Cart admin open **Add-ons → Manage add-ons**, click the
-**+** button (top right), choose **Local**, upload the zip, then make sure **Quissly Search** is
+(always the latest version). In the CS-Cart admin open **Add-ons → Manage add-ons**, then on
+4.11 click the **+** button (top right) and choose **Local**, on 4.21 click the **gear** (top right),
+**Manual installation**, with **All storefronts** selected. Upload the zip, then make sure **Quissly Search** is
 installed and **Active**.
 
 ### 2. Run Quissly Setup
@@ -117,7 +118,8 @@ reach `github.com` and `raw.githubusercontent.com` over HTTPS. A store whose fil
 ## How search behaves
 
 - **Order:** results come in Quissly's order. The *Sort by* menu offers **Relevance** (the
-  default) and **Price**, the orders Quissly can honour.
+  default) and, of the sortings the store has turned on, **Price**, **Name**, **Popularity**,
+  **Newest** and **On sale** - Quissly sorts all the matches, not just the first page.
 - **Filters:** a price range (the price slider) is applied by Quissly, and the slider's range
   is taken from Quissly's results. When a shopper filters by anything else - category, vendor, a
   feature or a product code - CS-Cart's own search answers, so the filter is always respected.

@@ -75,13 +75,15 @@ final class CatalogFeatures
      */
     public static function catalog(): array
     {
+        // ?:product_features un-aliased: a shared table on CS-Cart Ultimate (ProductSource::optionVariantIds()).
         $rows = db_get_array(
-            'SELECT f.feature_id, fd.description AS name, f.status, f.display_on_product, f.display_on_catalog, f.display_on_header,'
-            . ' (SELECT COUNT(DISTINCT v.product_id) FROM ?:product_features_values v WHERE v.feature_id = f.feature_id AND v.lang_code = ?s) AS products,'
-            . ' (SELECT COUNT(*) FROM ?:product_variation_group_features gf WHERE gf.feature_id = f.feature_id) AS variation'
-            . ' FROM ?:product_features f'
-            . ' JOIN ?:product_features_descriptions fd ON fd.feature_id = f.feature_id AND fd.lang_code = ?s'
-            . ' WHERE f.feature_type != ?s AND f.status IN (?a)',
+            'SELECT ?:product_features.feature_id, fd.description AS name, ?:product_features.status,'
+            . ' ?:product_features.display_on_product, ?:product_features.display_on_catalog, ?:product_features.display_on_header,'
+            . ' (SELECT COUNT(DISTINCT v.product_id) FROM ?:product_features_values v WHERE v.feature_id = ?:product_features.feature_id AND v.lang_code = ?s) AS products,'
+            . ' (SELECT COUNT(*) FROM ?:product_variation_group_features gf WHERE gf.feature_id = ?:product_features.feature_id) AS variation'
+            . ' FROM ?:product_features'
+            . ' JOIN ?:product_features_descriptions fd ON fd.feature_id = ?:product_features.feature_id AND fd.lang_code = ?s'
+            . ' WHERE ?:product_features.feature_type != ?s AND ?:product_features.status IN (?a)',
             CART_LANGUAGE,
             CART_LANGUAGE,
             'G',
