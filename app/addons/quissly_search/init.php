@@ -5,6 +5,8 @@
  * Registers a minimal PSR-4 autoloader for the `Quissly\Search\` namespace
  * (CS-Cart does not auto-load an add-on's composer.json) and wires the single
  * interception hook.
+ *
+ * release t
  */
 
 defined('BOOTSTRAP') or die('Access denied');
