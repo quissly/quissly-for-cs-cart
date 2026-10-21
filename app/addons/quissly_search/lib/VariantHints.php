@@ -21,14 +21,25 @@ use Tygh\Registry;
  * or shows the matched child's picture and opens the child's page - as the Shopify app
  * (?variant=) and the Magento plugin (VariantHints there) do.
  *
+ * The card's Add to cart follows the match too. A card of a product with options or variations
+ * never adds directly: the 4.21 themes built on show_quick_view_for_options (nova) open CS-Cart's
+ * options dialog (`products.quick_view?product_id=<id>&show_quick_view_for_options=Y`), which gets
+ * the same `combination` (or the matched child's id: the dialog then shows and adds the child, at
+ * its own price and stock); the responsive theme (4.11 and 4.21) links "Select options" /
+ * "Select variation" to products.view, which the link change already covers. The card's own
+ * price includes the matched values' modifiers: the search gather starts with them as the
+ * product's `selected_options` (the other options at their defaults, as checkout.add and the
+ * chat's resolve choose them), and CS-Cart applies them as for any chosen option.
+ *
  * Written by SearchInterceptor for the one intercepted text search; read by the
+ * `gather_additional_products_data_pre` hook (chosen values), the
  * `gather_additional_products_data_post` hook (pictures) and the `url_post` hook (links).
- * Both read nothing outside the storefront search page (products.search), so a category
+ * All read nothing outside the storefront search page (products.search), so a category
  * page, a block, the cart, an email or the admin can never get a hint, whatever was recorded;
  * and only what the products' own data confirms (the option and value still active on that
- * product, the child an active variation of it) is used. The picture is swapped once, in the
- * search controller's own gather of the results; a link is changed for every
- * `products.view?product_id=<that product>` the page builds.
+ * product, the child an active variation of it) is used. The values and picture are set once, in
+ * the search controller's own gather of the results; a link is changed for every
+ * `products.view?product_id=<that product>` and options dialog of it the page builds.
  */
 final class VariantHints
 {
@@ -111,6 +122,72 @@ final class VariantHints
     }
 
     /**
+     * The start of the search controller's gather of the results: each product matched through
+     * option values it still has gets them as its `selected_options`, every other option at its
+     * default, so CS-Cart prices the card with the values' modifiers (fn_gather_additional_
+     * product_data reads selected_options as products.view reads a combination). A product
+     * already carrying a choice is left alone.
+     *
+     * @param array<int|string, array<string,mixed>> $products
+     * @param callable(list<int>): array<int, array{options:array<int|string,mixed>, defaults:array<int,int>}> $optionsOf
+     *        each product's active selectable options (as fn_get_product_options) and its
+     *        default values (option id => value id, as fn_get_default_product_options)
+     */
+    public static function presetOptions(array &$products, callable $optionsOf): void
+    {
+        if (!self::pending()) {
+            return;
+        }
+        $ids = [];
+        foreach ($products as $product) {
+            $productId = (int) ($product['product_id'] ?? 0);
+            if (isset(self::$matched[$productId]['options']) && empty($product['selected_options']) && empty($product['combination'])) {
+                $ids[] = $productId;
+            }
+        }
+        if ($ids === []) {
+            return;
+        }
+        $known = $optionsOf($ids);
+        foreach ($products as &$product) {
+            $productId = (int) ($product['product_id'] ?? 0);
+            if (!in_array($productId, $ids, true) || !isset($known[$productId])) {
+                continue;
+            }
+            $chosen = self::chosenOptions((array) $known[$productId]['options'], (array) $known[$productId]['defaults'], self::$matched[$productId]['options']);
+            if ($chosen !== null) {
+                $product['selected_options'] = $chosen;
+            }
+        }
+        unset($product);
+    }
+
+    /**
+     * Every option's value with the matched ones in place: the defaults, then each matched
+     * value - null when one of them is not among the product's options.
+     *
+     * @param array<int|string, mixed> $options  as fn_get_product_options
+     * @param array<int, int>          $defaults option id => value id
+     * @param array<int, int>          $matched  option id => value id
+     * @return ?array<int, int>
+     */
+    public static function chosenOptions(array $options, array $defaults, array $matched): ?array
+    {
+        $chosen = [];
+        foreach ($defaults as $optionId => $variantId) {
+            $chosen[(int) $optionId] = (int) $variantId;
+        }
+        foreach ($matched as $optionId => $variantId) {
+            if (self::optionValue($options, (int) $optionId, (int) $variantId) === null) {
+                return null;
+            }
+            $chosen[(int) $optionId] = (int) $variantId;
+        }
+
+        return $chosen;
+    }
+
+    /**
      * The search controller's gather of the results (fn_gather_additional_products_data, with
      * the products' options): matched option values that are all still among the product's
      * active values put their picture on the card (the colour's - an option named as one - else
@@ -184,6 +261,35 @@ final class VariantHints
         }
 
         return self::$links[(int) $m[1]] ?? null;
+    }
+
+    /**
+     * The change for the card's Add to cart dialog (fn_url's input
+     * `products.quick_view?product_id=<a confirmed product>&...&show_quick_view_for_options=Y...`):
+     * the combination to attach, or the same URL naming the matched child instead; null for
+     * anything else - the image's plain quick view included, and a URL already carrying a
+     * combination.
+     *
+     * @return array{combination:string}|array{url:string}|null
+     */
+    public static function dialogFor(string $url): ?array
+    {
+        $prefix = 'products.quick_view?';
+        if (self::$links === [] || strpos($url, $prefix) !== 0 || !self::onSearchPage()) {
+            return null;
+        }
+        parse_str(substr($url, strlen($prefix)), $query);
+        $id = $query['product_id'] ?? null;
+        if (!is_string($id) || preg_match('/^[1-9]\d{0,18}$/', $id) !== 1
+            || ($query['show_quick_view_for_options'] ?? null) !== 'Y' || isset($query['combination'])) {
+            return null;
+        }
+        $link = self::$links[(int) $id] ?? null;
+        if (isset($link['child'])) {
+            return ['url' => (string) preg_replace('/(?<=[?&])product_id=' . $id . '(?=&|$)/', 'product_id=' . (int) $link['child'], $url, 1)];
+        }
+
+        return $link;
     }
 
     /**

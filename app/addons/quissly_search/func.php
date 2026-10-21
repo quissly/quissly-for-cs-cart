@@ -404,6 +404,39 @@ function fn_quissly_search_get_current_filters_post($params, $filters, $selected
 }
 
 /**
+ * The start of the search controller's gather of the intercepted results: a product matched
+ * through option values starts with them chosen (the other options at their defaults, as the
+ * chat's resolve chooses them), so its card is priced with their modifiers (VariantHints).
+ * Only on the storefront search page, once, and only for a gather of options and pictures (the
+ * controller's). The argument list is the same on 4.11 and 4.21.
+ *
+ * @param array<int|string,array<mixed>> $products
+ * @param array<string,mixed>            $params
+ */
+function fn_quissly_search_gather_additional_products_data_pre(&$products, $params, $lang_code)
+{
+    try {
+        if (!\Quissly\Search\VariantHints::pending() || empty($params['get_options'])
+            || (empty($params['get_icon']) && empty($params['get_detailed']))) {
+            return;
+        }
+        \Quissly\Search\VariantHints::presetOptions($products, static function (array $ids) use ($lang_code): array {
+            $known = [];
+            foreach ((array) fn_get_product_options($ids, $lang_code, true, false, true) as $id => $options) {
+                $known[(int) $id] = [
+                    'options'  => (array) $options,
+                    'defaults' => (array) fn_get_default_product_options((int) $id, false, ['product_options' => (array) $options], true),
+                ];
+            }
+
+            return $known;
+        });
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'gather_additional_products_data_pre');
+    }
+}
+
+/**
  * The search controller's gather of the intercepted results: a card whose product matched
  * through one of its variants shows that variant's picture (VariantHints) - an option value's
  * picture, or a Variations child's main picture. Only on the storefront search page, once.
@@ -438,7 +471,8 @@ function fn_quissly_search_gather_additional_products_data_post($product_ids, $p
  * fn_url's last step: on the storefront search page, a link to a product that matched
  * through one of its variants opens that variant - the product with the matched option values
  * (a colour, a size, or both) selected (`combination`), or the matched Variations child's page
- * (VariantHints). Runs after
+ * (VariantHints). The card's Add to cart dialog (show_quick_view_for_options) opens with the
+ * same values chosen, or on the matched child. Runs after
  * the SEO add-on's url_post (priority 2000 > 1800), so it changes the final URL. 4.21 passes
  * $storefront_id too; 4.11 does not.
  */
@@ -448,11 +482,13 @@ function fn_quissly_search_url_post(&$_url, $area, $url, $protocol = 'current', 
         if ($area !== 'C' || !is_string($url)) {
             return;
         }
-        $link = \Quissly\Search\VariantHints::linkFor($url);
+        $link = \Quissly\Search\VariantHints::linkFor($url) ?? \Quissly\Search\VariantHints::dialogFor($url);
         if (isset($link['combination'])) {
             $_url = fn_link_attach((string) $_url, 'combination=' . $link['combination']);
         } elseif (isset($link['child'])) {
             $_url = fn_url('products.view?product_id=' . (int) $link['child'], $area, $protocol, $lang_code);
+        } elseif (isset($link['url'])) {
+            $_url = fn_url($link['url'], $area, $protocol, $lang_code);
         }
     } catch (\Throwable $e) {
         fn_quissly_search_failed($e, 'url_post');
