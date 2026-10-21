@@ -2345,3 +2345,55 @@ msgstr "Quissly Search is updating itself right now. Try again in a minute."
 msgctxt "Languages::quissly_search.uc_failed"
 msgid "Quissly Search [version] could not be finished ([reason]), so [previous] was put back."
 msgstr "Quissly Search [version] could not be finished ([reason]), so [previous] was put back."
+
+msgctxt "Languages::quissly_search.uc_check_name"
+msgid "Quissly Search: server check"
+msgstr "Quissly Search: server check"
+
+msgctxt "Languages::quissly_search.uc_mail_blocked"
+msgid "Your store can't send email right now ([reason]), and CS-Cart's upgrade emails the administrator before installing. Set up email in Settings → E-mails (for example SMTP) and click Install again. Your store is unchanged; automatic updates keep working without email."
+msgstr "Your store can't send email right now ([reason]), and CS-Cart's upgrade emails the administrator before installing. Set up email in Settings → E-mails (for example SMTP) and click Install again. Your store is unchanged; automatic updates keep working without email."
+
+msgctxt "Languages::quissly_search.uc_restore_blocked"
+msgid "Before it backs up your store, CS-Cart writes a restore script into the upgrades/ folder, and it can't do that here: [reason] Your store is unchanged; automatic updates are not affected."
+msgstr "Before it backs up your store, CS-Cart writes a restore script into the upgrades/ folder, and it can't do that here: [reason] Your store is unchanged; automatic updates are not affected."
+
+msgctxt "Languages::quissly_search.uc_reason_mail_disabled"
+msgid "PHP's mail() function is turned off on this server"
+msgstr "PHP's mail() function is turned off on this server"
+
+msgctxt "Languages::quissly_search.uc_reason_mail_program"
+msgid "PHP sends mail with [program], which is not on this server"
+msgstr "PHP sends mail with [program], which is not on this server"
+
+msgctxt "Languages::quissly_search.uc_reason_sendmail"
+msgid "the sendmail program set in Settings → E-mails, [program], is not on this server"
+msgstr "the sendmail program set in Settings → E-mails, [program], is not on this server"
+
+msgctxt "Languages::quissly_search.uc_reason_smtp_host"
+msgid "no SMTP server is set in Settings → E-mails"
+msgstr "no SMTP server is set in Settings → E-mails"
+
+msgctxt "Languages::quissly_search.uc_reason_smtp"
+msgid "the SMTP server [server] does not answer"
+msgstr "the SMTP server [server] does not answer"
+
+msgctxt "Languages::quissly_search.uc_reason_restore_missing"
+msgid "the upgrades/ folder or its source_restore.php (both come with CS-Cart) is missing. Ask your hosting to put them back, then click Install again."
+msgstr "the upgrades/ folder or its source_restore.php (both come with CS-Cart) is missing. Ask your hosting to put them back, then click Install again."
+
+msgctxt "Languages::quissly_search.uc_reason_restore_writable"
+msgid "the upgrades/ folder is not writable. Ask your hosting to make the upgrades/ folder writable (or fill in the FTP access in Settings → Upgrade center, so CS-Cart can fix it itself), then click Install again."
+msgstr "the upgrades/ folder is not writable. Ask your hosting to make the upgrades/ folder writable (or fill in the FTP access in Settings → Upgrade center, so CS-Cart can fix it itself), then click Install again."
+
+msgctxt "Languages::quissly_search.uc_reason_restore_http"
+msgid "your store can't open its own address [url], where CS-Cart checks that script. Tick \"Skip files and database backup\" and click Install again, or ask your hosting to let the server reach its own website."
+msgstr "your store can't open its own address [url], where CS-Cart checks that script. Tick \"Skip files and database backup\" and click Install again, or ask your hosting to let the server reach its own website."
+
+msgctxt "Languages::quissly_search.dash_uc_mail"
+msgid "CS-Cart's Upgrade center (Add-ons → Upgrades) can't install updates on this server: it emails the administrator before installing, and this store can't send email ([reason]). Set up email in Settings → E-mails (for example SMTP). Automatic updates are not affected."
+msgstr "CS-Cart's Upgrade center (Add-ons → Upgrades) can't install updates on this server: it emails the administrator before installing, and this store can't send email ([reason]). Set up email in Settings → E-mails (for example SMTP). Automatic updates are not affected."
+
+msgctxt "Languages::quissly_search.dash_uc_restore"
+msgid "CS-Cart's Upgrade center (Add-ons → Upgrades) can't back up this store before an update: [reason] Automatic updates are not affected."
+msgstr "CS-Cart's Upgrade center (Add-ons → Upgrades) can't back up this store before an update: [reason] Automatic updates are not affected."

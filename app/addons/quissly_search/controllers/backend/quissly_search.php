@@ -55,6 +55,21 @@ defined('BOOTSTRAP') or die('Access denied');
 /** @var string $mode */
 
 /**
+ * The Dashboard's warnings about CS-Cart's Upgrade center on this server (lib/Update/UpgradeCenter):
+ * none when they cannot be worked out - the Dashboard never fails for them.
+ *
+ * @return list<string>
+ */
+function fn_quissly_search_upgrade_problems(DbSyncStore $store): array
+{
+    try {
+        return \Quissly\Search\Update\UpgradeCenter::dashboardProblems($store);
+    } catch (\Throwable $e) {
+        return [];
+    }
+}
+
+/**
  * A run summary in one line, for the notification.
  *
  * @param array{confirmed:int, failed:int, waiting:int, queued:int, stopped:string} $summary
@@ -712,6 +727,7 @@ try {
             'last_cron_at'    => isset($store->getState('last_cron')['at']) ? (int) $store->getState('last_cron')['at'] : null,
             'cron_command'    => 'php ' . rtrim(DIR_ROOT, '/') . '/' . Registry::get('config.admin_index') . ' --dispatch=quissly_search.cron',
             'log'             => $store->recentLog(DashboardView::LOG_LINES),
+            'upgrade_problems' => fn_quissly_search_upgrade_problems($store),
             'now'             => time(),
             'urls'            => [
                 'sync_now'        => fn_url('quissly_search.sync_now'),

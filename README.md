@@ -122,9 +122,22 @@ the same way before it is even listed - a file that fails the check is never off
 the sodium extension cannot check it, so nothing is offered (the page says why). Your settings and data
 are kept, and if the update cannot be finished the previous version is put back. As for any upgrade
 there, CS-Cart backs up the store first (unless you tick *Skip files and database backup*), e-mails the
-administrator - the install stops if the e-mail cannot be sent - and closes the storefront while it
-copies the files; Quissly opens it again when it is done. A version shows up there only once its release
-is published on GitHub (a minute or two after the new version is announced).
+administrator and closes the storefront while it copies the files; Quissly opens it again when it is
+done. A version shows up there only once its release is published on GitHub (a minute or two after the
+new version is announced).
+
+What Add-ons → Upgrades needs from your server (automatic updates need neither):
+
+- **E-mail that works.** CS-Cart e-mails the administrator before it installs and stops if it cannot.
+  Set it up in **Settings → E-mails** (SMTP, for example) if your store does not send e-mail.
+- **For the backup, a writable `upgrades/` folder** (with CS-Cart's `upgrades/source_restore.php` in
+  it) and a server that can open its own website: CS-Cart writes a restore script there and checks it
+  over the store's own address. If your host does not allow this, tick *Skip files and database backup*.
+
+Quissly checks both when you click **Install**, before anything changes: if one is missing, the
+*Validation issue* box says what to fix and your store stays as it was (storefront open, same
+version). The Quissly Dashboard shows the same warning ahead of time. Should CS-Cart still stop after
+closing the storefront but before copying any file, Quissly opens the storefront again.
 
 Automatic updates stay the default. To update only from Add-ons → Upgrades, set **Update check
 frequency** to **Never**. If both run, nothing breaks: whichever comes second finds the version already

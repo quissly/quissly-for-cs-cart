@@ -2345,3 +2345,55 @@ msgstr "Quissly Search ახლა თავად ახლდება. ს�
 msgctxt "Languages::quissly_search.uc_failed"
 msgid "Quissly Search [version] could not be finished ([reason]), so [previous] was put back."
 msgstr "Quissly Search [version]-ის დაყენება ვერ დასრულდა ([reason]), ამიტომ [previous] დაბრუნდა."
+
+msgctxt "Languages::quissly_search.uc_check_name"
+msgid "Quissly Search: server check"
+msgstr "Quissly Search: სერვერის შემოწმება"
+
+msgctxt "Languages::quissly_search.uc_mail_blocked"
+msgid "Your store can't send email right now ([reason]), and CS-Cart's upgrade emails the administrator before installing. Set up email in Settings → E-mails (for example SMTP) and click Install again. Your store is unchanged; automatic updates keep working without email."
+msgstr "თქვენს მაღაზიას ახლა ელფოსტის გაგზავნა არ შეუძლია ([reason]), CS-Cart-ის განახლება კი დაყენებამდე ადმინისტრატორს ელფოსტას უგზავნის. მოაწყვეთ ელფოსტა აქ: Settings → E-mails (მაგალითად, SMTP) და ხელახლა დააჭირეთ Install-ს. მაღაზიაში არაფერი შეცვლილა; ავტომატური განახლებები ელფოსტის გარეშეც მუშაობს."
+
+msgctxt "Languages::quissly_search.uc_restore_blocked"
+msgid "Before it backs up your store, CS-Cart writes a restore script into the upgrades/ folder, and it can't do that here: [reason] Your store is unchanged; automatic updates are not affected."
+msgstr "მაღაზიის სარეზერვო ასლის შექმნამდე CS-Cart აღდგენის სკრიპტს upgrades/ საქაღალდეში წერს და აქ ამას ვერ ახერხებს: [reason] მაღაზიაში არაფერი შეცვლილა; ავტომატურ განახლებებზე ეს გავლენას არ ახდენს."
+
+msgctxt "Languages::quissly_search.uc_reason_mail_disabled"
+msgid "PHP's mail() function is turned off on this server"
+msgstr "ამ სერვერზე PHP-ის mail() ფუნქცია გამორთულია"
+
+msgctxt "Languages::quissly_search.uc_reason_mail_program"
+msgid "PHP sends mail with [program], which is not on this server"
+msgstr "PHP ელფოსტას [program]-ით აგზავნის, ეს პროგრამა კი ამ სერვერზე არ არის"
+
+msgctxt "Languages::quissly_search.uc_reason_sendmail"
+msgid "the sendmail program set in Settings → E-mails, [program], is not on this server"
+msgstr "Settings → E-mails-ში მითითებული sendmail პროგრამა, [program], ამ სერვერზე არ არის"
+
+msgctxt "Languages::quissly_search.uc_reason_smtp_host"
+msgid "no SMTP server is set in Settings → E-mails"
+msgstr "Settings → E-mails-ში SMTP სერვერი მითითებული არ არის"
+
+msgctxt "Languages::quissly_search.uc_reason_smtp"
+msgid "the SMTP server [server] does not answer"
+msgstr "SMTP სერვერი [server] არ პასუხობს"
+
+msgctxt "Languages::quissly_search.uc_reason_restore_missing"
+msgid "the upgrades/ folder or its source_restore.php (both come with CS-Cart) is missing. Ask your hosting to put them back, then click Install again."
+msgstr "upgrades/ საქაღალდე ან მისი source_restore.php (ორივე CS-Cart-ს მოყვება) აკლია. სთხოვეთ ჰოსტინგს მათი დაბრუნება და ხელახლა დააჭირეთ Install-ს."
+
+msgctxt "Languages::quissly_search.uc_reason_restore_writable"
+msgid "the upgrades/ folder is not writable. Ask your hosting to make the upgrades/ folder writable (or fill in the FTP access in Settings → Upgrade center, so CS-Cart can fix it itself), then click Install again."
+msgstr "upgrades/ საქაღალდეში ჩაწერა შეუძლებელია. სთხოვეთ ჰოსტინგს, upgrades/ საქაღალდე ჩაწერადი გახადოს (ან შეავსეთ FTP წვდომა აქ: Settings → Upgrade center, რომ CS-Cart-მა თავად გაასწოროს) და ხელახლა დააჭირეთ Install-ს."
+
+msgctxt "Languages::quissly_search.uc_reason_restore_http"
+msgid "your store can't open its own address [url], where CS-Cart checks that script. Tick \"Skip files and database backup\" and click Install again, or ask your hosting to let the server reach its own website."
+msgstr "მაღაზია საკუთარ მისამართს, [url], ვერ ხსნის, სადაც CS-Cart ამ სკრიპტს ამოწმებს. მონიშნეთ „Skip files and database backup“ და ხელახლა დააჭირეთ Install-ს, ან სთხოვეთ ჰოსტინგს, სერვერს საკუთარ საიტზე წვდომა მისცეს."
+
+msgctxt "Languages::quissly_search.dash_uc_mail"
+msgid "CS-Cart's Upgrade center (Add-ons → Upgrades) can't install updates on this server: it emails the administrator before installing, and this store can't send email ([reason]). Set up email in Settings → E-mails (for example SMTP). Automatic updates are not affected."
+msgstr "CS-Cart-ის Upgrade center (Add-ons → Upgrades) ამ სერვერზე განახლებებს ვერ დააყენებს: დაყენებამდე ის ადმინისტრატორს ელფოსტას უგზავნის, ეს მაღაზია კი ელფოსტას ვერ აგზავნის ([reason]). მოაწყვეთ ელფოსტა აქ: Settings → E-mails (მაგალითად, SMTP). ავტომატურ განახლებებზე ეს გავლენას არ ახდენს."
+
+msgctxt "Languages::quissly_search.dash_uc_restore"
+msgid "CS-Cart's Upgrade center (Add-ons → Upgrades) can't back up this store before an update: [reason] Automatic updates are not affected."
+msgstr "CS-Cart-ის Upgrade center (Add-ons → Upgrades) განახლებამდე ამ მაღაზიის სარეზერვო ასლს ვერ შექმნის: [reason] ავტომატურ განახლებებზე ეს გავლენას არ ახდენს."

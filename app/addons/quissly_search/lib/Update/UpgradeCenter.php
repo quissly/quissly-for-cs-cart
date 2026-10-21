@@ -21,7 +21,9 @@ use Tygh\Registry;
  *     then GitHub's API or the release's own address), when it is newer than the add-on's files -
  *     downloaded once and checked against Quissly's signature before it is listed;
  *  2. build(): when the merchant clicks Download, the release as an Upgrade center package
- *     (lib/Update/UpgradePackage);
+ *     (lib/Update/UpgradePackage), with a validator CS-Cart runs before anything else
+ *     (validate(): can this server send the administrator's email and write the restore
+ *     script - lib/Update/UpgradeCheck), so the install stops while the storefront is open;
  *  3. before() / after(): the package's pre and post scripts. CS-Cart backs the store up (unless
  *     the merchant skips it), closes the storefront and copies the files; after() checks they
  *     landed, redoes what the automatic update does after its swap (Updater::reinstall: install
@@ -42,6 +44,23 @@ final class UpgradeCenter
 
     /** @var list<int> the storefronts that were open before CS-Cart closed them for the copy */
     private static array $open = [];
+
+    /** Whether after() ran for the install before() prepared (else stopped() may reopen the store). */
+    private static bool $finished = false;
+
+    /**
+     * State row: the server checks' network answers, kept for the Dashboard - a day when the
+     * server answered, an hour when it did not (a fixed problem should not be shown for long).
+     * Every Install asks afresh and refreshes them.
+     */
+    private const STATE_CHECKS = 'upgrade_center_checks';
+
+    private const CHECKS_TTL = 86400;
+
+    private const CHECKS_FAILED_TTL = 3600;
+
+    /** @var array<string, ?bool> this request's network answers, by what was asked */
+    private static array $asked = [];
 
     /** The version in the add-on's files (CS-Cart's recorded one can lag behind files copied by hand). */
     public static function installedVersion(): string
@@ -124,6 +143,7 @@ final class UpgradeCenter
             foreach (UpgradePackage::scripts($from, $to) as $name => $source) {
                 $package->addFromString('scripts/' . $name, $source);
             }
+            $package->addFromString('validators/' . UpgradePackage::VALIDATOR . '.php', UpgradePackage::validator($from, $to));
             foreach (UpgradePackage::copied($releaseFiles, $files) as $path) {
                 $package->addFile($unpacked . $path, 'package/' . $path);
             }
@@ -138,12 +158,20 @@ final class UpgradeCenter
      * The package's pre script: still the version the package was built for, not being updated by
      * the automatic update right now (its lock is taken until after()), a copy of the add-on's
      * files to put back on failure, and which storefronts are open. Throws to stop the install
-     * (CS-Cart 4.11 ignores a pre script's return value).
+     * (CS-Cart 4.11 ignores a pre script's return value) - also when the administrator's email
+     * cannot be sent: CS-Cart closes the storefronts right after this script. Should CS-Cart still
+     * stop before the copy, stopped() opens them again at the end of the request.
      */
     public static function before(string $from, string $to): void
     {
         if (self::installedVersion() !== $from) {
             throw new \Exception((string) __('quissly_search.uc_changed', ['[version]' => $from]));
+        }
+        // Again here, as the package's validator checked it: CS-Cart closes the storefront right
+        // after this script and stops with it closed when its email cannot be sent. Answers are
+        // kept for the request, so the SMTP server is not asked twice.
+        foreach (self::problems(false, null, null) as [$kind, $reason]) {
+            throw new \Exception(htmlspecialchars(self::problemText($kind, $reason, false), ENT_QUOTES, 'UTF-8'));
         }
         fn_mkdir(self::work());
         $lock = fopen(self::work() . 'lock', 'c');
@@ -173,6 +201,240 @@ final class UpgradeCenter
         foreach ($storefronts as $storefront) {
             self::$open[] = (int) $storefront->storefront_id;
         }
+        self::$finished = false;
+        register_shutdown_function([self::class, 'stopped'], $to);
+    }
+
+    /**
+     * The end of the install request (registered by before()). CS-Cart closes the storefronts
+     * after the pre script and returns without opening them again when a later step fails before
+     * the copy - its backup, its email to the administrator. Then the storefronts before() found
+     * open are opened again: the store still runs the version it ran. Not when after() ran (it
+     * opens them itself), nor when any of the add-on's files differ from before()'s copy (a copy
+     * cut short: left as CS-Cart left it). Public for register_shutdown_function only.
+     */
+    public static function stopped(string $to): void
+    {
+        if (self::$finished || self::$open === []) {
+            return;
+        }
+        try {
+            $repository = \Tygh\Tygh::$app['storefront.repository'];
+            $closed = false;
+            foreach (self::$open as $id) {
+                $storefront = $repository->findById($id);
+                $closed = $closed || ($storefront && $storefront->status !== StorefrontStatuses::OPEN);
+            }
+            if (!$closed) {
+                self::$open = [];
+
+                return;
+            }
+            if (UpgradePackage::filesIn(self::root()) !== UpgradePackage::filesIn(self::work() . 'backup/')) {
+                Logger::error('Quissly update in the Upgrade center stopped part way; the storefront is left as CS-Cart left it', ['version' => $to]);
+
+                return;
+            }
+            self::reopen();
+            Logger::notice('Quissly update in the Upgrade center stopped before the copy; storefront opened again', ['version' => $to]);
+            (new DbSyncStore())->log(sprintf('CS-Cart stopped installing Quissly %s in Add-ons > Upgrades before copying any file (see its upgrade log); the storefront it had closed was opened again.', $to), time());
+        } catch (\Throwable $e) {
+            // The request is ending; CS-Cart's own state stands.
+        }
+    }
+
+    /**
+     * The package's validator (UpgradePackage::validator), first of CS-Cart's install steps:
+     * [true, ''] when this server can finish installing $from -> $to, else [false, why - as the
+     * HTML CS-Cart's "Validation issue" dialog prints]. The backup is checked only when the
+     * merchant backs up: CS-Cart's install request carries skip_backup=Y when "Skip files and
+     * database backup" is ticked (its controller sets App::$perform_backup from that field and
+     * hands the same request to the validators).
+     *
+     * @param array<string, mixed> $request
+     *
+     * @return array{0: bool, 1: string}
+     */
+    public static function validate(array $request, string $from, string $to): array
+    {
+        $id = (string) ($request['id'] ?? '');
+        $restoreDir = (preg_match('/^[A-Za-z0-9_.\-]+$/', $id) ? $id : self::ADDON) . '_' . $from . '-' . $to;
+        $texts = [];
+        foreach (self::problems(($request['skip_backup'] ?? '') !== 'Y', $restoreDir, new DbSyncStore(), true) as [$kind, $reason]) {
+            $texts[] = htmlspecialchars(self::problemText($kind, $reason, false), ENT_QUOTES, 'UTF-8');
+        }
+
+        return $texts === [] ? [true, ''] : [false, implode('<br><br>', $texts)];
+    }
+
+    /**
+     * The Dashboard's warnings: what would stop CS-Cart's Upgrade center on this server. File
+     * and php.ini facts are read each time; the network answers (the SMTP server, the store's
+     * own address) are kept (STATE_CHECKS).
+     *
+     * @return list<string>
+     */
+    public static function dashboardProblems(DbSyncStore $store): array
+    {
+        $texts = [];
+        foreach (self::problems(true, null, $store) as [$kind, $reason]) {
+            $texts[] = self::problemText($kind, $reason, true);
+        }
+
+        return $texts;
+    }
+
+    /**
+     * What would stop CS-Cart's install here: the administrator's email (always) and, when
+     * $backup, the restore script CS-Cart writes into upgrades/$restoreDir (or upgrades/) and
+     * fetches over HTTP before it backs up. Network answers are asked once per request; with
+     * $cache they are also kept (STATE_CHECKS) - and taken from it unless $fresh.
+     *
+     * @return list<array{0: string, 1: string}> [kind (mail, restore), the reason in the merchant's words]
+     */
+    private static function problems(bool $backup, ?string $restoreDir, ?DbSyncStore $cache, bool $fresh = false): array
+    {
+        $emails = self::emailSettings();
+        $method = (string) ($emails['mailer_send_method'] ?? '');
+        $disabled = (string) ini_get('disable_functions');
+        $php = [
+            'custom_transport' => isset(\Tygh\Tygh::$app['mailer.transport.' . $method]),
+            'windows'          => DIRECTORY_SEPARATOR === '\\',
+            'mail_function'    => function_exists('mail') && !UpgradeCheck::disabled('mail', $disabled),
+            'sendmail_path'    => (string) ini_get('sendmail_path'),
+        ];
+        $runnable = static function (string $program): ?bool {
+            return UpgradeCheck::runnable($program, (string) getenv('PATH'), (string) ini_get('open_basedir'));
+        };
+        $reachable = static function (string $host, int $port) use ($cache, $fresh, $disabled): ?bool {
+            return self::asked('smtp:' . $host . ':' . $port, $cache, $fresh, static function () use ($host, $port, $disabled): ?bool {
+                if (!function_exists('fsockopen') || UpgradeCheck::disabled('fsockopen', $disabled)) {
+                    return null;
+                }
+                $socket = @fsockopen($host, $port, $errno, $error, 5.0);
+                if ($socket === false) {
+                    return false;
+                }
+                fclose($socket);
+
+                return true;
+            });
+        };
+
+        $problems = [];
+        $mail = UpgradeCheck::mail($emails, $php, $runnable, $reachable);
+        if ($mail !== null) {
+            $problems[] = ['mail', self::reasonText($mail)];
+        }
+        if ($backup) {
+            $restore = UpgradeCheck::backup(self::restoreFacts($restoreDir, $cache, $fresh));
+            if ($restore !== null) {
+                $problems[] = ['restore', self::reasonText($restore)];
+            }
+        }
+
+        return $problems;
+    }
+
+    /**
+     * Settings > E-mails as CS-Cart's mailer reads them for the upgrade's email (no company in
+     * the message: the default transport, MailerProvider - on Ultimate's "All stores" the
+     * default company's values). Only the method, the SMTP host and the sendmail path are read.
+     *
+     * @return array<string, mixed>
+     */
+    private static function emailSettings(): array
+    {
+        if (fn_allowed_for('ULTIMATE') && !Registry::get('runtime.company_id') && !Registry::get('runtime.simple_ultimate')) {
+            return (array) \Tygh\Settings::instance(fn_get_default_company_id())->getValues('Emails');
+        }
+
+        return (array) Registry::get('settings.Emails');
+    }
+
+    /**
+     * What CS-Cart's prepareRestore() needs: upgrades/ with its source_restore.php, a folder it
+     * can write the restore script to, and that script answering over HTTP at the store's own
+     * address - asked with a script of ours that answers as CS-Cart's does ("Access denied"),
+     * removed right after.
+     *
+     * @return array{dir: bool, restore: bool, writable: bool, fixable: bool, reachable: ?bool, url: string}
+     */
+    private static function restoreFacts(?string $restoreDir, ?DbSyncStore $cache, bool $fresh): array
+    {
+        $upgrades = self::root() . 'upgrades';
+        $target = $restoreDir !== null && is_dir($upgrades . '/' . $restoreDir) ? $upgrades . '/' . $restoreDir : null;
+        $writable = is_dir($upgrades) && fn_is_writable($upgrades) ? $upgrades
+            : ($target !== null && fn_is_writable($target) ? $target : null);
+        $url = rtrim((string) Registry::get('config.current_location'), '/') . '/upgrades/'
+            . ($writable !== null && $writable === $target ? $restoreDir . '/' : '');
+        $facts = [
+            'dir'       => is_dir($upgrades),
+            'restore'   => is_file($upgrades . '/source_restore.php') && is_readable($upgrades . '/source_restore.php'),
+            'writable'  => $writable !== null,
+            // CS-Cart's Permissions validator makes it writable itself: chmod (PHP's own folder) or FTP.
+            'fixable'   => (function_exists('posix_geteuid') && @fileowner($upgrades) === posix_geteuid())
+                || (function_exists('ftp_connect') && (string) Registry::get('settings.Upgrade_center.ftp_hostname') !== ''),
+            'reachable' => null,
+            'url'       => $url,
+        ];
+        if ($facts['dir'] && $facts['restore'] && $writable !== null) {
+            $facts['reachable'] = self::asked('http:' . $url, $cache, $fresh, static function () use ($writable, $url): ?bool {
+                $name = 'quissly_check_' . bin2hex(random_bytes(8)) . '.php';
+                if (@file_put_contents($writable . '/' . $name, "<?php\necho 'Access denied';\n") === false) {
+                    return null;
+                }
+                try {
+                    return Http::get($url . $name, [], ['timeout' => 10, 'execution_timeout' => 20]) === 'Access denied';
+                } finally {
+                    @unlink($writable . '/' . $name);
+                }
+            });
+        }
+
+        return $facts;
+    }
+
+    /**
+     * A network answer: once per request; with $cache also kept, and taken from it while fresh
+     * enough unless $fresh (an Install asks afresh).
+     *
+     * @param callable(): ?bool $ask
+     */
+    private static function asked(string $key, ?DbSyncStore $cache, bool $fresh, callable $ask): ?bool
+    {
+        if (array_key_exists($key, self::$asked)) {
+            return self::$asked[$key];
+        }
+        $kept = $cache !== null ? (array) $cache->getState(self::STATE_CHECKS) : [];
+        $current = static function ($answer): bool {
+            return isset($answer['at']) && time() - (int) $answer['at'] < (($answer['ok'] ?? null) === true ? self::CHECKS_TTL : self::CHECKS_FAILED_TTL);
+        };
+        if (!$fresh && isset($kept[$key]) && $current($kept[$key])) {
+            return self::$asked[$key] = $kept[$key]['ok'] ?? null;
+        }
+        self::$asked[$key] = $ask();
+        if ($cache !== null) {
+            $kept = array_filter($kept, $current);
+            $kept[$key] = ['at' => time(), 'ok' => self::$asked[$key]];
+            $cache->setState(self::STATE_CHECKS, $kept);
+        }
+
+        return self::$asked[$key];
+    }
+
+    /** @param array{0: string, 1: string} $problem from UpgradeCheck */
+    private static function reasonText(array $problem): string
+    {
+        [$reason, $detail] = $problem;
+
+        return (string) __('quissly_search.uc_reason_' . $reason, ['[program]' => $detail, '[server]' => $detail, '[url]' => $detail]);
+    }
+
+    /** The whole message: for the Upgrade center's dialog, or the Dashboard's warning. */
+    private static function problemText(string $kind, string $reason, bool $dashboard): string
+    {
+        return (string) __($dashboard ? 'quissly_search.dash_uc_' . $kind : 'quissly_search.uc_' . $kind . '_blocked', ['[reason]' => $reason]);
     }
 
     /**
@@ -184,6 +446,7 @@ final class UpgradeCenter
      */
     public static function after(string $to, string $packageDir): void
     {
+        self::$finished = true;
         $from = (string) Release::versionIn((string) @file_get_contents(self::work() . 'backup/app/addons/quissly_search/addon.xml'));
         try {
             try {

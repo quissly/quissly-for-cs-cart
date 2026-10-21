@@ -65,12 +65,13 @@ final class DashboardView
      *   synced:int, queued:int, waiting:array{products:int, oldest_sent_at:?int},
      *   progress:?array, initial_sync:bool, gate_blocked:?array, refusal:?array,
      *   last_run:?array, last_cron_at:?int, cron_command:string, log:list<array{at:int, message:string}>,
-     *   now:int, urls:array<string,string>, security_hash:string
+     *   upgrade_problems?:list<string>, now:int, urls:array<string,string>, security_hash:string
      * } $m
      */
     public static function render(array $m): string
     {
         return '<style>' . self::STYLE . '</style><div class="q-dash">'
+            . self::upgradeProblems($m)
             . self::card(self::searchStatus($m))
             . self::card(self::connection($m))
             . ($m['connected'] ? self::card(self::features($m)) . self::card(self::sync($m)) : '')
@@ -79,6 +80,20 @@ final class DashboardView
             . self::link($m['urls']['settings'], self::t('quissly_search.dash_open_settings'), 'btn')
             . ' ' . self::link($m['urls']['panel'], self::t('quissly_search.dash_open_panel'), 'btn')
             . '</p></div>';
+    }
+
+    /**
+     * What would stop CS-Cart's Upgrade center (Add-ons > Upgrades) on this server, already in
+     * the merchant's words (lib/Update/UpgradeCenter::dashboardProblems): one warning each.
+     */
+    private static function upgradeProblems(array $m): string
+    {
+        $html = '';
+        foreach ($m['upgrade_problems'] ?? [] as $text) {
+            $html .= self::alert('warning', (string) $text);
+        }
+
+        return $html;
     }
 
     private static function card(string $html): string

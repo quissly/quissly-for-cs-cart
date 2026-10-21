@@ -12,13 +12,18 @@ namespace Quissly\Search\Update;
  * The Upgrade center unpacks a package into var/upgrade/packages/quissly_search/content/:
  * package.json (the content schema: every file with its status - new, changed or deleted - and
  * the hash its Collisions check compares the store's file with), package/ (the files, copied
- * over the store root as they are) and scripts/ (a pre and a post script it includes before and
- * after the copy, inside its own install method).
+ * over the store root as they are), scripts/ (a pre and a post script it includes before and
+ * after the copy, inside its own install method) and validators/ (a check it runs before
+ * anything else: App::getPackageValidators includes validators/<name>.php for each name in
+ * package.json's "validators" and runs `Tygh\UpgradeCenter\Validators\<name>` ahead of its own).
  */
 final class UpgradePackage
 {
     public const PRE_SCRIPT = 'quissly_search_pre.php';
     public const POST_SCRIPT = 'quissly_search_post.php';
+
+    /** The package's validator: its class name in Tygh\UpgradeCenter\Validators and its file name. */
+    public const VALIDATOR = 'QuisslySearchServerCheck';
 
     /**
      * The add-on's language packs. Never listed in package.json: for a listed var/langs file the
@@ -176,9 +181,33 @@ final class UpgradePackage
     public static function contentSchema(array $files): array
     {
         return [
-            'files'   => $files,
-            'scripts' => ['pre' => self::PRE_SCRIPT, 'post' => self::POST_SCRIPT],
+            'files'      => $files,
+            'scripts'    => ['pre' => self::PRE_SCRIPT, 'post' => self::POST_SCRIPT],
+            'validators' => [self::VALIDATOR],
         ];
+    }
+
+    /**
+     * validators/<VALIDATOR>.php: CS-Cart runs it first - before its restore script, the pre
+     * script, closing the storefront and emailing the administrator - and stops the install
+     * with its message in the "Validation issue" dialog (the message is HTML there: escaped by
+     * UpgradeCenter::validate). It asks the running version (UpgradeCenter::validate) and passes
+     * when that has no such step, so a package never fails for want of it.
+     */
+    public static function validator(string $from, string $to): string
+    {
+        return sprintf("<?php\n// Quissly Search %s -> %s, CS-Cart's Upgrade center: can this server finish the install? (lib/Update/UpgradeCenter.php).\n", $from, $to)
+            . "namespace Tygh\\UpgradeCenter\\Validators;\n\n"
+            . "defined('BOOTSTRAP') or die('Access denied');\n\n"
+            . 'class ' . self::VALIDATOR . " implements IValidator\n{\n"
+            . "    public function check(\$schema, \$request)\n    {\n"
+            . "        if (!is_callable(['\\\\Quissly\\\\Search\\\\Update\\\\UpgradeCenter', 'validate'])) {\n"
+            . "            return [true, ''];\n        }\n\n"
+            . sprintf("        return \\Quissly\\Search\\Update\\UpgradeCenter::validate(is_array(\$request) ? \$request : [], %s, %s);\n", var_export($from, true), var_export($to, true))
+            . "    }\n\n"
+            . "    public function getName()\n    {\n"
+            . "        return (string) __('quissly_search.uc_check_name');\n"
+            . "    }\n}\n";
     }
 
     /**
