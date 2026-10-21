@@ -34,9 +34,9 @@ final class Client implements QSearchClient
     /**
      * @throws QuisslyException on any non-200 outcome or transport failure
      */
-    public function qsearch(string $query, ?string $userId, int $pageNumber, int $pageSize, int $sortBy, int $sortType, array $shopper = []): Result
+    public function qsearch(string $query, ?string $userId, int $pageNumber, int $pageSize, int $sortBy, int $sortType, array $shopper = [], array $filters = []): Result
     {
-        $body = $this->buildBody($query, $userId, $pageNumber, $pageSize, $sortBy, $sortType, $shopper);
+        $body = $this->buildBody($query, $userId, $pageNumber, $pageSize, $sortBy, $sortType, $shopper, $filters);
         $headers = $this->buildHeaders($body);
 
         // Whole-second granularity is all Tygh\Http exposes; the 2.5s budget is
@@ -143,8 +143,11 @@ final class Client implements QSearchClient
     /**
      * @return non-empty-string JSON body
      */
-    /** @param array{device?: string, os?: string} $shopper */
-    private function buildBody(string $query, ?string $userId, int $pageNumber, int $pageSize, int $sortBy, int $sortType, array $shopper): string
+    /**
+     * @param array{device?: string, os?: string} $shopper
+     * @param array<string, mixed>                $filters
+     */
+    private function buildBody(string $query, ?string $userId, int $pageNumber, int $pageSize, int $sortBy, int $sortType, array $shopper, array $filters = []): string
     {
         // Verified contract: query, user_id, page_size, channel, page_number,
         // sort_by/sort_type - plus device / os (QueryRequestV2, 2026-09-30, as the Shopify
@@ -166,6 +169,11 @@ final class Client implements QSearchClient
         }
         if (($shopper['os'] ?? '') !== '') {
             $payload['os'] = $shopper['os'];
+        }
+        // The shopper's price range (PriceFilter): applied by Quissly to each result row before
+        // variants collapse, the sort and the page, so num_total_results counts what matches.
+        if ($filters !== []) {
+            $payload['filters'] = $filters;
         }
 
         $json = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

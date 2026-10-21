@@ -23,8 +23,17 @@ require_once __DIR__ . '/autoload.php';
  *    (so we can blank it) but BEFORE the product-id IN() filter and db_sort() —
  *    and it exposes $total and $items_per_page BY REFERENCE, which is exactly what
  *    the pager override needs. See lib/SearchInterceptor.php.
+ *  - `get_products` — later in the same fn_get_products: keeps the ORDER BY FIELD
+ *    clause that holds Quissly's order, should an add-on replace it (on_sale).
+ *  - `get_filters_products_count_pre`, `get_current_filters_post` — the product filters
+ *    block of a search page Quissly answered: its price slider's min / max are read from
+ *    Quissly's results instead of CS-Cart's keyword match (SearchInterceptor::sliderBounds).
  *  - `products_sorting` — registers the synthetic `quissly_relevance` sort option
  *    so the storefront "Sort by" dropdown can render it on intercepted searches.
+ *  - `gather_additional_products_data_post`, `url_post` — on the intercepted search page
+ *    only: a result that matched through one of its variants (Quissly's top_variant_id)
+ *    shows that variant's picture and links to it (lib/VariantHints.php). Same arguments on
+ *    4.11 and 4.21 (url_post gains $storefront_id in 4.21).
  *  - `update_product_post`, `delete_product_post`, `update_product_amount`,
  *    `tools_change_status` — queue a product for catalog sync when it is saved,
  *    deleted, flips in/out of stock, or has its status toggled in a list
@@ -41,13 +50,19 @@ require_once __DIR__ . '/autoload.php';
  *  - `pre_add_to_cart` + `post_add_to_cart` (what the cart line really grew by), `pre_add_to_wishlist`
  *    (the wishlist add-on), `change_order_status`
  *    — shopping activity for Quissly's analytics (lib/Events/, func.php): an add to cart,
- *    an add to the wishlist, an order becoming paid. Queue only: the cron sends them.
+ *    an add to the wishlist, an order becoming paid (which also queues its products for
+ *    catalog sync: their popularity changed). Queue only: the cron sends them.
  *  - `set_notification_pre` — an error notice on one of the add-on's pages is reported to
  *    Quissly (lib/Diagnostics/).
  */
 fn_register_hooks(
     'get_products_before_select',
+    'get_products',
+    'get_filters_products_count_pre',
+    'get_current_filters_post',
     'products_sorting',
+    'gather_additional_products_data_post',
+    'url_post',
     'update_product_post',
     'delete_product_pre',
     'delete_product_post',

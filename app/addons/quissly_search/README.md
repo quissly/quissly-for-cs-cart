@@ -115,8 +115,9 @@ reach `github.com` and `raw.githubusercontent.com` over HTTPS. A store whose fil
 
 - **Order:** results come in Quissly's order. The *Sort by* menu offers **Relevance** (the
   default) and **Price**, the orders Quissly can honour.
-- **Filters:** when a shopper filters by category, price, vendor, a feature or a product code,
-  CS-Cart's own search answers, so the filter is always respected.
+- **Filters:** a price range (the price slider) is applied by Quissly, and the slider's range
+  is taken from Quissly's results. When a shopper filters by anything else - category, vendor, a
+  feature or a product code - CS-Cart's own search answers, so the filter is always respected.
 - **Before the first sync** (or with QSearch off) shoppers get CS-Cart's own search, and nothing
   of Quissly appears on the storefront.
 - **Languages:** product names, descriptions and prices are shown by CS-Cart in the shopper's

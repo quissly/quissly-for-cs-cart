@@ -18,14 +18,19 @@ final class Result
     /** @var int total matches across all pages */
     public int $numTotalResults;
 
+    /** @var array<int, array{option:int,variant:int}|array{child:int}> product id => the variant that matched (VariantHints) */
+    public array $variants;
+
     /**
      * @param list<int> $ids             ordered, validated, positive product IDs
      * @param int       $numTotalResults total matches across all pages
+     * @param array<int, array{option:int,variant:int}|array{child:int}> $variants matched variants, by product id
      */
-    public function __construct(array $ids, int $numTotalResults)
+    public function __construct(array $ids, int $numTotalResults, array $variants = [])
     {
         $this->ids = $ids;
         $this->numTotalResults = $numTotalResults;
+        $this->variants = $variants;
     }
 
     public function isEmpty(): bool

@@ -17,8 +17,9 @@ interface QSearchClient
      * @param int $sortBy   Quissly sort_by code (see {@see SortMap})
      * @param int $sortType Quissly sort_type code (1 asc, 2 desc)
      * @param array{device?: string, os?: string} $shopper the shopper's device / OS (Shopper::deviceAndOs())
+     * @param array<string, mixed> $filters QSearch `filters` (FilterModel; PriceFilter::body()), [] for none
      *
      * @throws QuisslyException on any non-200 outcome or transport failure
      */
-    public function qsearch(string $query, ?string $userId, int $pageNumber, int $pageSize, int $sortBy, int $sortType, array $shopper = []): Result;
+    public function qsearch(string $query, ?string $userId, int $pageNumber, int $pageSize, int $sortBy, int $sortType, array $shopper = [], array $filters = []): Result;
 }

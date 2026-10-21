@@ -137,9 +137,11 @@ try {
             // Stores connected before the namespace was recorded: look it up once.
             $namespace = fn_quissly_search_lookup_namespace($store);
         }
-        // uuid5 over every active product, children included (the chat names either);
-        // pairs recorded by the sync cover a store whose namespace cannot be looked up.
-        $found = $namespace !== '' ? ChatIds::resolve($namespace, $ids, (new ProductSource())->allActiveIds()) : [];
+        // uuid5 over every active product, children included (the chat names either), and the
+        // option values sent as variants; pairs recorded by the sync cover a store whose
+        // namespace cannot be looked up.
+        $source = new ProductSource();
+        $found = $namespace !== '' && $ids !== [] ? ChatIds::resolve($namespace, $ids, $source->allActiveIds(), $source->optionVariantIds()) : [];
         $found += $store->productIdsFor(array_values(array_diff($ids, array_keys($found))));
 
         header('Content-Type: application/json; charset=utf-8');

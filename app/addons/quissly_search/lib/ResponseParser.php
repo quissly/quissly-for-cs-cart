@@ -14,6 +14,10 @@ use Quissly\Search\Exception\ClientErrorException;
  * missing, non-positive, or non-integer ids are DROPPED (reported via $onDrop),
  * never silently coerced to 0.
  *
+ * documents[].top_variant_id (the variant the match favours, for a product sent with
+ * variants) becomes a hint per product ({@see VariantHints::parse()}): optional - absent or
+ * malformed is no hint - and it never changes the ids.
+ *
  * Pure logic, no CS-Cart dependency — locked by a known-input/known-output test.
  */
 final class ResponseParser
@@ -36,6 +40,7 @@ final class ResponseParser
         }
 
         $ids = [];
+        $variants = [];
         foreach ($decoded['documents'] as $document) {
             $rawId = is_array($document) ? ($document['id'] ?? null) : null;
             $id = self::validateId($rawId);
@@ -48,13 +53,17 @@ final class ResponseParser
             }
 
             $ids[] = $id;
+            $hint = VariantHints::parse($id, $document['top_variant_id'] ?? null);
+            if ($hint !== null) {
+                $variants[$id] = $hint;
+            }
         }
 
         $numTotal = isset($decoded['num_total_results']) && is_numeric($decoded['num_total_results'])
             ? (int) $decoded['num_total_results']
             : count($ids);
 
-        return new Result($ids, $numTotal);
+        return new Result($ids, $numTotal, $variants);
     }
 
     /**

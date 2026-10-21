@@ -29,13 +29,16 @@ final class ChatIds
     }
 
     /**
-     * The given Quissly ids that belong to one of $productIds, translated.
+     * The given Quissly ids that belong to one of $productIds - or to one of the option values
+     * a product is sent with as variants (the chat names the variant: uuid5(link,
+     * "11-o1-11")), which translates to its product - translated.
      *
-     * @param list<string> $quisslyIds lower-case UUIDs
-     * @param list<int>    $productIds
+     * @param list<string>       $quisslyIds lower-case UUIDs
+     * @param list<int>          $productIds
+     * @param array<string, int> $variantIds variant id (ProductMapper::optionVariantId) => product id
      * @return array<string, int>
      */
-    public static function resolve(string $namespace, array $quisslyIds, array $productIds): array
+    public static function resolve(string $namespace, array $quisslyIds, array $productIds, array $variantIds = []): array
     {
         $wanted = array_flip($quisslyIds);
         $out = [];
@@ -43,6 +46,12 @@ final class ChatIds
             $uuid = self::uuid5($namespace, (string) (int) $id);
             if (isset($wanted[$uuid])) {
                 $out[$uuid] = (int) $id;
+            }
+        }
+        foreach ($variantIds as $variantId => $productId) {
+            $uuid = self::uuid5($namespace, (string) $variantId);
+            if (isset($wanted[$uuid]) && !isset($out[$uuid])) {
+                $out[$uuid] = (int) $productId;
             }
         }
 

@@ -354,6 +354,111 @@ function fn_quissly_search_get_products_before_select(
 }
 
 /**
+ * Later in the same fn_get_products: keep the ORDER BY FIELD clause the interception set
+ * for Quissly's order, which an add-on may replace in this hook (the Bestsellers & on-sale
+ * add-on's `on_sale` sorting) - SearchInterceptor::keepOrder().
+ *
+ * @param array<string, mixed> $params
+ * @param array<string, mixed> $sortings
+ */
+function fn_quissly_search_get_products(&$params, &$fields, &$sortings, &$condition, &$join, &$sorting, &$group_by, &$lang_code, &$having)
+{
+    try {
+        SearchInterceptor::keepOrder((array) $params, $sortings);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'get_products');
+    }
+}
+
+/**
+ * The product filters block of a search page Quissly answered: marked, and part of the block's
+ * cache key, so its price slider's bounds are Quissly's (SearchInterceptor::markFilters()).
+ * Same arguments on 4.11 (fn_get_filters_products_count) and 4.21
+ * (fn_product_filters_get_filters_products_count).
+ *
+ * @param array<string, mixed> $params
+ * @param list<string>         $cache_params
+ */
+function fn_quissly_search_get_filters_products_count_pre(&$params, &$cache_params, &$cache_tables)
+{
+    try {
+        SearchInterceptor::markFilters($params, $cache_params);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'get_filters_products_count_pre');
+    }
+}
+
+/**
+ * For that marked block: the price slider's min / max from Quissly's results, not CS-Cart's
+ * keyword match (SearchInterceptor::sliderBounds()). Same arguments on 4.11 and 4.21.
+ */
+function fn_quissly_search_get_current_filters_post($params, $filters, $selected_filters, $area, $lang_code, &$variant_values, &$range_values, &$field_variant_values, &$field_range_values)
+{
+    $before = $field_range_values;
+    try {
+        SearchInterceptor::sliderBounds((array) $params, (array) $filters, $field_range_values, (string) $lang_code);
+    } catch (\Throwable $e) {
+        $field_range_values = $before;
+        fn_quissly_search_failed($e, 'get_current_filters_post');
+    }
+}
+
+/**
+ * The search controller's gather of the intercepted results: a card whose product matched
+ * through one of its variants shows that variant's picture (VariantHints) - an option value's
+ * picture, or a Variations child's main picture. Only on the storefront search page, once.
+ * The argument list is the same on 4.11 and 4.21.
+ *
+ * @param list<int>                          $product_ids
+ * @param array<string,mixed>                $params
+ * @param array<int|string,array<mixed>>     $products
+ */
+function fn_quissly_search_gather_additional_products_data_post($product_ids, $params, &$products, $auth, $lang_code)
+{
+    try {
+        if (!\Quissly\Search\VariantHints::pending() || (empty($params['get_icon']) && empty($params['get_detailed']))) {
+            return;
+        }
+        $children = [];
+        $childIds = \Quissly\Search\VariantHints::childIds();
+        if ($childIds !== []) {
+            $parents = db_get_hash_single_array('SELECT product_id, parent_product_id FROM ?:products WHERE product_id IN (?n) AND status = ?s', ['product_id', 'parent_product_id'], $childIds, 'A');
+            $pairs = $parents ? fn_get_image_pairs(array_keys($parents), 'product', 'M', true, true, $lang_code) : [];
+            foreach ($parents ?: [] as $id => $parent) {
+                $children[(int) $id] = ['parent_product_id' => (int) $parent, 'main_pair' => !empty($pairs[$id]) ? (array) reset($pairs[$id]) : []];
+            }
+        }
+        \Quissly\Search\VariantHints::applyPictures($products, $children);
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'gather_additional_products_data_post');
+    }
+}
+
+/**
+ * fn_url's last step: on the storefront search page, a link to a product that matched
+ * through one of its variants opens that variant - the product with the matched option value
+ * selected (`combination`), or the matched Variations child's page (VariantHints). Runs after
+ * the SEO add-on's url_post (priority 2000 > 1800), so it changes the final URL. 4.21 passes
+ * $storefront_id too; 4.11 does not.
+ */
+function fn_quissly_search_url_post(&$_url, $area, $url, $protocol = 'current', $company_id_in_url = false, $lang_code = CART_LANGUAGE, $locations = [], $storefront_id = 0)
+{
+    try {
+        if ($area !== 'C' || !is_string($url)) {
+            return;
+        }
+        $link = \Quissly\Search\VariantHints::linkFor($url);
+        if (isset($link['combination'])) {
+            $_url = fn_link_attach((string) $_url, 'combination=' . $link['combination']);
+        } elseif (isset($link['child'])) {
+            $_url = fn_url('products.view?product_id=' . (int) $link['child'], $area, $protocol, $lang_code);
+        }
+    } catch (\Throwable $e) {
+        fn_quissly_search_failed($e, 'url_post');
+    }
+}
+
+/**
  * Register the synthetic `quissly_relevance` sort option in CS-Cart's
  * products-sorting label map (fn_get_products_sorting), so the storefront "Sort
  * by" dropdown can render "Relevance" as the default option on intercepted
@@ -1439,7 +1544,9 @@ function fn_quissly_search_pre_add_to_wishlist($product_data, $wishlist, $auth)
  * Hook change_order_status: an order becoming paid is a purchase. Paid = CS-Cart's own fn_get_order_paid_statuses() - the statuses that take the stock
  * (by default Processed, Complete and Open, so a cash-on-delivery order counts when placed, as
  * the Magento plugin counts an offline order). Counted when it enters a paid status from an
- * unpaid one, so Processed -> Complete does not count it twice.
+ * unpaid one, so Processed -> Complete does not count it twice. Its products are queued for
+ * the catalog sync then too (their popularity changed); a product view, which also changes
+ * it, never queues one.
  */
 function fn_quissly_search_change_order_status($status_to, $status_from, $order_info, $force_notification = [], $order_statuses = [], $place_order = false)
 {
@@ -1447,6 +1554,9 @@ function fn_quissly_search_change_order_status($status_to, $status_from, $order_
         $paid = function_exists('fn_get_order_paid_statuses') ? (array) fn_get_order_paid_statuses() : ['P', 'C'];
         if (in_array($status_to, $paid, true) && !in_array($status_from, $paid, true) && is_array($order_info)) {
             fn_quissly_search_event_order($order_info);
+            // The order raised its products' popularity (CS-Cart counts a purchase when the
+            // order is placed): queue them, so Quissly's popularity sort follows sales.
+            Sync::productsSaved(array_map(static fn ($item): int => (int) ($item['product_id'] ?? 0), array_values((array) ($order_info['products'] ?? []))));
         }
     } catch (\Throwable $e) {
         fn_quissly_search_failed($e, 'change_order_status');

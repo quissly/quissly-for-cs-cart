@@ -28,6 +28,11 @@ namespace Quissly\Search\Sync;
  * zone, which also returns Hidden features, for a merchant who ticked one), so category
  * scope and feature groups are decided the way the storefront decides them.
  *
+ * Classic options (not Variations): the product's own and the global options linked to it
+ * that a shopper picks one value of (select box, radio group), active, with their active
+ * values - name, price modifier, picture (`variant_image`). ProductMapper decides what to
+ * send. Read for a product, not for a variation child (which travels inside its parent).
+ *
  * Bundles (CS-Cart's Product bundles add-on, when active): the active bundles a
  * product is in, read through that add-on's own service so its status, date window
  * and validity rules decide, the way the product page shows them.
@@ -35,6 +40,12 @@ namespace Quissly\Search\Sync;
 final class ProductSource
 {
     private const GUEST_AUTH = ['user_id' => 0, 'usergroup_ids' => [0, 1], 'area' => 'C'];
+
+    /** Option types a shopper picks one value of: select box, radio group (not checkbox, text, file). */
+    private const CHOICE_TYPES = ['S', 'R'];
+
+    /** CS-Cart 4.11's "Track with options" (`tracking` O): each option combination has its own stock. */
+    private const TRACK_WITH_OPTIONS = 'O';
 
     /**
      * Ids of every product the sync sends: active products that are not a variation
@@ -144,6 +155,7 @@ final class ProductSource
             'vendor_active'        => self::vendorActive((int) ($p['company_id'] ?? 0)),
             'parent_product_id'    => (int) ($p['parent_product_id'] ?? 0),
             'options'              => $this->options((int) $p['product_id']),
+            'product_options'      => (int) ($p['parent_product_id'] ?? 0) === 0 ? $this->productOptions((int) $p['product_id'], (string) ($p['tracking'] ?? '')) : [],
             'features'             => self::features($p),
             'variations'           => $withVariations && (int) ($p['parent_product_id'] ?? 0) === 0 ? $this->variations((int) $p['product_id']) : [],
             'product'              => (string) ($p['product'] ?? ''),
@@ -161,7 +173,27 @@ final class ProductSource
             'url'                  => (string) fn_url('products.view?product_id=' . (int) $p['product_id'], 'C', 'https'),
             'company'              => !empty($p['company_id']) ? (string) fn_get_company_name((int) $p['company_id']) : '',
             'bundles'              => $this->bundles((int) $p['product_id']),
+            // For Quissly's newest-first and popularity sorts: what CS-Cart's own `timestamp`
+            // and `popularity` sorts order by (products.timestamp, product_popularity.total).
+            'timestamp'            => (int) ($p['timestamp'] ?? 0),
+            'popularity'           => self::popularity($p),
         ];
+    }
+
+    /**
+     * CS-Cart's popularity score of the product (product_popularity.total: views, adds to
+     * cart, removals and purchases, weighted), 0 when it has none. fn_get_product_data
+     * joins it as `popularity`; read directly where it did not.
+     *
+     * @param array<string,mixed> $p the product as fn_get_product_data() returns it
+     */
+    private static function popularity(array $p): int
+    {
+        $total = array_key_exists('popularity', $p)
+            ? $p['popularity']
+            : db_get_field('SELECT total FROM ?:product_popularity WHERE product_id = ?i', (int) $p['product_id']);
+
+        return max(0, (int) $total);
     }
 
     /**
@@ -281,6 +313,119 @@ final class ProductSource
     }
 
     /**
+     * The product's classic options a shopper picks one value of (see the class comment), in
+     * the product's option order, values in theirs - the order fn_get_product_options() uses.
+     *
+     * @return list<array{option_id:int,name:string,values:list<array{variant_id:int,name:string,modifier:string,modifier_type:string,image:string,in_stock:?bool}>}>
+     */
+    private function productOptions(int $productId, string $tracking): array
+    {
+        $options = db_get_hash_array(
+            'SELECT o.option_id, d.option_name FROM ?:product_options o'
+            . ' LEFT JOIN ?:product_options_descriptions d ON d.option_id = o.option_id AND d.lang_code = ?s'
+            . ' WHERE o.status = ?s AND o.option_type IN (?a)'
+            . ' AND (o.product_id = ?i OR (o.product_id = 0 AND o.option_id IN (SELECT option_id FROM ?:product_global_option_links WHERE product_id = ?i)))'
+            . ' ORDER BY o.position, o.option_id',
+            'option_id',
+            CART_LANGUAGE,
+            'A',
+            self::CHOICE_TYPES,
+            $productId,
+            $productId
+        );
+        if (empty($options)) {
+            return [];
+        }
+        $rows = db_get_array(
+            'SELECT v.variant_id, v.option_id, v.modifier, v.modifier_type, vd.variant_name FROM ?:product_option_variants v'
+            . ' LEFT JOIN ?:product_option_variants_descriptions vd ON vd.variant_id = v.variant_id AND vd.lang_code = ?s'
+            . ' WHERE v.option_id IN (?n) AND v.status = ?s ORDER BY v.position, v.variant_id',
+            CART_LANGUAGE,
+            array_keys($options),
+            'A'
+        );
+        $pictures = $rows ? fn_get_image_pairs(array_column($rows, 'variant_id'), 'variant_image', 'V', true, true, CART_LANGUAGE) : [];
+        $stock = $tracking === self::TRACK_WITH_OPTIONS ? self::valueStock($productId) : [];
+
+        $values = [];
+        foreach ($rows ?: [] as $row) {
+            $id = (int) $row['variant_id'];
+            $pair = !empty($pictures[$id]) ? (array) reset($pictures[$id]) : [];
+            $values[(int) $row['option_id']][] = [
+                'variant_id'    => $id,
+                'name'          => (string) ($row['variant_name'] ?? ''),
+                'modifier'      => (string) $row['modifier'],
+                'modifier_type' => (string) $row['modifier_type'],
+                'image'         => self::pairUrl($pair),
+                'in_stock'      => $stock[(int) $row['option_id'] . '_' . $id] ?? null,
+            ];
+        }
+        $out = [];
+        foreach ($options as $optionId => $option) {
+            $out[] = ['option_id' => (int) $optionId, 'name' => (string) ($option['option_name'] ?? ''), 'values' => $values[(int) $optionId] ?? []];
+        }
+        $colour = ProductMapper::colourOption($out);
+        if ($colour !== null && count($colour['values']) > ProductMapper::MAX_OPTION_VARIANTS) {
+            \Quissly\Search\Logger::notice('Product option has more values than are sent as variants', [
+                'product_id' => $productId, 'option_id' => $colour['option_id'], 'values' => count($colour['values']), 'sent' => ProductMapper::MAX_OPTION_VARIANTS,
+            ]);
+        }
+
+        return $out;
+    }
+
+    /**
+     * CS-Cart 4.11, a product tracked with options: whether each option value is in stock in
+     * some combination ("<option>_<value>" => bool, from ?:product_options_inventory, whose
+     * combination is "<option>_<value>_<option>_<value>..."). Later versions have no such stock.
+     *
+     * @return array<string, bool>
+     */
+    private static function valueStock(int $productId): array
+    {
+        $stock = [];
+        foreach (db_get_array('SELECT combination, amount FROM ?:product_options_inventory WHERE product_id = ?i', $productId) ?: [] as $row) {
+            $parts = explode('_', (string) $row['combination']);
+            for ($i = 0; $i + 1 < count($parts); $i += 2) {
+                $key = (int) $parts[$i] . '_' . (int) $parts[$i + 1];
+                $stock[$key] = ($stock[$key] ?? false) || (int) $row['amount'] > 0;
+            }
+        }
+
+        return $stock;
+    }
+
+    /**
+     * Every option value an active product could send as a variant, as its Quissly id
+     * (ProductMapper::optionVariantId) => product id: a superset of what the sync sends (any
+     * select box or radio group), for translating the ids the chat names.
+     *
+     * @return array<string, int>
+     */
+    public function optionVariantIds(): array
+    {
+        $rows = db_get_array(
+            'SELECT o.product_id, o.option_id, v.variant_id FROM ?:product_options o'
+            . ' JOIN ?:product_option_variants v ON v.option_id = o.option_id'
+            . ' JOIN ?:products p ON p.product_id = o.product_id AND p.status = ?s'
+            . ' WHERE o.product_id > 0 AND o.status = ?s AND o.option_type IN (?a) AND v.status = ?s'
+            . ' UNION ALL SELECT l.product_id, o.option_id, v.variant_id FROM ?:product_global_option_links l'
+            . ' JOIN ?:product_options o ON o.option_id = l.option_id AND o.product_id = 0'
+            . ' JOIN ?:product_option_variants v ON v.option_id = o.option_id'
+            . ' JOIN ?:products p ON p.product_id = l.product_id AND p.status = ?s'
+            . ' WHERE o.status = ?s AND o.option_type IN (?a) AND v.status = ?s',
+            'A', 'A', self::CHOICE_TYPES, 'A',
+            'A', 'A', self::CHOICE_TYPES, 'A'
+        );
+        $ids = [];
+        foreach ($rows ?: [] as $row) {
+            $ids[ProductMapper::optionVariantId((int) $row['product_id'], (int) $row['option_id'], (int) $row['variant_id'])] = (int) $row['product_id'];
+        }
+
+        return $ids;
+    }
+
+    /**
      * The product's features that go to Quissly, feature name => display value ("Brand" =>
      * "Samsung", "Ports" => "HDMI, USB", "Storage Capacity" => "64 GB"): the Catalog data
      * checklist decides (CatalogFeatures::included()); an unticked checkbox is left out.
@@ -356,12 +501,22 @@ final class ProductSource
 
         $urls = [];
         foreach ($pairs as $pair) {
-            $url = (string) ($pair['detailed']['image_path'] ?? ($pair['icon']['image_path'] ?? ''));
+            $url = self::pairUrl((array) $pair);
             if ($url !== '') {
                 $urls[] = $url;
             }
         }
 
         return $urls;
+    }
+
+    /**
+     * An image pair's detailed (full-size) image, else its icon; '' when it has neither.
+     *
+     * @param array<string,mixed> $pair
+     */
+    private static function pairUrl(array $pair): string
+    {
+        return (string) ($pair['detailed']['image_path'] ?? ($pair['icon']['image_path'] ?? ''));
     }
 }
