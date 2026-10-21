@@ -172,8 +172,20 @@ final class DashboardView
             [self::t('quissly_search.dash_in_quissly'), self::e(self::t('quissly_search.dash_of_active', ['[synced]' => (string) $m['synced'], '[active]' => (string) $m['active_products']]))],
             [self::t('quissly_search.dash_queued'), self::e((string) $m['queued'])],
             [self::t('quissly_search.dash_waiting_label'), self::e((string) $m['waiting']['products'])],
-            [self::t('quissly_search.dash_last_run'), self::lastRun($m)],
         ];
+        // A full sync is sent by several runs (the background start after Connect, Setup's status
+        // poll, the cron), so the last run alone showed part of it (193 of a 243-product sync): the
+        // whole sync's totals, which every run adds to, once it has finished.
+        $finished = $m['progress'];
+        if (empty($finished['running']) && !empty($finished['finished_at'])) {
+            $rows[] = [self::t('quissly_search.dash_last_full'), self::e(self::t('quissly_search.dash_last_full_value', [
+                '[ago]' => self::ago((int) $finished['finished_at'], $m['now']),
+                '[ok]' => (string) (int) $finished['ok'],
+                '[total]' => (string) (int) $finished['total'],
+                '[failed]' => (string) (int) $finished['failed'],
+            ]))];
+        }
+        $rows[] = [self::t('quissly_search.dash_last_run'), self::lastRun($m)];
         $html .= self::table($rows);
 
         $progress = $m['progress'];

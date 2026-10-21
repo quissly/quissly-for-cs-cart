@@ -246,6 +246,14 @@ msgctxt "Languages::quissly_search.dash_waiting_label"
 msgid "Waiting for Quissly to confirm"
 msgstr "Waiting for Quissly to confirm"
 
+msgctxt "Languages::quissly_search.dash_last_full"
+msgid "Last full sync"
+msgstr "Last full sync"
+
+msgctxt "Languages::quissly_search.dash_last_full_value"
+msgid "[ago]: [ok] of [total] products sent to Quissly, [failed] failed"
+msgstr "[ago]: [ok] of [total] products sent to Quissly, [failed] failed"
+
 msgctxt "Languages::quissly_search.dash_last_run"
 msgid "Last sync run"
 msgstr "Last sync run"

@@ -246,6 +246,14 @@ msgctxt "Languages::quissly_search.dash_waiting_label"
 msgid "Waiting for Quissly to confirm"
 msgstr "ელოდება Quissly-ს დადასტურებას"
 
+msgctxt "Languages::quissly_search.dash_last_full"
+msgid "Last full sync"
+msgstr "ბოლო სრული სინქრონიზაცია"
+
+msgctxt "Languages::quissly_search.dash_last_full_value"
+msgid "[ago]: [ok] of [total] products sent to Quissly, [failed] failed"
+msgstr "[ago]: Quissly-ში გაიგზავნა [total]-დან [ok] პროდუქტი, ვერ მოხერხდა [failed]"
+
 msgctxt "Languages::quissly_search.dash_last_run"
 msgid "Last sync run"
 msgstr "ბოლო სინქრონიზაცია"
