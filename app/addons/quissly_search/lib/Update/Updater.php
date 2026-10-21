@@ -148,9 +148,10 @@ final class Updater
     /**
      * Whether the store or the add-on's folder is a git checkout: its files are managed by
      * whoever deploys it (and a developer's copy may be the repository itself), so it is never
-     * written to - as WordPress skips automatic updates on a git-managed site.
+     * written to - as WordPress skips automatic updates on a git-managed site. Also CS-Cart's
+     * Upgrade center's (lib/Update/UpgradeCenter): keep it public, with this signature.
      */
-    private static function isCheckout(): bool
+    public static function isCheckout(): bool
     {
         return file_exists(self::root() . '.git') || file_exists(self::root() . 'app/addons/quissly_search/.git');
     }
@@ -158,10 +159,12 @@ final class Updater
     /**
      * The latest release from GitHub's API; when the API refuses the server, the release of the
      * CDN's version at its known addresses, once published (the workflow takes a minute or two).
+     * Also CS-Cart's Upgrade center's (lib/Update/UpgradeCenter; why not: lastError()): keep it
+     * public, with this signature.
      *
      * @return array{version: string, package: string, signature: string}|null
      */
-    private static function latest(?string $hinted): ?array
+    public static function latest(?string $hinted): ?array
     {
         self::$releaseProblem = '';
         $body = Http::get(self::releaseUrl(), [], [
@@ -311,8 +314,11 @@ final class Updater
         return null;
     }
 
-    /** Put the backed-up folders back (removing whatever replaced them). */
-    private static function restore(string $backup): void
+    /**
+     * Put the backed-up folders back (removing whatever replaced them). Also CS-Cart's Upgrade
+     * center's (lib/Update/UpgradeCenter): keep it public, with this signature.
+     */
+    public static function restore(string $backup): void
     {
         $root = self::root();
         foreach (Release::ROOTS as $path) {
@@ -345,8 +351,11 @@ final class Updater
         return fn_rm($from);
     }
 
-    /** What CS-Cart does only at install time, redone for the files now in place. */
-    private static function reinstall(string $version): bool
+    /**
+     * What CS-Cart does only at install time, redone for the files now in place. Also CS-Cart's
+     * Upgrade center's (lib/Update/UpgradeCenter): keep it public, with this signature.
+     */
+    public static function reinstall(string $version): bool
     {
         self::$reinstalling = true;
         try {
@@ -386,14 +395,10 @@ final class Updater
         return rtrim((string) Registry::get('config.dir.root'), '/') . '/';
     }
 
-    /**
-     * The version GitHub's CDN copy of the repository's addon.xml names; null when it cannot be
-     * read. $config['quissly_update_hint_url'] replaces the address on a dev store.
-     */
+    /** The version GitHub's CDN copy of the repository's addon.xml names; null when it cannot be read. */
     private static function hintedVersion(): ?string
     {
-        $override = (string) Registry::get('config.quissly_update_hint_url');
-        $body = Http::get($override !== '' ? $override : self::HINT_URL, [], [
+        $body = Http::get(self::hintUrl(), [], [
             'headers'            => ['User-Agent: quissly-for-cs-cart'],
             'timeout'            => 5,
             'connection_timeout' => 5,
@@ -409,6 +414,23 @@ final class Updater
         }
 
         return $version;
+    }
+
+    /** Why the last latest() found no release ('' = it found one, or there was none to find). */
+    public static function lastError(): string
+    {
+        return self::$githubError !== '' ? self::$githubError : self::$releaseProblem;
+    }
+
+    /**
+     * GitHub's CDN copy of the repository's addon.xml; $config['quissly_update_hint_url'] replaces
+     * it on a dev store.
+     */
+    public static function hintUrl(): string
+    {
+        $override = (string) Registry::get('config.quissly_update_hint_url');
+
+        return $override !== '' ? $override : self::HINT_URL;
     }
 
     /** Write an update problem to the sync log - the same one at most once a day. */

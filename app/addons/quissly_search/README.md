@@ -111,6 +111,21 @@ records each update ("Quissly updated from 1.0.7 to 1.0.8") and, if one is not a
 For this the add-on's files must be writable by the user the cron line runs as, and the server must
 reach `github.com` and `raw.githubusercontent.com` over HTTPS. A store whose files are a git checkout is not updated automatically.
 
+**Add-ons → Upgrades.** CS-Cart's own Upgrade center lists a new Quissly version as well (from the
+first release after 1.0.26): **Quissly search 1.0.x** with a short note and a *What's new* link to
+the release on GitHub. Click **Download**, then **Install**. It is the same signed release, checked
+the same way before it is even listed - a file that fails the check is never offered, and PHP without
+the sodium extension cannot check it, so nothing is offered (the page says why). Your settings and data
+are kept, and if the update cannot be finished the previous version is put back. As for any upgrade
+there, CS-Cart backs up the store first (unless you tick *Skip files and database backup*), e-mails the
+administrator - the install stops if the e-mail cannot be sent - and closes the storefront while it
+copies the files; Quissly opens it again when it is done. A version shows up there only once its release
+is published on GitHub (a minute or two after the new version is announced).
+
+Automatic updates stay the default. To update only from Add-ons → Upgrades, set **Update check
+frequency** to **Never**. If both run, nothing breaks: whichever comes second finds the version already
+installed.
+
 ## How search behaves
 
 - **Order:** results come in Quissly's order. The *Sort by* menu offers **Relevance** (the

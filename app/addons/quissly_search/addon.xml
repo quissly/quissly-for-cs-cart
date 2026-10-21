@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.26</version>
+    <version>1.0.27</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>

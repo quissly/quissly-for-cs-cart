@@ -2293,3 +2293,55 @@ msgstr "Ключ задан в config.local.php: проверьте там beare
 msgctxt "Languages::quissly_search.su_live_refused"
 msgid "Setup is finished, but Quissly refused the first search, so the store keeps CS-Cart's search for now. [reason]"
 msgstr "Настройка завершена, но Quissly отклонил первый поиск, поэтому магазин пока использует поиск CS-Cart. [reason]"
+
+msgctxt "Languages::quissly_search.uc_description"
+msgid "An update of Quissly's smart search for your store. Your settings, connection and synced catalog stay as they are."
+msgstr "Обновление умного поиска Quissly для вашего магазина. Настройки, подключение и синхронизированный каталог сохраняются."
+
+msgctxt "Languages::quissly_search.uc_no_check"
+msgid "Quissly Search could not get its latest release from GitHub: [reason]."
+msgstr "Quissly Search не смог получить последний выпуск с GitHub: [reason]."
+
+msgctxt "Languages::quissly_search.uc_refused"
+msgid "Quissly Search [version] cannot be installed here: [reason]"
+msgstr "Quissly Search [version] нельзя установить здесь: [reason]"
+
+msgctxt "Languages::quissly_search.uc_reason_no_sodium"
+msgid "this server's PHP has no sodium extension, so Quissly's signature on the update cannot be checked. Ask your host to enable sodium."
+msgstr "в PHP этого сервера нет расширения sodium, поэтому подпись Quissly на обновлении нельзя проверить. Попросите хостинг включить sodium."
+
+msgctxt "Languages::quissly_search.uc_reason_signature"
+msgid "the file is not signed with Quissly's release key, so it is not installed."
+msgstr "файл не подписан ключом выпусков Quissly, поэтому он не устанавливается."
+
+msgctxt "Languages::quissly_search.uc_reason_download"
+msgid "it could not be downloaded from GitHub. Try again later."
+msgstr "его не удалось скачать с GitHub. Попробуйте позже."
+
+msgctxt "Languages::quissly_search.uc_reason_no_zip"
+msgid "this server's PHP has no zip extension (ZipArchive)."
+msgstr "в PHP этого сервера нет расширения zip (ZipArchive)."
+
+msgctxt "Languages::quissly_search.uc_reason_backup"
+msgid "its files could not be copied aside to put back if the update failed, so nothing was changed."
+msgstr "не удалось сохранить копию его файлов для восстановления при неудачном обновлении, поэтому ничего не изменено."
+
+msgctxt "Languages::quissly_search.uc_reason_write"
+msgid "the package could not be written to var/upgrade/."
+msgstr "пакет не удалось записать в var/upgrade/."
+
+msgctxt "Languages::quissly_search.uc_reason_package"
+msgid "the file is not a Quissly Search release ([detail])."
+msgstr "файл не является выпуском Quissly Search ([detail])."
+
+msgctxt "Languages::quissly_search.uc_changed"
+msgid "The installed Quissly Search is no longer [version]: it has updated itself in the meantime. Refresh the list of upgrades."
+msgstr "Установленный Quissly Search уже не версии [version]: тем временем он обновился сам. Обновите список обновлений."
+
+msgctxt "Languages::quissly_search.uc_busy"
+msgid "Quissly Search is updating itself right now. Try again in a minute."
+msgstr "Quissly Search сейчас обновляется сам. Попробуйте через минуту."
+
+msgctxt "Languages::quissly_search.uc_failed"
+msgid "Quissly Search [version] could not be finished ([reason]), so [previous] was put back."
+msgstr "Установку Quissly Search [version] не удалось завершить ([reason]), поэтому возвращена версия [previous]."
