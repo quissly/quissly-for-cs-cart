@@ -426,6 +426,28 @@ final class ProductSource
     }
 
     /**
+     * Whether $variantId is an active value of an active option a shopper picks one value of,
+     * the product's own or a global one linked to it - the pairs optionVariantIds() covers (to
+     * check one sent by the browser).
+     */
+    public function hasOptionValue(int $productId, int $optionId, int $variantId): bool
+    {
+        return (bool) db_get_field(
+            'SELECT 1 FROM ?:product_options o'
+            . ' JOIN ?:product_option_variants v ON v.option_id = o.option_id AND v.variant_id = ?i AND v.status = ?s'
+            . ' WHERE o.option_id = ?i AND o.status = ?s AND o.option_type IN (?a)'
+            . ' AND (o.product_id = ?i OR (o.product_id = 0 AND o.option_id IN (SELECT option_id FROM ?:product_global_option_links WHERE product_id = ?i)))',
+            $variantId,
+            'A',
+            $optionId,
+            'A',
+            self::CHOICE_TYPES,
+            $productId,
+            $productId
+        );
+    }
+
+    /**
      * The product's features that go to Quissly, feature name => display value ("Brand" =>
      * "Samsung", "Ports" => "HDMI, USB", "Storage Capacity" => "64 GB"): the Catalog data
      * checklist decides (CatalogFeatures::included()); an unticked checkbox is left out.

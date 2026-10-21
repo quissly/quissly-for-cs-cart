@@ -23,8 +23,11 @@
  * 18da8a23-4d29-53b6-9550-87b5fc88765d), not CS-Cart's product_id. Those are
  * translated through quissly_search.resolve, from the pairs the catalog sync
  * records; an id that cannot be translated is left alone (never guessed). A plain
- * number is taken as a CS-Cart product_id. Config: the [data-quissly-cart]
- * element's data-quissly-config JSON (lib/Storefront.php).
+ * number is taken as a CS-Cart product_id. An id that names one of a product's option
+ * values ("Collegiate 72 Tee - Color: Red") comes back with that value (`options`): it is
+ * added with it, as the product page's form sends it, and a decrease or removal changes
+ * only the cart lines with it. Config: the [data-quissly-cart] element's
+ * data-quissly-config JSON (lib/Storefront.php).
  */
 (window.quisslyMarks = window.quisslyMarks || []).push(['cart.js', new Error()]); // where this script starts (report.js)
 ( function () {
@@ -71,19 +74,30 @@
 		} );
 	}
 
-	function add( productId, amount ) {
+	/** value: null, or the option value the chat named ({option_id, variant_id, product_options}). */
+	function add( productId, amount, value ) {
 		var data = { security_hash: CFG.securityHash || '' };
 		data[ 'product_data[' + productId + '][product_id]' ] = productId;
 		data[ 'product_data[' + productId + '][amount]' ] = amount;
+		if ( value && value.product_options ) {
+			Object.keys( value.product_options ).forEach( function ( optionId ) {
+				data[ 'product_data[' + productId + '][product_options][' + optionId + ']' ] = value.product_options[ optionId ];
+			} );
+		}
 		return csRequest( CFG.addUrl, 'post', data );
 	}
 
-	function reduce( productId, amount ) {
+	function reduce( productId, amount, value ) {
+		var body = { security_hash: CFG.securityHash || '', product_id: productId, delta: -amount };
+		if ( value ) {
+			body.option_id = value.option_id;
+			body.variant_id = value.variant_id;
+		}
 		return fetch( CFG.adjustUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-			body: new URLSearchParams( { security_hash: CFG.securityHash || '', product_id: productId, delta: -amount } ).toString()
+			body: new URLSearchParams( body ).toString()
 		} ).then( function () {
 			// Re-render the mini-cart from the current page.
 			return csRequest( window.location.href, 'get', {} );
@@ -92,6 +106,7 @@
 
 	var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 	var resolved = {};
+	var values = {};
 
 	/** Translate Quissly ids to CS-Cart product ids (cached for the page). */
 	function resolve( ids ) {
@@ -104,7 +119,10 @@
 		return fetch( url.toString(), { credentials: 'same-origin' } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( map ) {
-				unknown.forEach( function ( id ) { resolved[ id.toLowerCase() ] = ( map && map[ id.toLowerCase() ] ) || null; } );
+				unknown.forEach( function ( id ) {
+					resolved[ id.toLowerCase() ] = ( map && map[ id.toLowerCase() ] ) || null;
+					values[ id.toLowerCase() ] = ( map && map.options && map.options[ id.toLowerCase() ] ) || null;
+				} );
 			}, function () {} );
 	}
 
@@ -137,7 +155,8 @@
 					if ( window.console ) { console.warn( '[quissly] chat product ' + id + ' is not known to this store yet (sync it again from the Quissly Dashboard)' ); }
 					return chain;
 				}
-				return chain.then( function () { return deltas[ id ] > 0 ? add( pid, deltas[ id ] ) : reduce( pid, -deltas[ id ] ); } );
+				var value = values[ String( id ).toLowerCase() ] || null;
+				return chain.then( function () { return deltas[ id ] > 0 ? add( pid, deltas[ id ], value ) : reduce( pid, -deltas[ id ], value ); } );
 			}, Promise.resolve() );
 		} );
 	} );

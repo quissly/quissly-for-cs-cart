@@ -58,6 +58,34 @@ final class ChatIds
         return $out;
     }
 
+    /**
+     * The option value each given Quissly id names, for the ids that name one of the option values
+     * a product is sent with as variants: the chat's "Collegiate 72 Tee - Color: Red" is product 11
+     * with option 1 set to Red - resolve() alone gives product 11, which CS-Cart adds in its default
+     * colour.
+     *
+     * @param list<string>       $quisslyIds lower-case UUIDs
+     * @param array<string, int> $variantIds as resolve()
+     * @return array<string, array{product_id:int, option_id:int, variant_id:int}>
+     */
+    public static function optionValues(string $namespace, array $quisslyIds, array $variantIds): array
+    {
+        $wanted = array_flip($quisslyIds);
+        $out = [];
+        foreach ($variantIds as $variantId => $productId) {
+            // ProductMapper::optionVariantId: "<product>-o<option>-<value>"
+            if (!preg_match('/^(\d+)-o(\d+)-(\d+)$/', (string) $variantId, $m) || (int) $m[1] !== (int) $productId) {
+                continue;
+            }
+            $uuid = self::uuid5($namespace, (string) $variantId);
+            if (isset($wanted[$uuid])) {
+                $out[$uuid] = ['product_id' => (int) $productId, 'option_id' => (int) $m[2], 'variant_id' => (int) $m[3]];
+            }
+        }
+
+        return $out;
+    }
+
     private function __construct()
     {
     }
