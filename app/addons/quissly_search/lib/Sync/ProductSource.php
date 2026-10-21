@@ -30,8 +30,9 @@ namespace Quissly\Search\Sync;
  *
  * Classic options (not Variations): the product's own and the global options linked to it
  * that a shopper picks one value of (select box, radio group), active, with their active
- * values - name, price modifier, picture (`variant_image`). ProductMapper decides what to
- * send. Read for a product, not for a variation child (which travels inside its parent).
+ * values - name, price modifier, picture (`variant_image`) - and, for a 4.11 product tracked with
+ * options, which combinations are in stock. ProductMapper decides what to send. Read for a
+ * product, not for a variation child (which travels inside its parent).
  *
  * Bundles (CS-Cart's Product bundles add-on, when active): the active bundles a
  * product is in, read through that add-on's own service so its status, date window
@@ -156,6 +157,7 @@ final class ProductSource
             'parent_product_id'    => (int) ($p['parent_product_id'] ?? 0),
             'options'              => $this->options((int) $p['product_id']),
             'product_options'      => (int) ($p['parent_product_id'] ?? 0) === 0 ? $this->productOptions((int) $p['product_id'], (string) ($p['tracking'] ?? '')) : [],
+            'combination_stock'    => ($p['tracking'] ?? '') === self::TRACK_WITH_OPTIONS ? self::combinationStock((int) $p['product_id']) : null,
             'features'             => self::features($p),
             'variations'           => $withVariations && (int) ($p['parent_product_id'] ?? 0) === 0 ? $this->variations((int) $p['product_id']) : [],
             'product'              => (string) ($p['product'] ?? ''),
@@ -365,10 +367,16 @@ final class ProductSource
         foreach ($options as $optionId => $option) {
             $out[] = ['option_id' => (int) $optionId, 'name' => (string) ($option['option_name'] ?? ''), 'values' => $values[(int) $optionId] ?? []];
         }
-        $colour = ProductMapper::colourOption($out);
-        if ($colour !== null && count($colour['values']) > ProductMapper::MAX_OPTION_VARIANTS) {
+        $sent = ProductMapper::variantOptions($out);
+        $size = ProductMapper::sizeOption($out);
+        if (count($sent) === 1 && $size !== null && (int) $sent[0]['option_id'] !== (int) $size['option_id']) {
+            \Quissly\Search\Logger::notice('Product colour and size make more combinations than are sent as variants; the colour alone is sent', [
+                'product_id' => $productId, 'colour_option_id' => $sent[0]['option_id'], 'size_option_id' => $size['option_id'],
+                'combinations' => count($sent[0]['values']) * count($size['values']), 'max' => ProductMapper::MAX_OPTION_VARIANTS,
+            ]);
+        } elseif (count($sent) === 1 && count($sent[0]['values']) > ProductMapper::MAX_OPTION_VARIANTS) {
             \Quissly\Search\Logger::notice('Product option has more values than are sent as variants', [
-                'product_id' => $productId, 'option_id' => $colour['option_id'], 'values' => count($colour['values']), 'sent' => ProductMapper::MAX_OPTION_VARIANTS,
+                'product_id' => $productId, 'option_id' => $sent[0]['option_id'], 'values' => count($sent[0]['values']), 'sent' => ProductMapper::MAX_OPTION_VARIANTS,
             ]);
         }
 
@@ -376,20 +384,55 @@ final class ProductSource
     }
 
     /**
-     * CS-Cart 4.11, a product tracked with options: whether each option value is in stock in
-     * some combination ("<option>_<value>" => bool, from ?:product_options_inventory, whose
-     * combination is "<option>_<value>_<option>_<value>..."). Later versions have no such stock.
+     * CS-Cart 4.11, a product tracked with options: its combinations, each as option id => value
+     * id with whether it is in stock (from ?:product_options_inventory, whose combination is
+     * "<option>_<value>_<option>_<value>..."). Later versions have no such stock.
+     *
+     * @return list<array{options:array<int,int>, in_stock:bool}>
+     */
+    private static function inventory(int $productId): array
+    {
+        $rows = [];
+        foreach (db_get_array('SELECT combination, amount FROM ?:product_options_inventory WHERE product_id = ?i', $productId) ?: [] as $row) {
+            $parts = explode('_', (string) $row['combination']);
+            $options = [];
+            for ($i = 0; $i + 1 < count($parts); $i += 2) {
+                $options[(int) $parts[$i]] = (int) $parts[$i + 1];
+            }
+            $rows[] = ['options' => $options, 'in_stock' => (int) $row['amount'] > 0];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The combinations in stock (for a combination of values: in stock when one of them holds
+     * every chosen value - ProductMapper), null when the product has no combinations recorded.
+     *
+     * @return ?list<array<int,int>>
+     */
+    private static function combinationStock(int $productId): ?array
+    {
+        $rows = self::inventory($productId);
+        if ($rows === []) {
+            return null;
+        }
+
+        return array_values(array_column(array_filter($rows, static fn (array $row): bool => $row['in_stock']), 'options'));
+    }
+
+    /**
+     * Whether each option value is in stock in some combination ("<option>_<value>" => bool).
      *
      * @return array<string, bool>
      */
     private static function valueStock(int $productId): array
     {
         $stock = [];
-        foreach (db_get_array('SELECT combination, amount FROM ?:product_options_inventory WHERE product_id = ?i', $productId) ?: [] as $row) {
-            $parts = explode('_', (string) $row['combination']);
-            for ($i = 0; $i + 1 < count($parts); $i += 2) {
-                $key = (int) $parts[$i] . '_' . (int) $parts[$i + 1];
-                $stock[$key] = ($stock[$key] ?? false) || (int) $row['amount'] > 0;
+        foreach (self::inventory($productId) as $row) {
+            foreach ($row['options'] as $optionId => $variantId) {
+                $key = $optionId . '_' . $variantId;
+                $stock[$key] = ($stock[$key] ?? false) || $row['in_stock'];
             }
         }
 
@@ -397,9 +440,10 @@ final class ProductSource
     }
 
     /**
-     * Every option value an active product could send as a variant, as its Quissly id
-     * (ProductMapper::optionVariantId) => product id: a superset of what the sync sends (any
-     * select box or radio group), for translating the ids the chat names.
+     * Every option value and colour x size combination an active product could send as a variant,
+     * as its Quissly id (ProductMapper::combinationId) => product id: a superset of what the sync
+     * sends (any select box or radio group; a size with any other option), for translating the ids
+     * the chat names.
      *
      * @return array<string, int>
      */
@@ -429,8 +473,54 @@ final class ProductSource
             'A', 'A', self::CHOICE_TYPES, 'A'
         );
         $ids = [];
+        $values = [];
         foreach (array_merge($own ?: [], $global ?: []) as $row) {
             $ids[ProductMapper::optionVariantId((int) $row['product_id'], (int) $row['option_id'], (int) $row['variant_id'])] = (int) $row['product_id'];
+            $values[(int) $row['product_id']][(int) $row['option_id']][(int) $row['variant_id']] = true;
+        }
+        // Colour x size (ProductMapper::variantOptions): each size-named option (in any of the
+        // store's languages) with each other option of the product, when their values make no more
+        // combinations than the sync sends.
+        $sizes = [];
+        $optionIds = array_values(array_unique(array_merge(array_column($own ?: [], 'option_id'), array_column($global ?: [], 'option_id'))));
+        $names = $optionIds !== [] ? db_get_array('SELECT option_id, option_name FROM ?:product_options_descriptions WHERE option_id IN (?n)', $optionIds) : [];
+        foreach ($names ?: [] as $row) {
+            if (ProductMapper::isSizeName((string) $row['option_name']) && !ProductMapper::isColourName((string) $row['option_name'])) {
+                $sizes[(int) $row['option_id']] = true;
+            }
+        }
+
+        return $ids + self::combinationIds($values, $sizes);
+    }
+
+    /**
+     * The colour x size ids a product could send (ProductMapper::combinationId => product id): each
+     * size option's values with each other option's, when the two make no more than
+     * MAX_OPTION_VARIANTS combinations.
+     *
+     * @param array<int, array<int, array<int, true>>> $values product id => option id => value id => true
+     * @param array<int, true>                         $sizes  the size-named option ids
+     * @return array<string, int>
+     */
+    public static function combinationIds(array $values, array $sizes): array
+    {
+        $ids = [];
+        foreach ($values as $productId => $options) {
+            foreach ($options as $sizeId => $sizeValues) {
+                if (!isset($sizes[$sizeId])) {
+                    continue;
+                }
+                foreach ($options as $otherId => $otherValues) {
+                    if ($otherId === $sizeId || count($sizeValues) * count($otherValues) > ProductMapper::MAX_OPTION_VARIANTS) {
+                        continue;
+                    }
+                    foreach (array_keys($sizeValues) as $sizeValue) {
+                        foreach (array_keys($otherValues) as $otherValue) {
+                            $ids[ProductMapper::combinationId((int) $productId, [(int) $sizeId => (int) $sizeValue, (int) $otherId => (int) $otherValue])] = (int) $productId;
+                        }
+                    }
+                }
+            }
         }
 
         return $ids;

@@ -5,17 +5,19 @@
  * POST quissly_search.image (image), each base64, answered with JSON
  * {token, transcription, query_var} for js/addons/quissly_search/media.js.
  *
- * POST quissly_search.cart_adjust (product_id, delta < 0, and option_id + variant_id for
- * a chat item that is an option value): lowers a product's quantity in the shopper's cart,
+ * POST quissly_search.cart_adjust (product_id, delta < 0, and options[<option id>]=<value id> per
+ * chosen value for a chat item that is an option value or a colour x size combination - or the
+ * single option_id + variant_id an earlier cart.js sends): lowers a product's quantity in the shopper's cart,
  * for the QChat cart bridge (js/addons/quissly_search/cart.js), the way checkout.update and
  * checkout.delete do. Increases need no endpoint: the bridge sends CS-Cart's own checkout.add.
  *
  * GET quissly_search.resolve (ids=uuid,uuid,…): the chat widget names products by
  * Quissly's own id (a UUID); this answers {quissly_id: product_id} for the ones the
  * catalog sync has recorded (lib/Sync/SyncWorker.php), so the bridge can add them - and,
- * for an id that names an option value ("Color: Red"), `options`: {quissly_id: {option_id,
- * variant_id, product_options}}, product_options being every option as checkout.add would
- * choose it with that value in place of the default.
+ * for an id that names an option value or combination ("Color: Green, Size: Large"), `options`:
+ * {quissly_id: {options: {option id: value id}, option_id, variant_id, product_options}},
+ * product_options being every option as checkout.add would choose it with those values in place
+ * of the defaults (option_id + variant_id: the first value, for an earlier cart.js).
  */
 
 use Quissly\Search\Cart\CartAdjust;
@@ -147,13 +149,20 @@ try {
         $variantIds = $namespace !== '' && $ids !== [] ? $source->optionVariantIds() : [];
         $found = $namespace !== '' && $ids !== [] ? ChatIds::resolve($namespace, $ids, $source->allActiveIds(), $variantIds) : [];
         $found += $store->productIdsFor(array_values(array_diff($ids, array_keys($found))));
-        // The chosen value goes into the add, the other options as CS-Cart would default them
+        // The chosen values go into the add, the other options as CS-Cart would default them
         // (its checkout.add sets either all of a product's options or the defaults).
         $options = [];
         foreach (ChatIds::optionValues($namespace, $ids, $variantIds) as $uuid => $value) {
             $chosen = (array) fn_get_default_product_options($value['product_id'], false, [], true);
-            $chosen[$value['option_id']] = $value['variant_id'];
-            $options[$uuid] = ['option_id' => $value['option_id'], 'variant_id' => $value['variant_id'], 'product_options' => (object) $chosen];
+            foreach ($value['options'] as $optionId => $variantId) {
+                $chosen[$optionId] = $variantId;
+            }
+            $options[$uuid] = [
+                'options'         => (object) $value['options'],
+                'option_id'       => (int) array_key_first($value['options']),
+                'variant_id'      => (int) reset($value['options']),
+                'product_options' => (object) $chosen,
+            ];
         }
         if ($options !== []) {
             // A key no UUID can be: a bridge that reads only {quissly_id: product_id} skips it.
@@ -168,10 +177,24 @@ try {
 
     if ($mode === 'cart_adjust' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $productId = (int) ($_REQUEST['product_id'] ?? 0);
-        $optionId = (int) ($_REQUEST['option_id'] ?? 0);
-        $variantId = (int) ($_REQUEST['variant_id'] ?? 0);
-        // Only a value of this product's own options (or its linked global ones): never the browser's word.
-        if (($optionId > 0 || $variantId > 0) && !($optionId > 0 && $variantId > 0 && (new ProductSource())->hasOptionValue($productId, $optionId, $variantId))) {
+        // The chat item's values: options[<option id>]=<value id> each, or the one option_id +
+        // variant_id an earlier cart.js sends.
+        $raw = $_REQUEST['options'] ?? [];
+        $valid = is_array($raw) && count($raw) <= 10;
+        $chosen = [];
+        foreach ($valid ? $raw : [] as $optionId => $variantId) {
+            $chosen[(int) $optionId] = is_scalar($variantId) && preg_match('/^[1-9]\d{0,9}$/', (string) $variantId) ? (int) $variantId : 0;
+        }
+        if ((int) ($_REQUEST['option_id'] ?? 0) > 0 || (int) ($_REQUEST['variant_id'] ?? 0) > 0) {
+            $chosen[(int) ($_REQUEST['option_id'] ?? 0)] = (int) ($_REQUEST['variant_id'] ?? 0);
+        }
+        // Only values of this product's own options (or its linked global ones), every one of
+        // them: never the browser's word.
+        $source = new ProductSource();
+        foreach ($chosen as $optionId => $variantId) {
+            $valid = $valid && $optionId > 0 && $variantId > 0 && $source->hasOptionValue($productId, $optionId, $variantId);
+        }
+        if (!$valid) {
             http_response_code(400);
             header('Content-Type: application/json; charset=utf-8');
             header('Cache-Control: no-store');
@@ -180,7 +203,7 @@ try {
         }
         $cart = &Tygh::$app['session']['cart'];
         $auth = &Tygh::$app['session']['auth'];
-        $changes = CartAdjust::plan((array) ($cart['products'] ?? []), $productId, -(int) ($_REQUEST['delta'] ?? 0), $optionId > 0 ? [$optionId => $variantId] : []);
+        $changes = CartAdjust::plan((array) ($cart['products'] ?? []), $productId, -(int) ($_REQUEST['delta'] ?? 0), $chosen);
         foreach ($changes as $change) {
             if ($change['amount'] === 0) {
                 fn_delete_cart_product($cart, $change['key']);

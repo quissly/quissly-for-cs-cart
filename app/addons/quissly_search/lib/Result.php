@@ -18,13 +18,13 @@ final class Result
     /** @var int total matches across all pages */
     public int $numTotalResults;
 
-    /** @var array<int, array{option:int,variant:int}|array{child:int}> product id => the variant that matched (VariantHints) */
+    /** @var array<int, array{options:array<int,int>}|array{child:int}> product id => the variant that matched (VariantHints) */
     public array $variants;
 
     /**
      * @param list<int> $ids             ordered, validated, positive product IDs
      * @param int       $numTotalResults total matches across all pages
-     * @param array<int, array{option:int,variant:int}|array{child:int}> $variants matched variants, by product id
+     * @param array<int, array{options:array<int,int>}|array{child:int}> $variants matched variants, by product id
      */
     public function __construct(array $ids, int $numTotalResults, array $variants = [])
     {

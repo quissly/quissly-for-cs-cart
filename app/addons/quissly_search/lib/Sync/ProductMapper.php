@@ -49,18 +49,23 @@ namespace Quissly\Search\Sync;
  *
  * Classic product options (CS-Cart's "Options": a select box or radio group of values on the
  * product, or a global option linked to it - not Variations, which are products of their own):
- * a product outside a variation group sends ONE colour-like option as `variants`, a variant
- * per value ({@see colourOption()}), so "yellow tee" finds the tee whose colour is an option.
- * Each value's variant: id "<product>-o<option>-<value>" ({@see optionVariantId()}; search
- * answers with it as top_variant_id - VariantHints), title "<Option>: <Value>" (Quissly names it
- * "<product> - Color: Yellow"), the value's picture first, the product's price with the value's
- * modifier applied as CS-Cart applies it (absolute, or a percent of the base), the product's
- * stock (an option has none of its own since 4.10 - except a 4.11 product still tracked with
- * options, whose values carry their own), a link that opens the product with that value
- * selected (`combination`), and the value in metadata + `selected_options`. Every other
- * option's values go in metadata as one readable list under the option's name ("size" =>
- * "S, M, L"), so a keyword search finds them; a product in a variation group sends all its
- * options that way and keeps its variations as the variants.
+ * a product outside a variation group sends its colour-like option ({@see colourOption()}) and
+ * its size-like option ({@see sizeOption()}) as `variants`, a variant per combination of their
+ * values - as the Shopify app sends a product's variants - so "yellow tee" finds the tee whose
+ * colour is an option and "green tee in large" names the Green + Large one
+ * ({@see variantOptions()}: colour and size, else the one of them it has; colour alone when the
+ * two make more than MAX_OPTION_VARIANTS combinations). Each combination's variant: id
+ * "<product>-o<option>-<value>[-o<option>-<value>]" ({@see combinationId()}; search answers with
+ * it as top_variant_id - VariantHints), title "<Option>: <Value>, ..." in the product's option
+ * order (Quissly names it "<product> - Color: Green, Size: Large"), the colour value's picture
+ * first (then a size value's, then the product's), the product's price with every value's modifier
+ * applied as CS-Cart applies them (absolute, or a percent of the base), the product's stock (an
+ * option has none of its own since 4.10 - except a 4.11 product still tracked with options, whose
+ * combinations carry their own), a link that opens the product with those values selected
+ * (`combination`), and the values in metadata + `selected_options`. Every other option's values
+ * go in metadata as one readable list under the option's name ("material" => "Cotton, Wool"), so
+ * a keyword search finds them; a product in a variation group sends all its options that way and
+ * keeps its variations as the variants.
  *
  * Bundles (CS-Cart's Product bundles add-on): a bundle is not a product - it has no
  * page and cannot be a search result; it is an offer shown on its members' pages. So
@@ -82,8 +87,14 @@ final class ProductMapper
 
     private const MAX_IMAGES = 10;
 
-    /** The most values of one option sent as variants; the rest are left out (ProductSource logs it). */
+    /**
+     * The most variants a product's options are sent as: of one option the rest of its values are
+     * left out; colour x size beyond it is sent as the colour alone (ProductSource logs either).
+     */
     public const MAX_OPTION_VARIANTS = 50;
+
+    /** The most option values one variant id names (a parsed id with more is no id of ours). */
+    private const MAX_ID_PAIRS = 10;
 
     /**
      * An option name that means colour (case-insensitive, a whole word or its inflection):
@@ -91,6 +102,13 @@ final class ProductMapper
      * kleur, kolor, renk, cor, barva, szín, culoare, χρώμα, цвет, колір, ფერი.
      */
     private const COLOUR_NAME = '/(?<!\p{L})(?:colou?r\p{L}*|couleurs?|farbe\p{L}*|farve|farge|f\x{00E4}rg\p{L}*|kleur\p{L}*|kolor\p{L}*|renk\p{L}*|cor(?:es)?|barv\p{L}*|sz\x{00ED}n\p{L}*|culoare|\x{03C7}\x{03C1}\x{03CE}\x{03BC}\p{L}*|\x{0446}\x{0432}\x{0435}\x{0442}\p{L}*|\x{043A}\x{043E}\x{043B}\x{0456}\x{0440}\p{L}*|\x{10E4}\x{10D4}\x{10E0}\p{L}*)(?!\p{L})/iu';
+
+    /**
+     * An option name that means size (case-insensitive, a whole word or its inflection): size(s),
+     * ზომა, размер, розмір, Größe (Schuhgröße), taille, taglia, talla/talle, tamaño, tamanho,
+     * rozmiar, beden, maat/maten, storlek, størrelse, velikost, méret, mărime, μέγεθος, サイズ, 尺码/尺寸.
+     */
+    private const SIZE_NAME = '/(?<!\p{L})(?:sizes?|\x{10D6}\x{10DD}\x{10DB}\p{L}*|\x{0440}\x{0430}\x{0437}\x{043C}\x{0435}\x{0440}\p{L}*|\x{0440}\x{043E}\x{0437}\x{043C}\x{0456}\x{0440}\p{L}*|\p{L}*gr(?:\x{00F6}|oe)(?:\x{00DF}|ss)e\p{L}*|tailles?|tagli[ae]|tall[ae]s?|tama\x{00F1}os?|tamanhos?|rozmiar\p{L}*|beden\p{L}*|maat|maten|storlek\p{L}*|st\x{00F8}rrelse\p{L}*|velikost\p{L}*|m\x{00E9}ret\p{L}*|m\x{0103}rim\p{L}*|\x{03BC}\x{03AD}\x{03B3}\x{03B5}\x{03B8}\p{L}*|\x{30B5}\x{30A4}\x{30BA}|\x{5C3A}[\x{7801}\x{78BC}\x{5BF8}])(?!\p{L})/iu';
 
     /**
      * @param array<string,mixed> $product normalized product (see ProductSource::load())
@@ -102,11 +120,11 @@ final class ProductMapper
         $variations = (array) ($product['variations'] ?? []);
         // A product in a variation group keeps its variations as the variants: its options
         // are only listed in metadata.
-        $colour = $variations === [] ? self::colourOption((array) ($product['product_options'] ?? [])) : null;
-        $record = self::record($product, $colour !== null ? (int) $colour['option_id'] : 0);
+        $expanded = $variations === [] ? self::variantOptions((array) ($product['product_options'] ?? [])) : [];
+        $record = self::record($product, array_map(static fn (array $option): int => (int) $option['option_id'], $expanded));
 
-        if ($colour !== null) {
-            $record['variants'] = self::optionVariants($record, $product, $colour);
+        if ($expanded !== []) {
+            $record['variants'] = self::optionVariants($record, $product, $expanded);
 
             return $record;
         }
@@ -147,10 +165,10 @@ final class ProductMapper
      * One product's own record (no variants).
      *
      * @param array<string,mixed> $product
-     * @param int                 $expanded the option sent as variants (0: none), left out of the lists
+     * @param list<int>           $expanded the options sent as variants, left out of the lists
      * @return array<string,mixed>
      */
-    private static function record(array $product, int $expanded = 0): array
+    private static function record(array $product, array $expanded = []): array
     {
         $title = trim((string) ($product['product'] ?? ''));
         $price = self::money($product['price'] ?? null);
@@ -179,7 +197,7 @@ final class ProductMapper
             $option = (array) $option;
             $values = self::valueNames($option);
             $name = trim((string) ($option['name'] ?? ''));
-            if ((int) ($option['option_id'] ?? 0) !== $expanded && $name !== '' && $values !== []) {
+            if (!in_array((int) ($option['option_id'] ?? 0), $expanded, true) && $name !== '' && $values !== []) {
                 $metadata += [self::optionKey($name) => implode(', ', $values)];
             }
         }
@@ -268,7 +286,29 @@ final class ProductMapper
     }
 
     /**
-     * The option a product outside a variation group sends as variants, or null: one whose
+     * The options a product outside a variation group sends as variants (see the class comment),
+     * colour first: [colour, size], [colour] or [size], [] when it has neither. A colour and a size
+     * whose values make more than MAX_OPTION_VARIANTS combinations: [colour] (ProductSource logs it).
+     *
+     * @param list<array<string,mixed>> $options normalized options (ProductSource)
+     * @return list<array<string,mixed>>
+     */
+    public static function variantOptions(array $options): array
+    {
+        $size = self::sizeOption($options);
+        $colour = self::colourOption($size === null ? $options : array_values(array_filter(
+            $options,
+            static fn ($option): bool => (int) (((array) $option)['option_id'] ?? 0) !== (int) $size['option_id']
+        )));
+        if ($colour !== null && $size !== null && count(self::choices($colour)) * count(self::choices($size)) > self::MAX_OPTION_VARIANTS) {
+            return [$colour];
+        }
+
+        return array_values(array_filter([$colour, $size]));
+    }
+
+    /**
+     * The option a product outside a variation group sends as its colour, or null: one whose
      * name means colour ({@see COLOUR_NAME}) or whose values have pictures. Of several, a
      * colour name first, then one with pictures, then the first in the product's order.
      *
@@ -289,7 +329,7 @@ final class ProductMapper
             foreach ((array) ($option['values'] ?? []) as $value) {
                 $pictures = $pictures || trim((string) ($value['image'] ?? '')) !== '';
             }
-            $score = (preg_match(self::COLOUR_NAME, $name) === 1 ? 2 : 0) + ($pictures ? 1 : 0);
+            $score = (self::isColourName($name) ? 2 : 0) + ($pictures ? 1 : 0);
             if ($score > $bestScore) {
                 $best = $option;
                 $bestScore = $score;
@@ -300,57 +340,150 @@ final class ProductMapper
     }
 
     /**
+     * The option a product outside a variation group sends as its size, or null: the first whose
+     * name means size ({@see SIZE_NAME}) and not colour, pictures or not.
+     *
+     * @param list<array<string,mixed>> $options normalized options (ProductSource)
+     * @return ?array<string,mixed>
+     */
+    public static function sizeOption(array $options): ?array
+    {
+        foreach ($options as $option) {
+            $option = (array) $option;
+            $name = trim((string) ($option['name'] ?? ''));
+            if ($name !== '' && (int) ($option['option_id'] ?? 0) > 0 && self::valueNames($option) !== []
+                && self::isSizeName($name) && !self::isColourName($name)) {
+                return $option;
+            }
+        }
+
+        return null;
+    }
+
+    public static function isColourName(string $name): bool
+    {
+        return preg_match(self::COLOUR_NAME, $name) === 1;
+    }
+
+    public static function isSizeName(string $name): bool
+    {
+        return preg_match(self::SIZE_NAME, $name) === 1;
+    }
+
+    /**
      * The Quissly id of one option value's variant: "<product>-o<option>-<value>" (strings on
      * the wire, like every id; search answers it as top_variant_id - VariantHints::parse()).
      */
     public static function optionVariantId(int $productId, int $optionId, int $variantId): string
     {
-        return $productId . '-o' . $optionId . '-' . $variantId;
+        return self::combinationId($productId, [$optionId => $variantId]);
     }
 
     /**
-     * A variant per value of $option (at most MAX_OPTION_VARIANTS), see the class comment.
+     * The Quissly id of a combination's variant: "<product>-o<option>-<value>" per chosen value,
+     * by option id ("11-o1-2-o2-8" = product 11, option 1 = 2 and option 2 = 8). One value is the
+     * id the sync sent before combinations, so chat items and links out there still name it.
      *
-     * @param array<string,mixed> $record  the product's own record
-     * @param array<string,mixed> $product the normalized product
-     * @param array<string,mixed> $option  the option sent as variants
+     * @param array<int,int> $options option id => value id
+     */
+    public static function combinationId(int $productId, array $options): string
+    {
+        ksort($options);
+        $id = (string) $productId;
+        foreach ($options as $optionId => $variantId) {
+            $id .= '-o' . (int) $optionId . '-' . (int) $variantId;
+        }
+
+        return $id;
+    }
+
+    /**
+     * A combinationId() (or the single-value optionVariantId()) read back: the product and the
+     * option id => value id it names, null for anything else (an id or a value of 0, an option
+     * named twice, more than MAX_ID_PAIRS values).
+     *
+     * @param mixed $id
+     * @return ?array{product_id:int, options:array<int,int>}
+     */
+    public static function parseVariantId($id): ?array
+    {
+        $pattern = '/^([1-9]\d{0,18})((?:-o[1-9]\d{0,18}-[1-9]\d{0,18}){1,' . self::MAX_ID_PAIRS . '})$/';
+        if (!is_string($id) || preg_match($pattern, trim($id), $m) !== 1) {
+            return null;
+        }
+        preg_match_all('/-o(\d+)-(\d+)/', $m[2], $pairs, PREG_SET_ORDER);
+        $options = [];
+        foreach ($pairs as $pair) {
+            if (isset($options[(int) $pair[1]])) {
+                return null;
+            }
+            $options[(int) $pair[1]] = (int) $pair[2];
+        }
+
+        return ['product_id' => (int) $m[1], 'options' => $options];
+    }
+
+    /**
+     * A variant per combination of the values of $options (at most MAX_OPTION_VARIANTS), see the
+     * class comment.
+     *
+     * @param array<string,mixed>       $record  the product's own record
+     * @param array<string,mixed>       $product the normalized product
+     * @param list<array<string,mixed>> $options the options sent as variants, colour first (variantOptions())
      * @return list<array<string,mixed>>
      */
-    private static function optionVariants(array $record, array $product, array $option): array
+    private static function optionVariants(array $record, array $product, array $options): array
     {
-        $optionId = (int) $option['option_id'];
-        $name = trim((string) $option['name']);
+        // Titles, links and selected_options in the product's option order; pictures colour first.
+        $place = [];
+        foreach (array_values((array) ($product['product_options'] ?? [])) as $i => $option) {
+            $place[(int) (((array) $option)['option_id'] ?? 0)] = $i;
+        }
+        $inOrder = $options;
+        usort($inOrder, static fn (array $a, array $b): int => ($place[(int) $a['option_id']] ?? 0) <=> ($place[(int) $b['option_id']] ?? 0));
+        $names = [];
+        $combinations = [[]];
+        foreach ($inOrder as $option) {
+            $names[(int) $option['option_id']] = trim((string) $option['name']);
+            $next = [];
+            foreach ($combinations as $combination) {
+                foreach (self::choices($option) as $value) {
+                    $next[] = $combination + [(int) $option['option_id'] => $value];
+                }
+            }
+            $combinations = $next;
+        }
+
         $price = self::money($product['price'] ?? null);
         $listPrice = self::money($product['list_price'] ?? null);
         $variants = [];
-        foreach ((array) ($option['values'] ?? []) as $value) {
-            $value = (array) $value;
-            $label = trim((string) ($value['name'] ?? ''));
-            $variantId = (int) ($value['variant_id'] ?? 0);
-            if ($label === '' || $variantId <= 0) {
-                continue;
+        foreach (array_slice($combinations, 0, self::MAX_OPTION_VARIANTS) as $combination) {
+            $chosen = [];
+            $title = [];
+            $metadata = [];
+            $selected = [];
+            foreach ($combination as $optionId => $value) {
+                $label = trim((string) $value['name']);
+                $chosen[$optionId] = (int) $value['variant_id'];
+                $title[] = $names[$optionId] . ': ' . $label;
+                $metadata += [self::optionKey($names[$optionId]) => $label];
+                $selected[] = ['name' => $names[$optionId], 'value' => $label];
             }
-            if (count($variants) >= self::MAX_OPTION_VARIANTS) {
-                break;
-            }
-            $own = $price !== null ? self::modified($price, $value) : null;
-            $list = $listPrice !== null ? self::modified($listPrice, $value) : null;
-            $stock = $value['in_stock'] ?? null;
+            $metadata['selected_options'] = $selected;
+            $pictures = array_map(static fn (array $option): string => (string) ($combination[(int) $option['option_id']]['image'] ?? ''), $options);
+            $own = $price !== null ? self::modified($price, $combination) : null;
+            $list = $listPrice !== null ? self::modified($listPrice, $combination) : null;
             $variants[] = [
-                'id'               => self::optionVariantId((int) $record['id'], $optionId, $variantId),
-                'title'            => $name . ': ' . $label,
+                'id'               => self::combinationId((int) $record['id'], $chosen),
+                'title'            => implode(', ', $title),
                 'description'      => $record['description'],
                 'category'         => $record['category'],
-                'images'           => self::images(array_merge([(string) ($value['image'] ?? '')], (array) ($product['images'] ?? []))),
+                'images'           => self::images(array_merge($pictures, (array) ($product['images'] ?? []))),
                 'original_price'   => $own !== null && $list !== null && $list > $own ? $list : ($own ?? 0.0),
                 'discounted_price' => $own ?? 0.0,
-                'url'              => self::withCombination($record['url'], $optionId, $variantId),
-                // The value's own stock only where it has one (a 4.11 product tracked with options).
-                'in_stock'         => is_bool($stock) && !self::alwaysBuyable($product) ? $stock : $record['in_stock'],
-                'metadata'         => [
-                    self::optionKey($name) => $label,
-                    'selected_options'     => [['name' => $name, 'value' => $label]],
-                ],
+                'url'              => self::withCombination($record['url'], $chosen),
+                'in_stock'         => self::combinationStock($product, $combination) ?? $record['in_stock'],
+                'metadata'         => $metadata,
             ];
         }
 
@@ -358,27 +491,85 @@ final class ProductMapper
     }
 
     /**
-     * A price with an option value's modifier, as CS-Cart's fn_apply_options_modifiers: an
-     * absolute amount (`A`) or a percent of the base, never below 0.
+     * A combination's own stock where it has one (a 4.11 product tracked with options: a single
+     * value's `in_stock`, else the product's `combination_stock` - the stocked combinations, one
+     * of which must hold every chosen value), null where the product's stock decides.
      *
-     * @param array<string,mixed> $value
+     * @param array<string,mixed>              $product
+     * @param array<int, array<string,mixed>>  $combination option id => value
      */
-    private static function modified(float $base, array $value): float
+    private static function combinationStock(array $product, array $combination): ?bool
     {
-        $modifier = is_numeric($value['modifier'] ?? null) ? (float) $value['modifier'] : 0.0;
-        $change = ($value['modifier_type'] ?? 'A') === 'A' ? $modifier : $modifier * $base / 100;
+        if (self::alwaysBuyable($product)) {
+            return null;
+        }
+        if (count($combination) === 1) {
+            $stock = reset($combination)['in_stock'] ?? null;
 
-        return round(max(0.0, $base + $change), 2);
+            return is_bool($stock) ? $stock : null;
+        }
+        if (!is_array($product['combination_stock'] ?? null)) {
+            return null;
+        }
+        foreach ($product['combination_stock'] as $stocked) {
+            $all = true;
+            foreach ($combination as $optionId => $value) {
+                $all = $all && (int) (((array) $stocked)[$optionId] ?? 0) === (int) $value['variant_id'];
+            }
+            if ($all) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    /** The product's link with the value selected: products.view takes `combination=<option>_<value>`. */
-    private static function withCombination(string $url, int $optionId, int $variantId): string
+    /**
+     * A price with the chosen values' modifiers, as CS-Cart's fn_apply_options_modifiers: each an
+     * absolute amount (`A`) or a percent of the base (never of the price so far), added up, never
+     * below 0.
+     *
+     * @param array<int, array<string,mixed>> $values
+     */
+    private static function modified(float $base, array $values): float
+    {
+        $price = $base;
+        foreach ($values as $value) {
+            $modifier = is_numeric($value['modifier'] ?? null) ? (float) $value['modifier'] : 0.0;
+            $price += ($value['modifier_type'] ?? 'A') === 'A' ? $modifier : $modifier * $base / 100;
+        }
+
+        return round(max(0.0, $price), 2);
+    }
+
+    /**
+     * The product's link with the values selected: products.view (4.11 and 4.21) takes
+     * `combination=<option>_<value>[_<option>_<value>...]` (fn_get_product_options_by_combination).
+     *
+     * @param array<int,int> $chosen option id => value id
+     */
+    private static function withCombination(string $url, array $chosen): string
     {
         if ($url === '') {
             return '';
         }
+        $pairs = [];
+        foreach ($chosen as $optionId => $variantId) {
+            $pairs[] = $optionId . '_' . $variantId;
+        }
 
-        return $url . (strpos($url, '?') === false ? '?' : '&') . 'combination=' . $optionId . '_' . $variantId;
+        return $url . (strpos($url, '?') === false ? '?' : '&') . 'combination=' . implode('_', $pairs);
+    }
+
+    /**
+     * An option's values that can be a variant (a name and an id), in order.
+     *
+     * @param array<string,mixed> $option
+     * @return list<array<string,mixed>>
+     */
+    private static function choices(array $option): array
+    {
+        return array_values(array_filter(array_map(static fn ($value): array => (array) $value, (array) ($option['values'] ?? [])), static fn (array $value): bool => trim((string) ($value['name'] ?? '')) !== '' && (int) ($value['variant_id'] ?? 0) > 0));
     }
 
     /**

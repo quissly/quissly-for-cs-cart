@@ -24,9 +24,10 @@
  * translated through quissly_search.resolve, from the pairs the catalog sync
  * records; an id that cannot be translated is left alone (never guessed). A plain
  * number is taken as a CS-Cart product_id. An id that names one of a product's option
- * values ("Collegiate 72 Tee - Color: Red") comes back with that value (`options`): it is
- * added with it, as the product page's form sends it, and a decrease or removal changes
- * only the cart lines with it. Config: the [data-quissly-cart] element's
+ * values or a colour x size combination ("Collegiate 72 Tee - Color: Green, Size: Large")
+ * comes back with those values (`options`): it is added with them, as the product page's form
+ * sends them, and a decrease or removal changes only the cart lines with all of them. Config:
+ * the [data-quissly-cart] element's
  * data-quissly-config JSON (lib/Storefront.php).
  */
 (window.quisslyMarks = window.quisslyMarks || []).push(['cart.js', new Error()]); // where this script starts (report.js)
@@ -74,7 +75,7 @@
 		} );
 	}
 
-	/** value: null, or the option value the chat named ({option_id, variant_id, product_options}). */
+	/** value: null, or the option values the chat named ({options, option_id, variant_id, product_options}). */
 	function add( productId, amount, value ) {
 		var data = { security_hash: CFG.securityHash || '' };
 		data[ 'product_data[' + productId + '][product_id]' ] = productId;
@@ -89,7 +90,11 @@
 
 	function reduce( productId, amount, value ) {
 		var body = { security_hash: CFG.securityHash || '', product_id: productId, delta: -amount };
-		if ( value ) {
+		if ( value && value.options ) {
+			Object.keys( value.options ).forEach( function ( optionId ) {
+				body[ 'options[' + optionId + ']' ] = value.options[ optionId ];
+			} );
+		} else if ( value ) {
 			body.option_id = value.option_id;
 			body.variant_id = value.variant_id;
 		}

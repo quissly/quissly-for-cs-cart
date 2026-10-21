@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Quissly\Search;
 
+use Quissly\Search\Sync\ProductMapper;
 use Tygh\Registry;
 
 /**
  * Per-request memory of which variant a search matched, for the search page being rendered.
  *
  * QSearch answers a product that has variants with the product's id AND the variant that
- * matched (`top_variant_id`, the id the catalog sync sent): a classic option value
- * ("11-o1-11" = product 11, option 1, value 11 - ProductMapper::optionVariantId) or a
- * Variations child (its own product id). CS-Cart renders the product, so without this a
- * shopper searching "yellow tee" got the tee's default picture and page. With it the card
- * shows the matched value's picture and opens the product with that value selected
- * (`combination=<option>_<value>`, read by products.view on 4.11 and 4.21), or shows the
- * matched child's picture and opens the child's page - as the Shopify app (?variant=) and the
- * Magento plugin (VariantHints there) do.
+ * matched (`top_variant_id`, the id the catalog sync sent): a classic option value or colour x
+ * size combination ("11-o1-11" = product 11, option 1, value 11; "11-o1-2-o2-8" = option 1
+ * value 2 and option 2 value 8 - ProductMapper::combinationId) or a Variations child (its own
+ * product id). CS-Cart renders the product, so without this a shopper searching "green tee in
+ * large" got the tee's default picture and page. With it the card shows the matched colour's
+ * picture and opens the product with every matched value selected
+ * (`combination=<option>_<value>[_<option>_<value>]`, read by products.view on 4.11 and 4.21),
+ * or shows the matched child's picture and opens the child's page - as the Shopify app
+ * (?variant=) and the Magento plugin (VariantHints there) do.
  *
  * Written by SearchInterceptor for the one intercepted text search; read by the
  * `gather_additional_products_data_post` hook (pictures) and the `url_post` hook (links).
@@ -30,7 +32,7 @@ use Tygh\Registry;
  */
 final class VariantHints
 {
-    /** @var array<int, array{option:int,variant:int}|array{child:int}> product id => what matched */
+    /** @var array<int, array{options:array<int,int>}|array{child:int}> product id => what matched */
     private static array $matched = [];
 
     /** @var array<int, array{combination:string}|array{child:int}> confirmed by the product's data */
@@ -43,12 +45,13 @@ final class VariantHints
 
     /**
      * A top_variant_id as a hint for product $productId, null when it is none: a Variations
-     * child ("57", not the product itself) or one of this product's option values
-     * ("<product>-o<option>-<value>"). Anything else - absent, malformed, another product's
-     * value - is no hint (the product renders as it would without one).
+     * child ("57", not the product itself) or one of this product's option values or
+     * combinations ("<product>-o<option>-<value>[-o<option>-<value>]": `options`, option id =>
+     * value id). Anything else - absent, malformed, another product's value - is no hint (the
+     * product renders as it would without one).
      *
      * @param mixed $topVariantId
-     * @return array{option:int,variant:int}|array{child:int}|null
+     * @return array{options:array<int,int>}|array{child:int}|null
      */
     public static function parse(int $productId, $topVariantId): ?array
     {
@@ -62,17 +65,15 @@ final class VariantHints
         if (preg_match('/^[1-9]\d{0,18}$/', $id) === 1) {
             return (int) $id !== $productId ? ['child' => (int) $id] : null;
         }
-        if (preg_match('/^([1-9]\d{0,18})-o([1-9]\d{0,18})-([1-9]\d{0,18})$/', $id, $m) === 1 && (int) $m[1] === $productId) {
-            return ['option' => (int) $m[2], 'variant' => (int) $m[3]];
-        }
+        $parsed = ProductMapper::parseVariantId($id);
 
-        return null;
+        return $parsed !== null && $parsed['product_id'] === $productId ? ['options' => $parsed['options']] : null;
     }
 
     /**
      * Record this search's matches (Result::$variants).
      *
-     * @param array<int, array{option:int,variant:int}|array{child:int}> $variants
+     * @param array<int, array{options:array<int,int>}|array{child:int}> $variants
      */
     public static function remember(array $variants): void
     {
@@ -111,8 +112,9 @@ final class VariantHints
 
     /**
      * The search controller's gather of the results (fn_gather_additional_products_data, with
-     * the products' options): a matched option value that is still one of the product's
-     * active values puts its picture on the card (when it has one) and its link in place; a
+     * the products' options): matched option values that are all still among the product's
+     * active values put their picture on the card (the colour's - an option named as one - else
+     * the first with a picture, when one has one) and their link in place; a
      * matched child that is an active variation of the product does the same with the child's
      * main picture and page. Once per request: the first gather holding a matched product.
      *
@@ -143,14 +145,27 @@ final class VariantHints
                 self::$links[$productId] = ['child' => (int) $hint['child']];
                 continue;
             }
-            $value = self::optionValue((array) ($product['product_options'] ?? []), $hint['option'], $hint['variant']);
-            if ($value === null) {
-                continue;
+            $values = [];
+            foreach ($hint['options'] as $optionId => $variantId) {
+                $value = self::optionValue((array) ($product['product_options'] ?? []), (int) $optionId, (int) $variantId);
+                if ($value === null) {
+                    continue 2;
+                }
+                $values[] = $value;
             }
-            if (!empty($value['image_pair'])) {
-                $product['main_pair'] = $value['image_pair'];
+            // The colour's picture first: a size value seldom has one, but when it does it is not the look.
+            usort($values, static fn (array $a, array $b): int => (int) !ProductMapper::isColourName((string) $a['option_name']) <=> (int) !ProductMapper::isColourName((string) $b['option_name']));
+            foreach ($values as $value) {
+                if (!empty($value['image_pair'])) {
+                    $product['main_pair'] = $value['image_pair'];
+                    break;
+                }
             }
-            self::$links[$productId] = ['combination' => $hint['option'] . '_' . $hint['variant']];
+            $pairs = [];
+            foreach ($hint['options'] as $optionId => $variantId) {
+                $pairs[] = (int) $optionId . '_' . (int) $variantId;
+            }
+            self::$links[$productId] = ['combination' => implode('_', $pairs)];
         }
         unset($product);
     }
@@ -173,7 +188,8 @@ final class VariantHints
 
     /**
      * The value $variantId of option $optionId in the product's options as CS-Cart gathered
-     * them (option_id => option with `variants`), null when the product has no such value.
+     * them (option_id => option with `variants`), with its option's name as `option_name`; null
+     * when the product has no such value.
      *
      * @param array<int|string, mixed> $options
      * @return ?array<string,mixed>
@@ -186,7 +202,7 @@ final class VariantHints
             }
             foreach ((array) ($option['variants'] ?? []) as $value) {
                 if (is_array($value) && (int) ($value['variant_id'] ?? 0) === $variantId) {
-                    return $value;
+                    return ['option_name' => (string) ($option['option_name'] ?? '')] + $value;
                 }
             }
         }

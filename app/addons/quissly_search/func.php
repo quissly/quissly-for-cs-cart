@@ -436,8 +436,9 @@ function fn_quissly_search_gather_additional_products_data_post($product_ids, $p
 
 /**
  * fn_url's last step: on the storefront search page, a link to a product that matched
- * through one of its variants opens that variant - the product with the matched option value
- * selected (`combination`), or the matched Variations child's page (VariantHints). Runs after
+ * through one of its variants opens that variant - the product with the matched option values
+ * (a colour, a size, or both) selected (`combination`), or the matched Variations child's page
+ * (VariantHints). Runs after
  * the SEO add-on's url_post (priority 2000 > 1800), so it changes the final URL. 4.21 passes
  * $storefront_id too; 4.11 does not.
  */

@@ -15,9 +15,10 @@ namespace Quissly\Search\Cart;
  * reduced on its most recently added line first, and a line that belongs to a
  * parent product (a bundle or required product: `extra.parent`) is never touched.
  *
- * The chat names an option value of a product sent with its options as variants
- * ("Color: Red"): then only the lines with that value are changed (a cart line is
- * product + chosen options, fn_generate_cart_id), never the product in another colour.
+ * The chat names an option value or a colour x size combination of a product sent with its
+ * options as variants ("Color: Red", "Color: Green, Size: Large"): then only the lines with
+ * every one of those values are changed (a cart line is product + chosen options,
+ * fn_generate_cart_id), never the product in another colour or size.
  */
 final class CartAdjust
 {

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Quissly\Search\Cart;
 
+use Quissly\Search\Sync\ProductMapper;
+
 /**
  * Quissly's own product ids, as the chat widget uses them: uuid5 of the qsearch
  * service's quissly_service_link and our product id (uuid5(link, "247") is the chat's id
@@ -29,13 +31,14 @@ final class ChatIds
     }
 
     /**
-     * The given Quissly ids that belong to one of $productIds - or to one of the option values
-     * a product is sent with as variants (the chat names the variant: uuid5(link,
-     * "11-o1-11")), which translates to its product - translated.
+     * The given Quissly ids that belong to one of $productIds - or to one of the option values or
+     * colour x size combinations a product is sent with as variants (the chat names the variant:
+     * uuid5(link, "11-o1-11"), uuid5(link, "11-o1-2-o2-8")), which translates to its product -
+     * translated.
      *
      * @param list<string>       $quisslyIds lower-case UUIDs
      * @param list<int>          $productIds
-     * @param array<string, int> $variantIds variant id (ProductMapper::optionVariantId) => product id
+     * @param array<string, int> $variantIds variant id (ProductMapper::combinationId) => product id
      * @return array<string, int>
      */
     public static function resolve(string $namespace, array $quisslyIds, array $productIds, array $variantIds = []): array
@@ -59,27 +62,27 @@ final class ChatIds
     }
 
     /**
-     * The option value each given Quissly id names, for the ids that name one of the option values
-     * a product is sent with as variants: the chat's "Collegiate 72 Tee - Color: Red" is product 11
-     * with option 1 set to Red - resolve() alone gives product 11, which CS-Cart adds in its default
-     * colour.
+     * The option values each given Quissly id names, for the ids that name one of the option values
+     * or combinations a product is sent with as variants: the chat's "Collegiate 72 Tee - Color:
+     * Green, Size: Large" is product 11 with option 1 set to Green and option 2 to Large - resolve()
+     * alone gives product 11, which CS-Cart adds in its default colour and size.
      *
      * @param list<string>       $quisslyIds lower-case UUIDs
      * @param array<string, int> $variantIds as resolve()
-     * @return array<string, array{product_id:int, option_id:int, variant_id:int}>
+     * @return array<string, array{product_id:int, options:array<int,int>}> options: option id => value id
      */
     public static function optionValues(string $namespace, array $quisslyIds, array $variantIds): array
     {
         $wanted = array_flip($quisslyIds);
         $out = [];
         foreach ($variantIds as $variantId => $productId) {
-            // ProductMapper::optionVariantId: "<product>-o<option>-<value>"
-            if (!preg_match('/^(\d+)-o(\d+)-(\d+)$/', (string) $variantId, $m) || (int) $m[1] !== (int) $productId) {
+            $parsed = ProductMapper::parseVariantId((string) $variantId);
+            if ($parsed === null || $parsed['product_id'] !== (int) $productId) {
                 continue;
             }
             $uuid = self::uuid5($namespace, (string) $variantId);
             if (isset($wanted[$uuid])) {
-                $out[$uuid] = ['product_id' => (int) $productId, 'option_id' => (int) $m[2], 'variant_id' => (int) $m[3]];
+                $out[$uuid] = $parsed;
             }
         }
 
