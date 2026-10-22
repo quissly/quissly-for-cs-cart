@@ -13,8 +13,9 @@ them on, voice search, image search and the QChat shopping assistant.
 
 - **CS-Cart 4.21** (tested on 4.21.1). Older 4.x versions have not been tested yet - contact
   Quissly before installing on one.
-- **PHP 7.4 or newer**, with the `curl`, `openssl`, `json`, `zip` and `sodium` extensions (the
-  last two are for automatic updates; most hosts have all five).
+- **PHP 7.4 or newer** (64-bit), with the `curl`, `openssl`, `json` and `zip` extensions (`zip` is for
+  automatic updates; most hosts have all four). `sodium` is used when PHP has it; without it the
+  add-on checks updates with its own built-in code.
 - Access to your CS-Cart admin. Server access is needed only to add the cron line (step 4).
 - An accurate server clock (NTP on): every request to Quissly is signed with the time, and a clock
   more than a minute off is refused.
@@ -114,8 +115,7 @@ reach `github.com` and `raw.githubusercontent.com` over HTTPS. A store whose fil
 **Add-ons → Upgrades.** CS-Cart's own Upgrade center lists a new Quissly version as well (from the
 first release after 1.0.26): **Quissly search 1.0.x** with a short note and a *What's new* link to
 the release on GitHub. Click **Download**, then **Install**. It is the same signed release, checked
-the same way before it is even listed - a file that fails the check is never offered, and PHP without
-the sodium extension cannot check it, so nothing is offered (the page says why). Your settings and data
+the same way before it is even listed - a file that fails the check is never offered (the page says why). Your settings and data
 are kept, and if the update cannot be finished the previous version is put back. As for any upgrade
 there, CS-Cart backs up the store first (unless you tick *Skip files and database backup*), e-mails the
 administrator and closes the storefront while it copies the files; Quissly opens it again when it is
@@ -138,6 +138,13 @@ closing the storefront but before copying any file, Quissly opens the storefront
 Automatic updates stay the default. To update only from Add-ons → Upgrades, set **Update check
 frequency** to **Never**. If both run, nothing breaks: whichever comes second finds the version already
 installed.
+
+**Updating by hand with the zip.** If neither of the above can run on your server, upload the new
+zip as in step 1. CS-Cart then says the add-on is already installed and offers two ways. Tick
+*I know the risks and want to use the dangerous way* and click **Use the dangerous way**: it replaces
+the add-on's files and keeps its data, which is what Quissly needs. **Do not use the safe way** - it
+uninstalls Quissly first, which deletes its connection to your Quissly account, its settings and its
+sync state, and search goes back to CS-Cart's own until Quissly is set up again.
 
 ## How search behaves
 

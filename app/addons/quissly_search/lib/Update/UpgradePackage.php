@@ -42,14 +42,14 @@ final class UpgradePackage
 
     /**
      * Why a downloaded release must not become a package ('' when it may): the same rules as
-     * an automatic update - signed with Quissly's release key (PHP without sodium cannot check,
-     * so nothing is offered), only the add-on's own files, its addon.xml naming the release.
+     * an automatic update - signed with Quissly's release key (a PHP that cannot check - Signature -
+     * is offered nothing), only the add-on's own files, its addon.xml naming the release.
      *
      * @param list<string> $names the zip's entry names
      */
     public static function refusal(string $zip, string $signature, string $publicKey, array $names, string $addonXml, string $version): string
     {
-        if (!function_exists('sodium_crypto_sign_verify_detached')) {
+        if (!Signature::available()) {
             return 'no_sodium';
         }
         if (!Release::signatureValid($zip, $signature, $publicKey)) {

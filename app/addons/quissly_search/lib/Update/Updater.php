@@ -230,7 +230,7 @@ final class Updater
             if ($signature === false || Http::getStatus() !== 200) {
                 return 'no_signature';
             }
-            if (!function_exists('sodium_crypto_sign_verify_detached')) {
+            if (!Signature::available()) {
                 return 'no_sodium';
             }
             if (!Release::signatureValid((string) file_get_contents($zipPath), (string) $signature, Release::PUBLIC_KEY)) {

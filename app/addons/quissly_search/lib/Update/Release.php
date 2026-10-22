@@ -169,22 +169,17 @@ final class Release
 
     /**
      * Whether $signature (base64) is a valid Ed25519 signature of $data by $publicKey
-     * (base64). False when PHP has no sodium: an update that cannot be checked is not installed.
+     * (base64). False when it cannot be checked (Signature): an update that cannot be checked is not installed.
      */
     public static function signatureValid(string $data, string $signature, string $publicKey): bool
     {
         $sig = base64_decode(trim($signature), true);
         $key = base64_decode($publicKey, true);
-        if ($sig === false || $key === false || strlen($sig) !== 64 || strlen($key) !== 32
-            || !function_exists('sodium_crypto_sign_verify_detached')
-        ) {
+        if ($sig === false || $key === false || strlen($sig) !== 64 || strlen($key) !== 32) {
             return false;
         }
-        try {
-            return sodium_crypto_sign_verify_detached($sig, $data, $key);
-        } catch (\Throwable $e) {
-            return false;
-        }
+
+        return Signature::verify($sig, $data, $key);
     }
 
     /**
