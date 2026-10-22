@@ -58,6 +58,9 @@ require_once __DIR__ . '/autoload.php';
  *    catalog sync: their popularity changed). Queue only: the cron sends them.
  *  - `set_notification_pre` — an error notice on one of the add-on's pages is reported to
  *    Quissly (lib/Diagnostics/).
+ *  - `development_show_stub` — CS-Cart's "Service unavailable" page after a storefront fatal
+ *    error: the add-on's own is reported to Quissly (CS-Cart exits there, before our shutdown
+ *    function).
  */
 fn_register_hooks(
     'get_products_before_select',
@@ -84,5 +87,6 @@ fn_register_hooks(
     'post_add_to_cart',
     'pre_add_to_wishlist',
     'change_order_status',
-    'set_notification_pre'
+    'set_notification_pre',
+    'development_show_stub'
 );

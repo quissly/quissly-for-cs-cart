@@ -10,8 +10,9 @@ namespace Quissly\Search\Diagnostics;
  * - PHP warnings and notices raised in the add-on's own files (an error handler that then hands the
  *   error on to the one it replaced, or to PHP's own handling, so nothing changes for the store);
  * - a fatal error in its files, or in any file while one of its own pages or the cron runs (a shutdown
- *   function). On a storefront page CS-Cart's own fatal handler runs first and ends the request, so a
- *   storefront fatal error is only in CS-Cart's log;
+ *   function). On a storefront page CS-Cart's own fatal handler runs first and ends the request with
+ *   its "Service unavailable" page, so there onShutdown() is called by that page's hook
+ *   (development_show_stub, func.php) instead;
  * - exceptions its hooks and controllers caught (exception()), what it logs with Logger::error
  *   (problem()), Setup / Billing steps that failed and error notices on its pages (refused()), and
  *   its scripts' errors (browser(), from report.js).

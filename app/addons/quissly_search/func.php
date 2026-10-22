@@ -85,6 +85,16 @@ function fn_quissly_search_client_error(): void
 }
 
 /**
+ * Hook development_show_stub: CS-Cart's "Service unavailable" page. CS-Cart's storefront fatal-error
+ * handler is registered before any add-on's shutdown function, shows this page and exits, so a
+ * storefront fatal error of the add-on's is recorded here (ErrorCapture::onShutdown).
+ */
+function fn_quissly_search_development_show_stub($placeholders, $append, $content, $is_error)
+{
+    \Quissly\Search\Diagnostics\ErrorCapture::onShutdown();
+}
+
+/**
  * Hook set_notification_pre: an error notice on one of the add-on's pages (Configuration
  * included) is reported to Quissly, as what the merchant was told.
  */
