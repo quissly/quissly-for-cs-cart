@@ -260,8 +260,21 @@ final class UpgradeCenter
         $id = (string) ($request['id'] ?? '');
         $restoreDir = (preg_match('/^[A-Za-z0-9_.\-]+$/', $id) ? $id : self::ADDON) . '_' . $from . '-' . $to;
         $texts = [];
+        $found = [];
         foreach (self::problems(($request['skip_backup'] ?? '') !== 'Y', $restoreDir, new DbSyncStore(), true) as [$kind, $reason]) {
             $texts[] = htmlspecialchars(self::problemText($kind, $reason, false), ENT_QUOTES, 'UTF-8');
+            $found[] = $kind . ': ' . $reason;
+        }
+        if ($found !== []) {
+            // The merchant sees the message; Quissly hears of it too (lib/Diagnostics/), so a store whose
+            // server stops the Upgrade center is known before its merchant writes in. The same problem
+            // is one report, sent at most once an hour (ErrorReport).
+            \Quissly\Search\Diagnostics\ErrorCapture::refused('upgrade_center_blocked', sprintf(
+                'Upgrade center install of Quissly %s (from %s) stopped by the server check: %s',
+                $to,
+                $from,
+                implode('; ', $found)
+            ));
         }
 
         return $texts === [] ? [true, ''] : [false, implode('<br><br>', $texts)];
