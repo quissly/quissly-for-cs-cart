@@ -107,7 +107,12 @@ setting is kept for then.
 
 ## Updates
 
-New versions install themselves. At the frequency above, the add-on checks Quissly's releases on
+By default nothing installs itself (**Update check frequency: Never**): once a day the add-on checks
+whether a newer Quissly version exists, the Quissly Dashboard says so, and you install it from
+**Add-ons → Upgrades** (below) when you are ready. A store installed before 1.0.34 keeps the frequency
+it had.
+
+**Automatic updates** (any other frequency): at that frequency the add-on checks Quissly's releases on
 GitHub; a newer one is downloaded, **checked against Quissly's signature** (a file without it is
 never installed), and put in place with the old files kept as a backup - any problem puts the
 previous version back. Your settings, credentials and synced data are kept. The Dashboard's sync log
@@ -139,9 +144,8 @@ Quissly checks both when you click **Install**, before anything changes: if one 
 version). The Quissly Dashboard shows the same warning ahead of time. Should CS-Cart still stop after
 closing the storefront but before copying any file, Quissly opens the storefront again.
 
-Automatic updates stay the default. To update only from Add-ons → Upgrades, set **Update check
-frequency** to **Never**. If both run, nothing breaks: whichever comes second finds the version already
-installed.
+To update only from Add-ons → Upgrades, keep **Update check frequency** on **Never**. If both run,
+nothing breaks: whichever comes second finds the version already installed.
 
 **Updating by hand with the zip.** If neither of the above can run on your server, upload the new
 zip as in step 1. CS-Cart then says the add-on is already installed and offers two ways. Tick
