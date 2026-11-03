@@ -226,6 +226,14 @@ msgctxt "Languages::quissly_search.dash_gate_blocked"
 msgid "The last full sync finished without Quissly confirming any product, so search stays on native CS-Cart search. Check the sync log for the cause, then sync again."
 msgstr "The last full sync finished without Quissly confirming any product, so search stays on native CS-Cart search. Check the sync log for the cause, then sync again."
 
+msgctxt "Languages::quissly_search.nc_update_title"
+msgid "Quissly [version] is available"
+msgstr "Quissly [version] is available"
+
+msgctxt "Languages::quissly_search.nc_update_message"
+msgid "Automatic updates are off: install it from Add-ons > Upgrades when you are ready."
+msgstr "Automatic updates are off: install it from Add-ons > Upgrades when you are ready."
+
 msgctxt "Languages::quissly_search.dash_update_available"
 msgid "Quissly [version] is available. Automatic updates are off: install it from Add-ons > Upgrades when you are ready."
 msgstr "Quissly [version] is available. Automatic updates are off: install it from Add-ons > Upgrades when you are ready."

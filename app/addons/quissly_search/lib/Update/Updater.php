@@ -153,6 +153,8 @@ final class Updater
      * "Never": nothing is installed by itself. Once a day the version on GitHub's CDN is read (one
      * small request, no API) and, when it is newer than the files, kept for the Dashboard, which
      * says so and links to Add-ons > Upgrades, where the merchant installs it (lib/Update/UpgradeCenter).
+     * Each newer version is also put once in CS-Cart's Notifications center (the bell) of every
+     * administrator who may upgrade the store - as CS-Cart announces its own upgrades.
      */
     private static function noticeIfDue(DbSyncStore $store, int $now): void
     {
@@ -167,9 +169,58 @@ final class Updater
             return; // the last answer stands; asked again tomorrow
         }
         $installed = UpgradeCenter::installedVersion();
-        $store->setState(self::AVAILABLE_STATE, version_compare($hinted, $installed, '>')
-            ? ['checked_at' => $now, 'version' => $hinted]
-            : ['checked_at' => $now]);
+        if (!version_compare($hinted, $installed, '>')) {
+            $store->setState(self::AVAILABLE_STATE, ['checked_at' => $now] + (isset($known['notified']) ? ['notified' => $known['notified']] : []));
+
+            return;
+        }
+        $notified = (string) ($known['notified'] ?? '');
+        $tell = self::shouldNotify($notified, $hinted);
+        // Recorded before the notifications go out: one that fails is not sent again every day.
+        $store->setState(self::AVAILABLE_STATE, ['checked_at' => $now, 'version' => $hinted, 'notified' => $tell ? $hinted : $notified]);
+        if ($tell) {
+            self::notifyAdmins($hinted);
+        }
+    }
+
+    /** Whether $version is still to be announced in the bell, $notified the last one announced ('' = none). */
+    public static function shouldNotify(string $notified, string $version): bool
+    {
+        return $notified === '' || version_compare($version, $notified, '>');
+    }
+
+    /**
+     * The bell: one notification per administrator of the whole store (not a vendor, not a storefront's
+     * own administrator) who may upgrade it, in the admin panel's default language, opening Add-ons >
+     * Upgrades - CS-Cart's own "upgrade available" notification, for Quissly. Never throws.
+     */
+    private static function notifyAdmins(string $version): void
+    {
+        try {
+            if (!isset(\Tygh\Tygh::$app['notifications_center'])) {
+                return;
+            }
+            $center = \Tygh\Tygh::$app['notifications_center'];
+            $lang = (string) (Registry::get('settings.Appearance.backend_default_language') ?: 'en');
+            $admins = (array) db_get_fields("SELECT user_id FROM ?:users WHERE user_type = 'A' AND company_id = 0 AND status = 'A'");
+            foreach ($admins as $userId) {
+                if (!fn_check_user_access((int) $userId, 'upgrade_store')) {
+                    continue;
+                }
+                $center->add([
+                    'user_id'       => (int) $userId,
+                    'title'         => __('quissly_search.nc_update_title', ['[version]' => $version], $lang),
+                    'message'       => __('quissly_search.nc_update_message', [], $lang),
+                    'area'          => 'A',
+                    'section'       => \Tygh\NotificationsCenter\NotificationsCenter::SECTION_ADMINISTRATION,
+                    'tag'           => \Tygh\NotificationsCenter\NotificationsCenter::TAG_UPDATE,
+                    'action_url'    => fn_url('upgrade_center.manage', 'A'),
+                    'language_code' => $lang,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Logger::error('Quissly could not add the update notification', ['reason' => $e->getMessage()]);
+        }
     }
 
     /** The newer version a "Never" store was told about, null when there is none (or it is installed). */

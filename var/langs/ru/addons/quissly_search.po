@@ -226,6 +226,14 @@ msgctxt "Languages::quissly_search.dash_gate_blocked"
 msgid "The last full sync finished without Quissly confirming any product, so search stays on native CS-Cart search. Check the sync log for the cause, then sync again."
 msgstr "Последняя полная синхронизация завершилась без подтверждения хотя бы одного товара от Quissly, поэтому поиск остаётся встроенным поиском CS-Cart. Найдите причину в журнале синхронизации и запустите синхронизацию снова."
 
+msgctxt "Languages::quissly_search.nc_update_title"
+msgid "Quissly [version] is available"
+msgstr "Доступна Quissly [version]"
+
+msgctxt "Languages::quissly_search.nc_update_message"
+msgid "Automatic updates are off: install it from Add-ons > Upgrades when you are ready."
+msgstr "Автоматические обновления выключены: установите её в Add-ons > Upgrades, когда будете готовы."
+
 msgctxt "Languages::quissly_search.dash_update_available"
 msgid "Quissly [version] is available. Automatic updates are off: install it from Add-ons > Upgrades when you are ready."
 msgstr "Доступна Quissly [version]. Автоматические обновления выключены: установите её в Add-ons > Upgrades, когда будете готовы."
