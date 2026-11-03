@@ -25,7 +25,7 @@ them on, voice search, image search and the QChat shopping assistant.
 ### 1. Upload the add-on
 
 Download **[quissly-for-cs-cart.zip](https://github.com/quissly/quissly-for-cs-cart/releases/latest/download/quissly-for-cs-cart.zip)**
-(always the latest version). In the CS-Cart admin open **Add-ons → Manage add-ons**, then on
+(always the latest version). In the CS-Cart admin open **Add-ons → Manage add-ons** (**Downloaded add-ons** on 4.21), then on
 4.11 click the **+** button (top right) and choose **Local**, on 4.21 click the **gear** (top right),
 **Manual installation**, with **All storefronts** selected. Upload the zip, then make sure **Quissly Search** is
 installed and **Active**.
