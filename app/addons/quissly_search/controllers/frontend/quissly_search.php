@@ -44,6 +44,23 @@ defined('BOOTSTRAP') or die('Access denied');
 
 // A failure is reported to Quissly (lib/Diagnostics/), then CS-Cart shows it as before.
 try {
+    // Every anonymous POST: this session's form token, then the store-wide limit (lib/StorefrontGuard.php).
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $refusal = \Quissly\Search\StorefrontGuard::refusal(
+            (string) $mode,
+            is_string($_REQUEST['security_hash'] ?? null) ? $_REQUEST['security_hash'] : '',
+            (string) (Tygh::$app['session']['security_hash'] ?? ''),
+            static fn (string $bucket, int $max, int $window): bool => (new DbRateLimiter())->allow($bucket, $max, $window, time())
+        );
+        if ($refusal !== null) {
+            http_response_code($refusal);
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
+            echo json_encode(['error' => $refusal === 403 ? 'forbidden' : 'rate_limited']);
+            exit;
+        }
+    }
+
     // POST quissly_search.client_error: an error in one of the add-on's scripts (func.php).
     if ($mode === 'client_error' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         fn_quissly_search_client_error();
@@ -110,16 +127,20 @@ try {
     /*
      * GET quissly_search.tick (token): the cron's work for a store without a server cron, asked by a
      * storefront visit in the background (lib/VisitTick.php). It does not count as the cron and does
-     * nothing while the cron runs; 403 without the right token.
+     * nothing while the cron runs; 403 without the right token, 404 while the merchant switched it off.
      */
     if ($mode === 'tick') {
         if (!\Quissly\Search\VisitTick::valid((string) ($_REQUEST['token'] ?? ''), (string) \Tygh\Registry::get('config.crypt_key'))) {
             http_response_code(403);
             exit;
         }
+        if (!fn_quissly_search_visit_tick_on()) {
+            http_response_code(404);
+            exit;
+        }
         ignore_user_abort(true);
         $store = new DbSyncStore();
-        $skipped = (int) ($store->getState('last_cron')['at'] ?? 0) >= time() - \Quissly\Search\VisitTick::CRON_FRESH_SECONDS;
+        $skipped = \Quissly\Search\VisitTick::cronFresh((int) ($store->getState('last_cron')['at'] ?? 0), time());
         if (!$skipped) {
             $store->setState('last_visit_run', ['at' => time()]);
             fn_quissly_search_cron_work($store);

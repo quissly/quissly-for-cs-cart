@@ -119,21 +119,26 @@ function fn_quissly_search_dispatch_before_display()
         if (AREA === 'C' && $value !== null && \Quissly\Search\SearchOrigin::asked($_REQUEST) && !headers_sent()) {
             header('X-Quissly-Search: ' . $value);
         }
-        // The cron's work every few minutes while shoppers visit, for a store without a server cron.
+        // The cron's work every few minutes while shoppers visit, for a store without a server cron:
+        // full pages only (an AJAX answer is written after the shutdown functions), unless switched off.
         $cryptKey = (string) \Tygh\Registry::get('config.crypt_key');
-        if (AREA === 'C' && $cryptKey !== '') {
+        if (AREA === 'C' && $cryptKey !== '' && fn_quissly_search_visit_tick_on()
+            && !defined('AJAX_REQUEST') && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+        ) {
             \Quissly\Search\VisitTick::maybe(
                 rtrim((string) \Tygh\Registry::get('config.dir.var'), '/') . '/quissly_search_tick',
                 (string) fn_url('quissly_search.tick?token=' . \Quissly\Search\VisitTick::token($cryptKey), 'C'),
-                time()
+                time(),
+                static fn (): bool => \Quissly\Search\VisitTick::cronFresh((int) ((new DbSyncStore())->getState('last_cron')['at'] ?? 0), time())
             );
         }
     } catch (\Throwable $e) {
         fn_quissly_search_failed($e, 'dispatch_before_display');
     }
     // The daily update check, for a store whose cron is not set up: at the end of an admin
-    // page, once the page is built (the cron dispatch runs it too; lib/Update/).
-    if (AREA === 'A') {
+    // page, once the page is built (the cron dispatch runs it too; lib/Update/). Not after an
+    // AJAX request: its answer is written after the shutdown functions and would wait for this.
+    if (AREA === 'A' && !defined('AJAX_REQUEST')) {
         register_shutdown_function(static function () {
             try {
                 $store = new DbSyncStore();
@@ -153,6 +158,12 @@ function fn_quissly_search_dispatch_before_display()
             \Quissly\Search\Diagnostics\ErrorCapture::persist();
         });
     }
+}
+
+/** Whether storefront visits may run the cron's work (setting visit_tick; on unless switched off). */
+function fn_quissly_search_visit_tick_on(): bool
+{
+    return \Tygh\Registry::get('addons.quissly_search.visit_tick') !== 'N';
 }
 
 /**

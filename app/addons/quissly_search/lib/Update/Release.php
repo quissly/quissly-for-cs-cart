@@ -31,18 +31,21 @@ final class Release
     /** Quissly's release-signing public key (Ed25519, base64): every release zip has a `.sig`. */
     public const PUBLIC_KEY = 'zAXZVzzPPk0LR8MjMrnoTZi96kcvNUvolgQ6fax9c4E=';
 
-    /** "Never": no checks and no automatic install. */
+    /** "Never": no automatic install - a newer version is only shown (Updater::noticeIfDue). */
     public const NEVER = 0;
 
-    /** How often a store checks, unless the merchant chose otherwise: every 30 minutes. */
-    public const DEFAULT_EVERY = 1800;
+    /**
+     * Unless the merchant chose otherwise: never (since 1.0.34 - an update replaces files on a
+     * production store, so the merchant decides when; until then every 30 minutes).
+     */
+    public const DEFAULT_EVERY = self::NEVER;
 
     /** The same update problem goes to the sync log again after this long. */
     public const PROBLEM_EVERY = 86400;
 
     /**
      * The "Update check frequency" choices (setting update_check_every) in seconds: 5 minutes
-     * (for testing), 30 minutes (the default) to a day, or never.
+     * (for testing), 30 minutes to a day, or never (the default).
      */
     public const FREQUENCIES = [
         '5m'    => 300,

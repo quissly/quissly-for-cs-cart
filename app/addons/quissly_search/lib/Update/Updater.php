@@ -13,8 +13,8 @@ use Tygh\Registry;
 /**
  * Automatic updates from the add-on's public GitHub repository.
  *
- * Every "Update check frequency" (Configuration > Updates: 5 minutes for testing, 30 minutes by
- * default, up to a day, or Never) - from the cron dispatch, or at the end of an admin page when
+ * Every "Update check frequency" (Configuration > Updates: 5 minutes for testing, 30 minutes up to
+ * a day, or Never - the default since 1.0.34) - from the cron dispatch, or at the end of an admin page when
  * the cron is not set up - the add-on reads the version in the repository's addon.xml on
  * GitHub's CDN (raw.githubusercontent.com, no API rate limit), and asks GitHub for the latest
  * release when that names a newer version than the one installed and known - and at least
@@ -45,6 +45,8 @@ final class Updater
     public const STATE = 'update';
     public const PROBLEM_STATE = 'update_problem';
     public const CHECK_EVERY = 86400;
+    /** "Never": the newer version GitHub's CDN names, for the Dashboard ({version, at}). */
+    public const AVAILABLE_STATE = 'update_available';
     public const RETRY_AFTER = 3600;
 
     /** The repository's addon.xml on GitHub's CDN: its version is the latest one pushed. */
@@ -79,6 +81,8 @@ final class Updater
     {
         $every = Release::interval(Registry::get('addons.quissly_search.update_check_every'));
         if ($every === Release::NEVER) {
+            self::noticeIfDue($store, $now);
+
             return;
         }
         $state = $store->getState(self::STATE) ?? [];
@@ -143,6 +147,37 @@ final class Updater
             }
         }
         $store->setState(self::STATE, $state);
+    }
+
+    /**
+     * "Never": nothing is installed by itself. Once a day the version on GitHub's CDN is read (one
+     * small request, no API) and, when it is newer than the files, kept for the Dashboard, which
+     * says so and links to Add-ons > Upgrades, where the merchant installs it (lib/Update/UpgradeCenter).
+     */
+    private static function noticeIfDue(DbSyncStore $store, int $now): void
+    {
+        $known = $store->getState(self::AVAILABLE_STATE) ?? [];
+        if ((int) ($known['checked_at'] ?? 0) > $now - self::CHECK_EVERY) {
+            return;
+        }
+        // Claimed before the network: a second request in the meantime finds it not due.
+        $store->setState(self::AVAILABLE_STATE, ['checked_at' => $now] + $known);
+        $hinted = self::hintedVersion();
+        if ($hinted === null) {
+            return; // the last answer stands; asked again tomorrow
+        }
+        $installed = UpgradeCenter::installedVersion();
+        $store->setState(self::AVAILABLE_STATE, version_compare($hinted, $installed, '>')
+            ? ['checked_at' => $now, 'version' => $hinted]
+            : ['checked_at' => $now]);
+    }
+
+    /** The newer version a "Never" store was told about, null when there is none (or it is installed). */
+    public static function available(?array $state, string $installed): ?string
+    {
+        $version = is_array($state) && is_string($state['version'] ?? null) ? $state['version'] : '';
+
+        return $version !== '' && version_compare($version, $installed, '>') ? $version : null;
     }
 
     /**

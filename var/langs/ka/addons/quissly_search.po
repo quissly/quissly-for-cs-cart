@@ -226,6 +226,14 @@ msgctxt "Languages::quissly_search.dash_gate_blocked"
 msgid "The last full sync finished without Quissly confirming any product, so search stays on native CS-Cart search. Check the sync log for the cause, then sync again."
 msgstr "ბოლო სრული სინქრონიზაცია ისე დასრულდა, რომ Quissly-მ არცერთი პროდუქტი არ დაადასტურა, ამიტომ ძიება CS-Cart-ის ჩაშენებულ ძიებაზე რჩება. მიზეზი სინქრონიზაციის ჟურნალში ნახეთ და სინქრონიზაცია თავიდან გაუშვით."
 
+msgctxt "Languages::quissly_search.dash_update_available"
+msgid "Quissly [version] is available. Automatic updates are off: install it from Add-ons > Upgrades when you are ready."
+msgstr "ხელმისაწვდომია Quissly [version]. ავტომატური განახლება გამორთულია: დააყენეთ Add-ons > Upgrades-დან, როცა მზად იქნებით."
+
+msgctxt "Languages::quissly_search.dash_open_upgrades"
+msgid "Open Upgrades"
+msgstr "Upgrades-ის გახსნა"
+
 msgctxt "Languages::quissly_search.dash_waiting"
 msgid "[count] products from an earlier sync [since] are waiting to be sent again; the next sync run sends them."
 msgstr "წინა სინქრონიზაციის [count] პროდუქტი [since] ხელახლა გაგზავნას ელოდება; მათ შემდეგი სინქრონიზაცია გაგზავნის."
@@ -1767,8 +1775,8 @@ msgid "Update check frequency"
 msgstr "განახლების შემოწმების სიხშირე"
 
 msgctxt "SettingsTooltips::quissly_search::update_check_every"
-msgid "How often the add-on looks for a new Quissly version and installs it. Never: no automatic updates."
-msgstr "რამდენად ხშირად ეძებს დამატება Quissly-ის ახალ ვერსიას და აყენებს მას. არასდროს: ავტომატური განახლებების გარეშე."
+msgid "How often the add-on looks for a new Quissly version and installs it. Never (the default): nothing is installed by itself - a new version is shown on the Quissly Dashboard and you install it from Add-ons > Upgrades."
+msgstr "რამდენად ხშირად ეძებს დამატება Quissly-ის ახალ ვერსიას და აყენებს მას. არასდროს (ნაგულისხმევი): თავისით არაფერი დგება - ახალი ვერსია Quissly-ის Dashboard-ზე გამოჩნდება და მას Add-ons > Upgrades-დან აყენებთ."
 
 msgctxt "SettingsVariants::quissly_search::update_check_every::5m"
 msgid "Every 5 minutes (For testing)"
@@ -1797,6 +1805,14 @@ msgstr "დღეში ერთხელ"
 msgctxt "SettingsVariants::quissly_search::update_check_every::never"
 msgid "Never"
 msgstr "არასდროს"
+
+msgctxt "SettingsOptions::quissly_search::visit_tick"
+msgid "Run background work on storefront visits"
+msgstr "ფონური სამუშაოს გაშვება მაღაზიის ვიზიტებზე"
+
+msgctxt "SettingsTooltips::quissly_search::visit_tick"
+msgid "For a store without the server cron: every few minutes a storefront visit runs the cron's work (product changes, shopping activity, updates). Switch it off when the cron is set up, or when the server cannot reach its own public address (behind Cloudflare, for example)."
+msgstr "მაღაზიისთვის, რომელსაც სერვერის cron არ აქვს: რამდენიმე წუთში ერთხელ მაღაზიის ვიზიტი cron-ის სამუშაოს უშვებს (პროდუქტების ცვლილებები, შოპინგის აქტივობა, განახლებები). გამორთეთ, თუ cron დაყენებულია, ან სერვერი საკუთარ საჯარო მისამართს ვერ წვდება (მაგალითად, Cloudflare-ის უკან)."
 
 msgctxt "Languages::quissly_search.suggestions_remove"
 msgid "Remove"

@@ -65,12 +65,13 @@ final class DashboardView
      *   synced:int, queued:int, waiting:array{products:int, oldest_sent_at:?int},
      *   progress:?array, initial_sync:bool, gate_blocked:?array, refusal:?array,
      *   last_run:?array, last_cron_at:?int, cron_command:string, log:list<array{at:int, message:string}>,
-     *   upgrade_problems?:list<string>, now:int, urls:array<string,string>, security_hash:string
+     *   upgrade_problems?:list<string>, update_available?:string, now:int, urls:array<string,string>, security_hash:string
      * } $m
      */
     public static function render(array $m): string
     {
         return '<style>' . self::STYLE . '</style><div class="q-dash">'
+            . self::updateAvailable($m)
             . self::upgradeProblems($m)
             . self::card(self::searchStatus($m))
             . self::card(self::connection($m))
@@ -80,6 +81,18 @@ final class DashboardView
             . self::link($m['urls']['settings'], self::t('quissly_search.dash_open_settings'), 'btn')
             . ' ' . self::link($m['urls']['panel'], self::t('quissly_search.dash_open_panel'), 'btn')
             . '</p></div>';
+    }
+
+    /** A newer version while automatic updates are off: installed from Add-ons > Upgrades. */
+    private static function updateAvailable(array $m): string
+    {
+        $version = (string) ($m['update_available'] ?? '');
+        if ($version === '') {
+            return '';
+        }
+
+        return '<div class="alert alert-info">' . self::e(self::t('quissly_search.dash_update_available', ['[version]' => $version])) . ' '
+            . self::link((string) ($m['urls']['upgrades'] ?? ''), self::t('quissly_search.dash_open_upgrades')) . '</div>';
     }
 
     /**

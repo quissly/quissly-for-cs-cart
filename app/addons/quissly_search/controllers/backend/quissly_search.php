@@ -728,11 +728,13 @@ try {
             'cron_command'    => 'php ' . rtrim(DIR_ROOT, '/') . '/' . Registry::get('config.admin_index') . ' --dispatch=quissly_search.cron',
             'log'             => $store->recentLog(DashboardView::LOG_LINES),
             'upgrade_problems' => fn_quissly_search_upgrade_problems($store),
+            'update_available' => (string) \Quissly\Search\Update\Updater::available($store->getState(\Quissly\Search\Update\Updater::AVAILABLE_STATE), \Quissly\Search\Update\UpgradeCenter::installedVersion()),
             'now'             => time(),
             'urls'            => [
                 'sync_now'        => fn_url('quissly_search.sync_now'),
                 'test_connection' => fn_url('quissly_search.test_connection?redirect_to=dashboard'),
                 'settings'        => fn_url('addons.update?addon=quissly_search'),
+                'upgrades'        => fn_url('upgrade_center.manage'),
                 'panel'           => fn_url('quissly_search.panel'),
             ],
             'security_hash'   => fn_generate_security_hash(),

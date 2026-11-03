@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.33</version>
+    <version>1.0.34</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>
@@ -145,7 +145,7 @@
                     </item>
                     <item id="update_check_every">
                         <type>selectbox</type>
-                        <default_value>30m</default_value>
+                        <default_value>never</default_value>
                         <variants>
                             <item id="5m"></item>
                             <item id="30m"></item>
@@ -155,6 +155,13 @@
                             <item id="1d"></item>
                             <item id="never"></item>
                         </variants>
+                    </item>
+                    <!-- Storefront visits run the cron's work when the server cron is not set up
+                         (lib/VisitTick.php); off for a store with the cron, or one whose server cannot
+                         reach its own address. -->
+                    <item id="visit_tick">
+                        <type>checkbox</type>
+                        <default_value>Y</default_value>
                     </item>
                 </items>
             </section>

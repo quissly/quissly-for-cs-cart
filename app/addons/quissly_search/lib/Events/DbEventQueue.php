@@ -6,18 +6,25 @@ namespace Quissly\Search\Events;
 
 /**
  * The event queue in `?:quissly_search_events` (addon.xml creates it on install - and the
- * automatic update runs the install queries again, so an updated store gets it too).
+ * automatic update runs the install queries again, so an updated store gets it too). It never
+ * holds much more than EventSender::KEEP rows: the sender trims it, and so does every
+ * TRIM_EVERY-th add, for a store whose events are not being sent.
  */
 final class DbEventQueue implements EventQueue
 {
+    public const TRIM_EVERY = 500;
+
     public function add(array $body, int $now): void
     {
-        db_query('INSERT INTO ?:quissly_search_events ?e', [
+        $id = (int) db_query('INSERT INTO ?:quissly_search_events ?e', [
             'body'       => (string) json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'attempts'   => 0,
             'created_at' => $now,
             'next_at'    => 0,
         ]);
+        if ($id > 0 && $id % self::TRIM_EVERY === 0) {
+            $this->trim(EventSender::KEEP);
+        }
     }
 
     public function due(int $now, int $limit): array
