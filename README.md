@@ -145,7 +145,8 @@ version). The Quissly Dashboard shows the same warning ahead of time. Should CS-
 closing the storefront but before copying any file, Quissly opens the storefront again.
 
 To update only from Add-ons → Upgrades, keep **Update check frequency** on **Never**. If both run,
-nothing breaks: whichever comes second finds the version already installed.
+nothing breaks: whichever comes second finds the version already installed. To look for a new version
+right away, open **Add-ons → Upgrades**: CS-Cart asks for the latest one each time the page opens.
 
 **Updating by hand with the zip.** If neither of the above can run on your server, upload the new
 zip as in step 1. CS-Cart then says the add-on is already installed and offers two ways. Tick
