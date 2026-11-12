@@ -30,10 +30,11 @@ final class Features
         'enable_image'        => ['quissly_search.feature_image', true],
         'enable_qchat'        => ['quissly_search.feature_qchat', true],
         'enable_events'       => ['quissly_search.feature_events', true],
+        'enable_order_status' => ['quissly_search.feature_order_status', true],
     ];
 
     /** Defaults when a setting was never saved (matches addon.xml). */
-    private const DEFAULT_ON = ['search_interception', 'enable_overlay', 'overlay_suggestions', 'overlay_recent', 'enable_events'];
+    private const DEFAULT_ON = ['search_interception', 'enable_overlay', 'overlay_suggestions', 'overlay_recent', 'enable_events', 'enable_order_status'];
 
     /**
      * Quick Recommendations style (setting quick_style), the Magento plugin's two: a list

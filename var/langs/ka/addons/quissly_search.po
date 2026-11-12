@@ -1730,6 +1730,18 @@ msgctxt "SettingsTooltips::quissly_search::enable_events"
 msgid "Sends product page views, searches, adds to cart and to the wishlist, and paid orders to Quissly, for the analytics in the Quissly Admin Panel. Products and order totals only - never a customer's name, email, address or IP. A guest who has not accepted the cookie banner is not tracked. On by default."
 msgstr "Quissly-ს უგზავნის პროდუქტის გვერდის ნახვებს, ძიებებს, კალათაში და სურვილების სიაში დამატებებს და გადახდილ შეკვეთებს, Quissly Admin Panel-ის ანალიტიკისთვის. მხოლოდ პროდუქტები და შეკვეთის ჯამი - არასდროს მყიდველის სახელი, ელფოსტა, მისამართი ან IP. სტუმარი, რომელსაც cookie-ბანერზე თანხმობა არ მიუცია, არ აღირიცხება. ნაგულისხმევად ჩართულია."
 
+msgctxt "SettingsOptions::quissly_search::enable_order_status"
+msgid "Order status in QChat"
+msgstr "შეკვეთის სტატუსი QChat-ში"
+
+msgctxt "SettingsTooltips::quissly_search::enable_order_status"
+msgid "When a shopper asks the chat about an order, Quissly asks this store, and the store answers only if the email or phone they give is the order's own: its status, items and tracking. Nothing else about your orders is sent to Quissly. On by default."
+msgstr "როცა მყიდველი ჩატს შეკვეთაზე ეკითხება, Quissly ამ მაღაზიას ეკითხება, მაღაზია კი პასუხობს მხოლოდ მაშინ, თუ მოცემული ელფოსტა ან ტელეფონი ამ შეკვეთისაა: მის სტატუსს, ნივთებს და თრექინგს. თქვენი შეკვეთების შესახებ სხვა არაფერი იგზავნება Quissly-ში. ნაგულისხმევად ჩართულია."
+
+msgctxt "Languages::quissly_search.feature_order_status"
+msgid "Order status in QChat"
+msgstr "შეკვეთის სტატუსი QChat-ში"
+
 msgctxt "Languages::quissly_search.feature_events"
 msgid "Shopping activity"
 msgstr "მყიდველის მოქმედებები"

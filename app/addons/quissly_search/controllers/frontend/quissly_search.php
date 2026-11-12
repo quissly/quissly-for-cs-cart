@@ -129,6 +129,43 @@ try {
      * storefront visit in the background (lib/VisitTick.php). It does not count as the cron and does
      * nothing while the cron runs; 403 without the right token, 404 while the merchant switched it off.
      */
+    /*
+     * POST quissly_search.order_lookup: QChat asking about an order (lib/Orders/) -
+     * Quissly's server, signed with its order lookup key, not a shopper (StorefrontGuard leaves it alone:
+     * the signature is the check). 404 while "Order status in QChat" is off or the store is not connected;
+     * 401 (no body) unless the signature verifies for this store's project, the request is fresh and its
+     * nonce unused; 429 past 60 a minute for the whole store. Then the order only when the contact is
+     * its own, else `not_found`.
+     */
+    if ($mode === 'order_lookup') {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        $credentials = Credentials::fromRegistry();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !fn_quissly_search_order_status_on() || !$credentials->isConfigured()) {
+            http_response_code(404);
+            exit;
+        }
+        $ask = \Quissly\Search\Orders\LookupRules::verify(
+            (string) file_get_contents('php://input', false, null, 0, \Quissly\Search\Orders\LookupRules::MAX_BODY + 1),
+            (string) ($_SERVER['HTTP_X_QUISSLY_SIGNATURE'] ?? ''),
+            (string) ($_SERVER['HTTP_X_QUISSLY_KEY_ID'] ?? ''),
+            $credentials->projectId(),
+            time()
+        );
+        $limiter = new DbRateLimiter();
+        // A nonce is a bucket that allows one use for 10 minutes.
+        if ($ask === null || !$limiter->allow('order_nonce|' . $ask['nonce'], 1, 600, time())) {
+            http_response_code(401);
+            exit;
+        }
+        if (!$limiter->allow('order_lookup', 60, 60, time())) {
+            http_response_code(429);
+            exit;
+        }
+        echo json_encode(\Quissly\Search\Orders\OrderLookup::answer($ask['order_number'], $ask['contact']), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     if ($mode === 'tick') {
         if (!\Quissly\Search\VisitTick::valid((string) ($_REQUEST['token'] ?? ''), (string) \Tygh\Registry::get('config.crypt_key'))) {
             http_response_code(403);

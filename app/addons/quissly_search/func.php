@@ -144,6 +144,7 @@ function fn_quissly_search_dispatch_before_display()
                 $store = new DbSyncStore();
                 \Quissly\Search\Update\Updater::runIfDue($store, time());
                 fn_quissly_search_version_report($store);
+                fn_quissly_search_order_lookup_register($store);
                 // Shopping events wait for the cron; a store without one sends them here, a few
                 // seconds' worth, when the cron has not run for 10 minutes.
                 if ((int) ($store->getState('last_cron')['at'] ?? 0) < time() - 600) {
@@ -166,6 +167,37 @@ function fn_quissly_search_visit_tick_on(): bool
     return \Tygh\Registry::get('addons.quissly_search.visit_tick') !== 'N';
 }
 
+/** Whether QChat may ask this store about orders (setting enable_order_status; on unless switched off). */
+function fn_quissly_search_order_status_on(): bool
+{
+    return \Tygh\Registry::get('addons.quissly_search.enable_order_status') !== 'N';
+}
+
+/**
+ * Tell Quissly where QChat asks about orders, when due (lib/Orders/LookupRegistration): only from a
+ * connected store. Never throws.
+ */
+function fn_quissly_search_order_lookup_register(DbSyncStore $store): void
+{
+    try {
+        $credentials = Credentials::fromRegistry();
+        if (!$credentials->isConfigured()) {
+            return;
+        }
+        \Quissly\Search\Orders\LookupRegistration::maybe(
+            $store,
+            $credentials->bearerToken(),
+            $credentials->projectId(),
+            fn_quissly_search_order_status_on() ? (string) fn_url('quissly_search.order_lookup', 'C', 'https') : null,
+            (string) (\Quissly\Search\Update\Release::versionIn((string) @file_get_contents(__DIR__ . '/addon.xml')) ?? ''),
+            time(),
+            fn_quissly_search_http_put(10)
+        );
+    } catch (\Throwable $e) {
+        return;
+    }
+}
+
 /**
  * The cron's work - the cron dispatch (controllers/backend/quissly_search.php) and, for a store
  * without a server cron, storefront visits (lib/VisitTick.php, quissly_search.tick). The
@@ -186,6 +218,8 @@ function fn_quissly_search_cron_work(DbSyncStore $store): ?array
     // Shopping activity for Quissly's analytics: the queued events (lib/Events/), after the
     // version report when due. Also when not connected (any longer): the sender then empties the queue.
     fn_quissly_search_version_report($store);
+    // Where QChat asks about orders (lib/Orders/), once a day and when it changed.
+    fn_quissly_search_order_lookup_register($store);
     // The add-on's own errors (lib/Diagnostics/): what this request hit so far first.
     \Quissly\Search\Diagnostics\ErrorCapture::persist();
     fn_quissly_search_error_report($store);
