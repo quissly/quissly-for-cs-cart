@@ -11,8 +11,8 @@ msgid "Quissly search"
 msgstr "Quissly search"
 
 msgctxt "Addons::description::quissly_search"
-msgid "Replaces native product search with Quissly QSearch. A thin proxy: Quissly returns product IDs, the store's theme renders them, with native-search fallback on failure. Credentials live in config.local.php."
-msgstr "Replaces native product search with Quissly QSearch. A thin proxy: Quissly returns product IDs, the store's theme renders them, with native-search fallback on failure. Credentials live in config.local.php."
+msgid "Quissly AI product search for your store: smart search, autocomplete, voice and image search, and the QChat shopping assistant. Connect it in Add-ons > Quissly (Quissly Setup)."
+msgstr "Quissly AI product search for your store: smart search, autocomplete, voice and image search, and the QChat shopping assistant. Connect it in Add-ons > Quissly (Quissly Setup)."
 
 msgctxt "SettingsSections::quissly_search::general"
 msgid "General"
@@ -405,6 +405,26 @@ msgstr "Connect to Quissly"
 msgctxt "Languages::quissly_search.setup_connect_hint"
 msgid "Creating the account can take a minute or two."
 msgstr "Creating the account can take a minute or two."
+
+msgctxt "Languages::quissly_search.setup_open_intro"
+msgid "This store is not connected to Quissly yet. Quissly Setup connects it: it emails a code to confirm your address, then asks for your store's name, what it sells and a plan."
+msgstr "This store is not connected to Quissly yet. Quissly Setup connects it: it emails a code to confirm your address, then asks for your store's name, what it sells and a plan."
+
+msgctxt "Languages::quissly_search.setup_open"
+msgid "Open Quissly Setup"
+msgstr "Open Quissly Setup"
+
+msgctxt "Languages::quissly_search.setup_enable_first"
+msgid "This store is not connected to Quissly yet. Switch the add-on on first (its status in Add-ons: Active), then open Add-ons > Quissly: Quissly Setup connects the store."
+msgstr "This store is not connected to Quissly yet. Switch the add-on on first (its status in Add-ons: Active), then open Add-ons > Quissly: Quissly Setup connects the store."
+
+msgctxt "Languages::quissly_search.setup_code_hint"
+msgid "Press Send code: Quissly emails a 6-digit code to the address above. Enter it here, then press Connect."
+msgstr "Press Send code: Quissly emails a 6-digit code to the address above. Enter it here, then press Connect."
+
+msgctxt "Languages::quissly_search.setup_code_failed"
+msgid "The code could not be sent. Try again in a minute."
+msgstr "The code could not be sent. Try again in a minute."
 
 msgctxt "Languages::quissly_search.setup_connected"
 msgid "This store is connected to Quissly as [email] (environment: [env])."
@@ -841,6 +861,14 @@ msgstr "Payment not received yet."
 msgctxt "Languages::quissly_search.su_error"
 msgid "Could not reach the server. Try again in a minute."
 msgstr "Could not reach the server. Try again in a minute."
+
+msgctxt "Languages::quissly_search.su_blocked"
+msgid "Your site's security refused this page's request (HTTP [status]), so the sync and this status have stopped. Reload the page. If this keeps happening, let your admin address through in Cloudflare or your hosting firewall."
+msgstr "Your site's security refused this page's request (HTTP [status]), so the sync and this status have stopped. Reload the page. If this keeps happening, let your admin address through in Cloudflare or your hosting firewall."
+
+msgctxt "Languages::quissly_search.su_cron_missing"
+msgid "The server's cron is not running, so products are sent only while this page is open. Add this line to the server's crontab:"
+msgstr "The server's cron is not running, so products are sent only while this page is open. Add this line to the server's crontab:"
 
 msgctxt "Languages::quissly_search.su_billing"
 msgid "Billing"

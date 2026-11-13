@@ -69,12 +69,16 @@ final class AdminStatusView
             );
         }
 
-        $button = '<a class="btn btn-primary" href="' . self::escape(self::url('quissly_search.test_connection')) . '">'
-            . self::escape(self::t('quissly_search.test_connection')) . '</a>';
+        // Only a connected store has a connection to test (before, it led nowhere - or to a 404 on a
+        // disabled add-on, whose settings 4.11's gear icon still opens).
+        $button = $configured
+            ? '<div class="control-group"><a class="btn btn-primary" href="' . self::escape(self::url('quissly_search.test_connection')) . '">'
+                . self::escape(self::t('quissly_search.test_connection')) . '</a></div>'
+            : '';
 
         return '<div class="control-group setting-wide quissly-search-status">'
             . '<table class="table table-condensed" style="max-width:640px">' . implode('', $rows) . '</table>'
-            . '<div class="control-group">' . $button . '</div>'
+            . $button
             . '</div>';
     }
 

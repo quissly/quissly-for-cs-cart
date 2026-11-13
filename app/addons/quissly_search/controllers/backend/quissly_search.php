@@ -377,6 +377,9 @@ try {
                     'payTimeout'  => $text('su_pay_timeout'),
                     'payNotYet'   => $text('su_pay_not_yet'),
                     'error'       => $text('su_error'),
+                    // A status check the site's own security refused, and the cron line's lead-in.
+                    'blocked'     => $text('su_blocked'),
+                    'cronMissing' => $text('su_cron_missing'),
                     'compare'       => $text('su_compare'),
                     'compareBack'   => $text('su_compare_back'),
                     'emailRequired' => $text('su_email_required'),
@@ -588,6 +591,11 @@ try {
             $status['rows'][$key]['detail'] = $row['detail'] === null ? '' : (string) __($row['detail'][0], $row['detail'][1]);
         }
         $status['technical'] = $status['technical'] === null ? '' : (string) __($status['technical'][0], $status['technical'][1]);
+        // Whether the server's cron ran lately: without it the first sync moves only while this page polls.
+        $status['cron'] = [
+            'fresh' => \Quissly\Search\VisitTick::cronFresh((int) ((new DbSyncStore())->getState('last_cron')['at'] ?? 0), time()),
+            'line'  => '*/5 * * * * php ' . rtrim(DIR_ROOT, '/') . '/' . Registry::get('config.admin_index') . ' --dispatch=quissly_search.cron',
+        ];
         fn_quissly_search_setup_json(['ok' => true] + $status);
     }
 
@@ -637,6 +645,17 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mode === 'connect') {
+        // Before Setup is finished, Setup connects (it also asks for the name, what the store sells and a plan).
+        if (!fn_quissly_search_onboarding()->isComplete()) {
+            return [CONTROLLER_STATUS_REDIRECT, 'quissly_search.setup'];
+        }
+        // The six digits Quissly mailed (Send code, quissly_search.setup_send_code); its sign-up refuses without them.
+        $code = (string) preg_replace('/\s+/', '', (string) ($_REQUEST['verification_code'] ?? ''));
+        if (preg_match('/^\d{6}$/', $code) !== 1) {
+            fn_set_notification('E', __('error'), __('quissly_search.su_code_invalid'));
+
+            return [CONTROLLER_STATUS_REDIRECT, 'addons.update?addon=quissly_search'];
+        }
         @set_time_limit(Connector::TIMEOUT_SECONDS + Sync::ADMIN_BUDGET_SECONDS + 60);
         $admin = fn_quissly_search_admin_user();
         $companyName = trim((string) Registry::get('settings.Company.company_name'));
@@ -650,6 +669,7 @@ try {
                 'last_name'         => isset($admin['lastname']) ? (string) $admin['lastname'] : null,
                 'environment'       => $environment !== '' ? $environment : \Quissly\Search\Config::DEFAULT_ENVIRONMENT,
                 'already_connected' => Credentials::fromRegistry()->source() === Credentials::SOURCE_CONFIG,
+                'verification_code' => $code,
             ]
         );
         if (!$result['ok']) {

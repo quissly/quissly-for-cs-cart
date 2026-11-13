@@ -11,8 +11,8 @@ msgid "Quissly search"
 msgstr "Quissly search"
 
 msgctxt "Addons::description::quissly_search"
-msgid "Replaces native product search with Quissly QSearch. A thin proxy: Quissly returns product IDs, the store's theme renders them, with native-search fallback on failure. Credentials live in config.local.php."
-msgstr "ცვლის მაღაზიის ჩაშენებულ პროდუქტების ძიებას Quissly QSearch-ით. Quissly აბრუნებს პროდუქტების ID-ებს, მათ მაღაზიის თემა აჩვენებს; შეცდომისას ჩაშენებული ძიება მუშაობს. მონაცემები ინახება config.local.php-ში ან ერთი ღილაკით დაკავშირებისას."
+msgid "Quissly AI product search for your store: smart search, autocomplete, voice and image search, and the QChat shopping assistant. Connect it in Add-ons > Quissly (Quissly Setup)."
+msgstr "Quissly-ის AI ძიება თქვენი მაღაზიისთვის: ჭკვიანი ძიება, ავტოშევსება, ხმით და სურათით ძიება და QChat ასისტენტი. დააკავშირეთ მოდულები > Quissly-დან (Quissly Setup)."
 
 msgctxt "SettingsSections::quissly_search::general"
 msgid "General"
@@ -405,6 +405,26 @@ msgstr "Quissly-სთან დაკავშირება"
 msgctxt "Languages::quissly_search.setup_connect_hint"
 msgid "Creating the account can take a minute or two."
 msgstr "ანგარიშის შექმნას შეიძლება ერთი-ორი წუთი დასჭირდეს."
+
+msgctxt "Languages::quissly_search.setup_open_intro"
+msgid "This store is not connected to Quissly yet. Quissly Setup connects it: it emails a code to confirm your address, then asks for your store's name, what it sells and a plan."
+msgstr "ეს მაღაზია Quissly-სთან ჯერ არ არის დაკავშირებული. Quissly Setup დააკავშირებს: მისამართის დასადასტურებლად email-ზე კოდს გამოგიგზავნით, შემდეგ კი მაღაზიის სახელს, რას ყიდით და გეგმას გკითხავთ."
+
+msgctxt "Languages::quissly_search.setup_open"
+msgid "Open Quissly Setup"
+msgstr "Quissly Setup-ის გახსნა"
+
+msgctxt "Languages::quissly_search.setup_enable_first"
+msgid "This store is not connected to Quissly yet. Switch the add-on on first (its status in Add-ons: Active), then open Add-ons > Quissly: Quissly Setup connects the store."
+msgstr "ეს მაღაზია Quissly-სთან ჯერ არ არის დაკავშირებული. ჯერ ჩართეთ დამატება (მოდულების სიაში სტატუსი: ჩართული), შემდეგ გახსენით მოდულები > Quissly: Quissly Setup დააკავშირებს მაღაზიას."
+
+msgctxt "Languages::quissly_search.setup_code_hint"
+msgid "Press Send code: Quissly emails a 6-digit code to the address above. Enter it here, then press Connect."
+msgstr "დააჭირეთ Send code-ს: Quissly ზემოთ მითითებულ მისამართზე 6-ციფრიან კოდს გამოგზავნის. ჩაწერეთ აქ და დააჭირეთ „Quissly-სთან დაკავშირება“-ს."
+
+msgctxt "Languages::quissly_search.setup_code_failed"
+msgid "The code could not be sent. Try again in a minute."
+msgstr "კოდი ვერ გაიგზავნა. სცადეთ ერთ წუთში."
 
 msgctxt "Languages::quissly_search.setup_connected"
 msgid "This store is connected to Quissly as [email] (environment: [env])."
@@ -841,6 +861,14 @@ msgstr "გადახდა ჯერ არ მიღებულა."
 msgctxt "Languages::quissly_search.su_error"
 msgid "Could not reach the server. Try again in a minute."
 msgstr "სერვერთან დაკავშირება ვერ მოხერხდა. სცადეთ ერთ წუთში."
+
+msgctxt "Languages::quissly_search.su_blocked"
+msgid "Your site's security refused this page's request (HTTP [status]), so the sync and this status have stopped. Reload the page. If this keeps happening, let your admin address through in Cloudflare or your hosting firewall."
+msgstr "თქვენი საიტის დაცვამ ამ გვერდის მოთხოვნა დაბლოკა (HTTP [status]), ამიტომ სინქრონიზაცია და სტატუსი შეჩერდა. განაახლეთ გვერდი. თუ ისევ განმეორდება, Cloudflare-ში ან ჰოსტინგის დაცვაში ადმინის მისამართს დაუშვით გავლა."
+
+msgctxt "Languages::quissly_search.su_cron_missing"
+msgid "The server's cron is not running, so products are sent only while this page is open. Add this line to the server's crontab:"
+msgstr "სერვერის cron არ ეშვება, ამიტომ პროდუქტები მხოლოდ მაშინ იგზავნება, როცა ეს გვერდი ღიაა. დაამატეთ ეს ხაზი სერვერის crontab-ში:"
 
 msgctxt "Languages::quissly_search.su_billing"
 msgid "Billing"

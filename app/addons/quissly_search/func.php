@@ -335,6 +335,13 @@ function fn_quissly_search_status_block(): string
             'account_email' => $credentials->accountEmail(),
             'environment'   => $credentials->environment(),
             'admin_email'   => (string) ($admin['email'] ?? ''),
+            // Before Setup is finished this block only leads there (it asks for a code, a name and a plan).
+            'in_setup'      => !(new \Quissly\Search\Setup\Onboarding(new DbSyncStore(), $credentials->isConfigured(), time()))->isComplete(),
+            // A disabled add-on's settings still open (4.11's gear icon), its pages do not.
+            'active'        => \Tygh\Registry::get('addons.quissly_search.status') === 'A',
+            'setup_url'     => fn_url('quissly_search.setup'),
+            'send_code_url' => fn_url('quissly_search.setup_send_code'),
+            'security_hash' => fn_generate_security_hash(),
         ])
         . AdminStatusView::render(StatusReport::build())
         . fn_quissly_search_plan_locks()

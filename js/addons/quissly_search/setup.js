@@ -19,7 +19,11 @@
  *              merged into every POST to that endpoint (WordPress' action name)
  *   csrf       {name: value} merged into every POST (form key, nonce, hash)
  *   reload     the page's own URL, loaded again after a step completes
- *   text       the few words the script writes itself
+ *   text       the few words the script writes itself (blocked: a refused check, [status] the
+ *              HTTP code; cronMissing: before the cron line a status answer may carry)
+ *
+ * A status answer may carry cron: {fresh, line} - whether the server's cron ran lately, and its
+ * line; while it has not, Go live says the sync moves only while this page is open.
  */
 (window.quisslyMarks = window.quisslyMarks || []).push(['setup.js', new Error()]); // where this script starts (report.js)
 (function () {
@@ -31,6 +35,12 @@
     var STATUS_FAST_FOR_MS = 10 * 60 * 1000;
     var PAY_POLL_MS = 3000;
     var PAY_POLL_FOR_MS = 2 * 60 * 1000;
+    // A status check the site's own security refuses (a 403 page, not our JSON - Cloudflare's
+    // expired pass): the page loads itself again, which renews such a pass,
+    // at most BLOCKED_RELOADS times in BLOCKED_WINDOW_MS; then it says so instead.
+    var BLOCKED_RELOADS = 2;
+    var BLOCKED_WINDOW_MS = 10 * 60 * 1000;
+    var BLOCKED_KEY = 'quissly_setup_blocked';
 
     function init(root) {
         var config;
@@ -64,7 +74,8 @@
                 body: body
             }).then(function (response) {
                 return response.json().catch(function () {
-                    return {ok: false, message: text.error};
+                    // Not our answer at all; refused (4xx/5xx) means something in front of the store did it.
+                    return {ok: false, message: text.error, blocked: response.ok ? 0 : response.status};
                 });
             }, function () {
                 return {ok: false, message: text.error};
@@ -666,6 +677,69 @@
         var statusTimer = null;
         var statusStarted = 0;
         var statusRunning = false;
+        var statusInFlight = false;
+        var blockedShown = false;
+
+        // How many times the page reloaded itself for a refused check lately ({count, at}).
+        function blockedReloads(value) {
+            try {
+                if (value === undefined) {
+                    var saved = JSON.parse(window.sessionStorage.getItem(BLOCKED_KEY) || 'null');
+                    return saved && Date.now() - saved.at < BLOCKED_WINDOW_MS ? saved : {count: 0, at: Date.now()};
+                }
+                if (value === null) {
+                    window.sessionStorage.removeItem(BLOCKED_KEY);
+                } else {
+                    window.sessionStorage.setItem(BLOCKED_KEY, JSON.stringify(value));
+                }
+            } catch (e) {
+                // No storage (a private window): never reload, only say so.
+                return {count: BLOCKED_RELOADS, at: Date.now()};
+            }
+            return null;
+        }
+
+        // A refused check: reload (a full page load passes the site's challenge again), or say so.
+        function statusBlocked(httpStatus) {
+            var seen = blockedReloads();
+            if (seen.count < BLOCKED_RELOADS) {
+                blockedReloads({count: seen.count + 1, at: seen.at});
+                window.location.reload();
+                return true;
+            }
+            showError('golive', String(text.blocked || text.error || '').replace('[status]', String(httpStatus)));
+            blockedShown = true;
+            return false;
+        }
+
+        // The server's cron has not run lately: the sync moves only while this page is open.
+        function renderCron(result) {
+            var cron = result.cron;
+            var box = $('[data-q-cron]');
+            if (!cron || !text.cronMissing) {
+                return;
+            }
+            if (!box) {
+                var anchor = $('[data-q-status-foot]') || $('[data-q-step="golive"] [data-q-error]');
+                if (!anchor || !anchor.parentNode) {
+                    return;
+                }
+                box = document.createElement('div');
+                box.setAttribute('data-q-cron', '');
+                box.className = 'q-notice q-notice--warn';
+                var words = document.createElement('p');
+                words.textContent = text.cronMissing;
+                var line = document.createElement('code');
+                line.style.display = 'block';
+                line.style.whiteSpace = 'pre-wrap';
+                line.style.marginTop = '6px';
+                box.appendChild(words);
+                box.appendChild(line);
+                anchor.parentNode.insertBefore(box, anchor);
+            }
+            box.querySelector('code').textContent = cron.line || '';
+            box.hidden = !!cron.fresh || !!result.ready;
+        }
 
         function setText(selector, value) {
             var node = $(selector);
@@ -733,9 +807,25 @@
         }
 
         function pollStatus() {
+            if (statusInFlight) {
+                return;
+            }
+            statusInFlight = true;
+            window.clearTimeout(statusTimer);
             post('status', {}).then(function (result) {
+                statusInFlight = false;
+                if (result && result.blocked && statusBlocked(result.blocked)) {
+                    return;
+                }
                 if (result && result.ok) {
+                    blockedReloads(null);
+                    if (blockedShown) {
+                        // Only its own words: another step-3 error (Finish, Do this later) stays.
+                        showError('golive', '');
+                        blockedShown = false;
+                    }
                     renderStatus(result);
+                    renderCron(result);
                     if (result.ready) {
                         statusRunning = false;
                         return;
@@ -755,6 +845,13 @@
             window.clearTimeout(statusTimer);
             pollStatus();
         }
+
+        // A tab in the background is slowed or frozen by the browser: on coming back, check at once.
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible' && statusRunning) {
+                pollStatus();
+            }
+        });
 
         var retryButton = $('[data-q-retry]');
         if (retryButton) {
