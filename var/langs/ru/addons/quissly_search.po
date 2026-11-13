@@ -2359,8 +2359,20 @@ msgid "Setup is finished, but Quissly refused the first search, so the store kee
 msgstr "Настройка завершена, но Quissly отклонил первый поиск, поэтому магазин пока использует поиск CS-Cart. [reason]"
 
 msgctxt "Languages::quissly_search.uc_description"
-msgid "An update of Quissly's smart search for your store. Your settings, connection and synced catalog stay as they are."
-msgstr "Обновление умного поиска Quissly для вашего магазина. Настройки, подключение и синхронизированный каталог сохраняются."
+msgid "An update of Quissly's smart search for your store. Your settings, connection and synced catalog stay as they are. Installing takes 1-3 minutes while CS-Cart backs the store up: press Install once and wait."
+msgstr "Обновление умного поиска Quissly. Ваши настройки, подключение и синхронизированный каталог остаются прежними. Установка занимает 1-3 минуты, пока CS-Cart делает резервную копию магазина: нажмите «Установить» один раз и подождите."
+
+msgctxt "Languages::quissly_search.uc_install_gone"
+msgid "This Quissly update was already installed or removed, so there is nothing to install. Reload Add-ons > Upgrades."
+msgstr "Это обновление Quissly уже установлено или удалено, устанавливать нечего. Обновите страницу Модули > Обновления."
+
+msgctxt "Languages::quissly_search.uc_install_done"
+msgid "Quissly [version] is already installed. Reload Add-ons > Upgrades."
+msgstr "Quissly [version] уже установлен. Обновите страницу Модули > Обновления."
+
+msgctxt "Languages::quissly_search.uc_install_busy"
+msgid "Quissly is being installed right now. Wait for it to finish (1-3 minutes) - do not press Install again."
+msgstr "Quissly сейчас устанавливается. Дождитесь окончания (1-3 минуты) и не нажимайте «Установить» ещё раз."
 
 msgctxt "Languages::quissly_search.uc_no_check"
 msgid "Quissly Search could not get its latest release from GitHub: [reason]."

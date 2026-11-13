@@ -26,6 +26,29 @@ final class UpgradePackage
     public const VALIDATOR = 'QuisslySearchServerCheck';
 
     /**
+     * Why an install of the downloaded package must not start: '' (go ahead), 'gone' (no package
+     * left - CS-Cart deletes it once installed, and then still offers a stale page's Install, which
+     * closes the storefront, copies nothing and fails), 'done' (its version or a newer one is already
+     * installed) or 'busy' (an install, ours or the automatic update, holds the lock right now).
+     * A second press of Install while the first one backs the store up started all three
+     * (CS-Cart 4.21, 2026-11-13: the storefront was left closed).
+     *
+     * @param array<string, mixed>|null $schema the package's schema.json, null when there is none
+     */
+    public static function installRefusal(?array $schema, string $installed, bool $busy): string
+    {
+        $to = is_array($schema) ? (string) ($schema['to_version'] ?? '') : '';
+        if ($to === '') {
+            return 'gone';
+        }
+        if ($installed !== '' && version_compare($installed, $to, '>=')) {
+            return 'done';
+        }
+
+        return $busy ? 'busy' : '';
+    }
+
+    /**
      * The add-on's language packs. Never listed in package.json: for a listed var/langs file the
      * Upgrade center reinstalls that language's WHOLE pack (core.po and every add-on's texts -
      * a merchant's own translations lost - and "installed with errors" where the store has no

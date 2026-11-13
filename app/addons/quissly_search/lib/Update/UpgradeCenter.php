@@ -63,6 +63,32 @@ final class UpgradeCenter
     private static array $asked = [];
 
     /** The version in the add-on's files (CS-Cart's recorded one can lag behind files copied by hand). */
+    /**
+     * Add-ons > Upgrades' Install of quissly_search, checked before CS-Cart starts it
+     * (controllers/backend/upgrade_center.pre.php): '' to go ahead, else what to tell the merchant.
+     * Runs from the INSTALLED add-on, so it holds also when the package (and its validator) is gone.
+     */
+    public static function installRefusal(): string
+    {
+        $schemaPath = rtrim((string) Registry::get('config.dir.upgrade'), '/') . '/packages/' . self::ADDON . '/schema.json';
+        $schema = is_file($schemaPath) ? json_decode((string) @file_get_contents($schemaPath), true) : null;
+        $busy = false;
+        $lockPath = self::work() . 'lock';
+        if (is_file($lockPath)) {
+            $lock = @fopen($lockPath, 'c');
+            if ($lock !== false) {
+                $busy = !flock($lock, LOCK_EX | LOCK_NB);
+                if (!$busy) {
+                    flock($lock, LOCK_UN);
+                }
+                fclose($lock);
+            }
+        }
+        $reason = UpgradePackage::installRefusal(is_array($schema) ? $schema : null, self::installedVersion(), $busy);
+
+        return $reason === '' ? '' : (string) __('quissly_search.uc_install_' . $reason, ['[version]' => self::installedVersion()]);
+    }
+
     public static function installedVersion(): string
     {
         return Release::versionIn((string) @file_get_contents(self::root() . 'app/addons/quissly_search/addon.xml'))

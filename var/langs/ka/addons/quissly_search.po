@@ -2359,8 +2359,20 @@ msgid "Setup is finished, but Quissly refused the first search, so the store kee
 msgstr "დაყენება დასრულდა, მაგრამ Quissly-მ პირველ ძიებაზე უარი თქვა, ამიტომ მაღაზია ჯერ CS-Cart-ის ძიებას იყენებს. [reason]"
 
 msgctxt "Languages::quissly_search.uc_description"
-msgid "An update of Quissly's smart search for your store. Your settings, connection and synced catalog stay as they are."
-msgstr "Quissly-ის ჭკვიანი ძიების განახლება თქვენი მაღაზიისთვის. პარამეტრები, კავშირი და სინქრონიზებული კატალოგი უცვლელი რჩება."
+msgid "An update of Quissly's smart search for your store. Your settings, connection and synced catalog stay as they are. Installing takes 1-3 minutes while CS-Cart backs the store up: press Install once and wait."
+msgstr "Quissly-ის ჭკვიანი ძიების განახლება. თქვენი პარამეტრები, კავშირი და სინქრონიზებული კატალოგი უცვლელი რჩება. ინსტალაციას 1-3 წუთი სჭირდება, სანამ CS-Cart მაღაზიის სარეზერვო ასლს აკეთებს: დააჭირეთ ინსტალაციას ერთხელ და დაელოდეთ."
+
+msgctxt "Languages::quissly_search.uc_install_gone"
+msgid "This Quissly update was already installed or removed, so there is nothing to install. Reload Add-ons > Upgrades."
+msgstr "Quissly-ის ეს განახლება უკვე დაყენებულია ან წაშლილია, ამიტომ დასაყენებელი არაფერია. განაახლეთ მოდულები > განახლებები."
+
+msgctxt "Languages::quissly_search.uc_install_done"
+msgid "Quissly [version] is already installed. Reload Add-ons > Upgrades."
+msgstr "Quissly [version] უკვე დაყენებულია. განაახლეთ მოდულები > განახლებები."
+
+msgctxt "Languages::quissly_search.uc_install_busy"
+msgid "Quissly is being installed right now. Wait for it to finish (1-3 minutes) - do not press Install again."
+msgstr "Quissly ახლა ყენდება. დაელოდეთ დასრულებას (1-3 წუთი) და ხელახლა ნუ დააჭერთ ინსტალაციას."
 
 msgctxt "Languages::quissly_search.uc_no_check"
 msgid "Quissly Search could not get its latest release from GitHub: [reason]."
