@@ -102,6 +102,12 @@
 		return !! ( node && node.classList && node.classList.contains( OVERLAY_INPUT ) );
 	}
 
+	/** The box's text - never CS-Cart 4.11's hint, which its theme keeps IN the value (class cm-hint, the title's text). */
+	function typedText( node ) {
+		var v = ( node.value || '' ).trim();
+		return node.classList && node.classList.contains( 'cm-hint' ) && v === ( node.getAttribute( 'title' ) || '' ).trim() ? '' : v;
+	}
+
 	function isThemeInput( node ) {
 		if ( ! node || node.tagName !== 'INPUT' || isOverlayInput( node ) ) {
 			return false;
@@ -271,7 +277,7 @@
 
 	function suggest( node ) {
 		input = node;
-		var term = ( node.value || '' ).trim();
+		var term = typedText( node );
 		clearTimeout( timer );
 		clearTimeout( eventTimer );
 		eventTimer = null;
@@ -288,7 +294,7 @@
 			}, LOADING_DELAY_MS );
 			ask( term ).then( function ( list ) {
 				// A late answer for text that has changed since is dropped.
-				if ( mine === asked && input === node && ( node.value || '' ).trim() === term ) {
+				if ( mine === asked && input === node && typedText( node ) === term ) {
 					stopLoading();
 					render( list );
 					if ( list && list.length ) { scheduleQuickEvent( term ); }

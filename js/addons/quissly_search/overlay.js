@@ -547,8 +547,12 @@
 			build();
 		}
 		lastFocus = document.activeElement;
-		// Carry over whatever the shopper already typed in the native box.
-		input.value = ( nativeInput && nativeInput.value ) || '';
+		// Carry over whatever the shopper already typed in the native box - not CS-Cart 4.11's
+		// hint, which its theme keeps IN the value (class cm-hint, the title's text).
+		var carried = ( nativeInput && nativeInput.value ) || '';
+		var isHint = nativeInput && nativeInput.classList.contains( 'cm-hint' )
+			&& carried.trim() === ( nativeInput.getAttribute( 'title' ) || '' ).trim();
+		input.value = isHint ? '' : carried;
 		syncClear();
 		document.documentElement.classList.add( 'quissly-overlay-open' );
 		backdrop.classList.add( 'is-open' );
@@ -599,7 +603,8 @@
 					url.searchParams.set( el.name, el.value );
 				}
 			} );
-			url.searchParams.set( nativeInput.name || 'q', q );
+			// CS-Cart 4.11 renames the box "hint_q" while its hint shows.
+			url.searchParams.set( ( nativeInput.name || 'q' ).replace( /^hint_/, '' ), q );
 			return url.toString();
 		}
 		var sep = resultsUrl.indexOf( '?' ) === -1 ? '?' : '&';

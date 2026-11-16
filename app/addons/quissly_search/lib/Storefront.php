@@ -145,6 +145,27 @@ final class Storefront
         ];
     }
 
+    /** The values footer.post.tpl and scripts.post.tpl put in attributes. */
+    public const ATTRIBUTES = ['overlay_json', 'media_json', 'quick_json', 'events_json', 'cart_json', 'qchat_agent_id', 'qchat_script'];
+
+    /**
+     * build()'s answer plus each ATTRIBUTES value escaped ONCE for an HTML attribute (`<key>_attr`), which
+     * footer.post.tpl prints with nofilter. Smarty cannot do it the same on every CS-Cart: with CS-Cart's
+     * escape_html on, 4.11's Smarty 3.1 escapes {$x|escape:"html"} twice (every script's JSON.parse failed),
+     * and 4.21's Smarty 5 drops that modifier - with nofilter it escapes nothing at all.
+     *
+     * @param array<string, mixed> $out build()'s answer
+     * @return array<string, mixed>
+     */
+    public static function attributes(array $out): array
+    {
+        foreach (self::ATTRIBUTES as $key) {
+            $out[$key . '_attr'] = htmlspecialchars((string) ($out[$key] ?? ''), ENT_QUOTES, 'UTF-8');
+        }
+
+        return $out;
+    }
+
     private function __construct()
     {
     }

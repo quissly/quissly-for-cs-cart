@@ -30,5 +30,5 @@
 {/if}
 {if $quissly.qchat_agent_id}
     {script src="js/addons/quissly_search/cart.js"}
-    <script src="{$quissly.qchat_script}" async></script>
+    <script src="{$quissly.qchat_script_attr nofilter}" async></script>
 {/if}

@@ -766,7 +766,7 @@ function fn_quissly_search_storefront()
         return $result;
     }
     try {
-        $result = fn_quissly_search_storefront_build();
+        $result = Storefront::attributes(fn_quissly_search_storefront_build());
     } catch (\Throwable $e) {
         // Nothing of Quissly on this page, which CS-Cart draws as usual.
         $result = [];
