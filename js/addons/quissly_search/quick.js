@@ -39,6 +39,54 @@
 	var loading = null;  // the spinner, shown when an answer takes longer than LOADING_DELAY_MS
 	var LOADING_DELAY_MS = 150;
 
+	// Quick through Quissly's full search is a search, reported to the shopping events as one
+	// (trigger "quick") - not every keystroke: once the shopper has stopped typing for
+	// QUICK_EVENT_IDLE_MS with suggestions showing, or at once when they open one. The same text
+	// is never sent twice in a row. CFG.eventUrl is empty for instant suggestions or with
+	// Shopping activity off, and then nothing is sent.
+	var QUICK_EVENT_IDLE_MS = 1500;
+	var eventTimer = null;
+	var eventTerm = '';
+	var sentTerm = '';
+
+	function sendQuickEvent( term ) {
+		if ( ! CFG.eventUrl || ! term || term === sentTerm ) { return; }
+		sentTerm = term;
+		// CS-Cart refuses a storefront POST without the session's security hash (as events.js).
+		var url = CFG.eventUrl + ( CFG.eventUrl.indexOf( '?' ) === -1 ? '?' : '&' )
+			+ 'security_hash=' + encodeURIComponent( CFG.securityHash || '' );
+		var body = JSON.stringify( { type: 'search', query: term, modality: 'text', trigger: 'quick' } );
+		try {
+			if ( navigator.sendBeacon && navigator.sendBeacon( url, new Blob( [ body ], { type: 'application/json' } ) ) ) { return; }
+		} catch ( e ) {
+			// Fall through to fetch.
+		}
+		try {
+			fetch( url, { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', keepalive: true } );
+		} catch ( e ) {
+			// Analytics never gets in the shopper's way.
+		}
+	}
+
+	function scheduleQuickEvent( term ) {
+		if ( ! CFG.eventUrl ) { return; }
+		clearTimeout( eventTimer );
+		eventTerm = term;
+		eventTimer = setTimeout( function () {
+			eventTimer = null;
+			sendQuickEvent( term );
+		}, QUICK_EVENT_IDLE_MS );
+	}
+
+	/** A suggestion is being opened: the search it came from counts now. */
+	function flushQuickEvent() {
+		if ( eventTimer ) {
+			clearTimeout( eventTimer );
+			eventTimer = null;
+			sendQuickEvent( eventTerm );
+		}
+	}
+
 	function el( tag, cls ) {
 		var n = document.createElement( tag );
 		if ( cls ) { n.className = cls; }
@@ -194,6 +242,7 @@
 			}
 			row.appendChild( text );
 			strip.appendChild( row );
+			row.addEventListener( 'click', flushQuickEvent );
 			rows.push( row );
 		} );
 		box.appendChild( strip );
@@ -224,6 +273,8 @@
 		input = node;
 		var term = ( node.value || '' ).trim();
 		clearTimeout( timer );
+		clearTimeout( eventTimer );
+		eventTimer = null;
 		if ( term.length < minChars ) {
 			asked++;
 			hide();
@@ -240,6 +291,7 @@
 				if ( mine === asked && input === node && ( node.value || '' ).trim() === term ) {
 					stopLoading();
 					render( list );
+					if ( list && list.length ) { scheduleQuickEvent( term ); }
 				}
 			} );
 		}, CFG.debounceMs || 200 );
@@ -283,6 +335,7 @@
 		} else if ( e.key === 'Enter' && rows[ active ] ) {
 			e.preventDefault();
 			e.stopPropagation();
+			flushQuickEvent();
 			window.location.href = rows[ active ].href;
 		} else if ( e.key === 'Escape' && ! isOverlayInput( input ) ) {
 			hide();

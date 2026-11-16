@@ -39,6 +39,9 @@ final class EventBody
 
     public const MODALITIES = ['text', 'voice', 'image'];
 
+    /** A search typed into Quick Recommendations when they come from Quissly's full search. */
+    public const TRIGGER_QUICK = 'quick';
+
     /** The storefront search's own limit (Config::MAX_QUERY_LENGTH). */
     public const MAX_QUERY_LENGTH = 150;
 
@@ -59,7 +62,7 @@ final class EventBody
      *
      * @return array<string, string>|null metadata
      */
-    public static function search(string $query, string $modality): ?array
+    public static function search(string $query, string $modality, string $trigger = ''): ?array
     {
         if (!in_array($modality, self::MODALITIES, true)) {
             return null;
@@ -71,6 +74,10 @@ final class EventBody
         $metadata = ['modality' => $modality];
         if ($modality === 'text') {
             $metadata['query'] = $query;
+        }
+        // Where the search was made, when not the search box's Enter: only Quick, a text search.
+        if ($trigger === self::TRIGGER_QUICK && $modality === 'text') {
+            $metadata['trigger'] = self::TRIGGER_QUICK;
         }
 
         return $metadata;

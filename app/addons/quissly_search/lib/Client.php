@@ -141,6 +141,29 @@ final class Client implements QSearchClient
     }
 
     /**
+     * Quick Recommendations through Quissly's full search (setting quick_source = search): the first
+     * QuickEndpoint::MAX_ROWS products /v2beta/qsearch ranks for the typed text, by relevance. Its
+     * request cannot say it came from Quick (QueryRequestV2 forbids any other field), so Quissly counts
+     * it as a search; the shopping event says so instead (trigger "quick", js/addons/quissly_search/quick.js).
+     *
+     * @return list<int>
+     *
+     * @throws QuisslyException on any non-200 outcome or transport failure
+     */
+    public function quickBySearch(string $query, ?string $userId): array
+    {
+        return $this->qsearch(
+            $query,
+            $userId,
+            1,
+            Quick\QuickEndpoint::MAX_ROWS,
+            0,
+            2,
+            Shopper::deviceAndOs((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))
+        )->ids;
+    }
+
+    /**
      * @return non-empty-string JSON body
      */
     /**

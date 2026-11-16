@@ -103,10 +103,52 @@
         });
     }
 
+    // Settings that only mean something while a switch is on: dimmed and out of reach while it is
+    // off, live as it changes (no control that does nothing). Never `disabled`:
+    // CS-Cart posts no disabled field, and the merchant's choice must stay for when it is on again.
+    var DEPENDS = {enable_quick: ['quick_style', 'quick_source']};
+
+    function groupOf(id) {
+        var own = new RegExp('_quissly_search_' + id + '_\\d+$');
+        return Array.prototype.filter.call(document.querySelectorAll('[id^="container_"][id*="_quissly_search_' + id + '_"]'), function (group) {
+            return own.test(group.id);
+        })[0] || null;
+    }
+
+    function follow() {
+        Object.keys(DEPENDS).forEach(function (id) {
+            var group = groupOf(id);
+            var box = group && group.querySelector('input[type="checkbox"]');
+            if (!box || box.hasAttribute('data-q-follows')) {
+                return;
+            }
+            box.setAttribute('data-q-follows', '');
+            var dependents = DEPENDS[id].map(groupOf).filter(Boolean);
+            function apply() {
+                var off = !box.checked;
+                dependents.forEach(function (dep) {
+                    dep.classList.toggle('q-dependent-off', off);
+                    Array.prototype.forEach.call(dep.querySelectorAll('select, input, textarea'), function (field) {
+                        if (off) {
+                            field.setAttribute('tabindex', '-1');
+                            field.setAttribute('aria-disabled', 'true');
+                        } else {
+                            field.removeAttribute('tabindex');
+                            field.removeAttribute('aria-disabled');
+                        }
+                    });
+                });
+            }
+            box.addEventListener('change', apply);
+            apply();
+        });
+    }
+
     function start() {
         boot();
         describe();
         lock();
+        follow();
     }
 
     if (document.readyState === 'loading') {

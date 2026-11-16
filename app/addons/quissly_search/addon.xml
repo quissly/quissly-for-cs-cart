@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>quissly_search</id>
-    <version>1.0.40</version>
+    <version>1.0.41</version>
     <!-- design/backend/media/images/addons/quissly_search/icon.png: the add-on page and list show it. -->
     <has_icon>Y</has_icon>
     <priority>2000</priority>
@@ -61,6 +61,14 @@
                         <variants>
                             <item id="rows"></item>
                             <item id="carousel"></item>
+                        </variants>
+                    </item>
+                    <item id="quick_source">
+                        <type>selectbox</type>
+                        <default_value>instant</default_value>
+                        <variants>
+                            <item id="instant"></item>
+                            <item id="search"></item>
                         </variants>
                     </item>
                     <item id="enable_voice">

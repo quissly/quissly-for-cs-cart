@@ -820,6 +820,7 @@ function fn_quissly_search_storefront_build(): array
         'most_loved'     => $configured ? fn_quissly_search_most_loved_cards($store) : [],
         'overlay_layout' => Features::overlayLayout(),
         'quick_style'    => Features::quickStyle(),
+        'quick_source'   => Features::quickSource(),
         'i18n'          => [
             'search'             => __('search'),
             'clear'              => __('quissly_search.sf_clear'),

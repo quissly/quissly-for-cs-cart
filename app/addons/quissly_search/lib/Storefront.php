@@ -48,7 +48,8 @@ final class Storefront
      *   configured:bool, gate_open:bool, features:list<array{id:string, on:bool}>, agent_id:string,
      *   urls:array{voice:string, image:string, results:string, cart_add?:string, cart_adjust?:string, cart_resolve?:string},
      *   security_hash:string, i18n:array<string,string>, mount_selector?:string, suggestions?:list<string>, chips?:list<string>,
-     *   most_loved?:list<array<string,mixed>>, event?:array<string,string>|null, overlay_layout?:string, quick_style?:string
+     *   most_loved?:list<array<string,mixed>>, event?:array<string,string>|null, overlay_layout?:string, quick_style?:string,
+     *   quick_source?:string
      * } $in
      * @return array{overlay:bool, overlay_json:string, media:bool, media_json:string, quick:bool, quick_json:string, qchat_agent_id:string, qchat_script:string, cart_json:string, events:bool, events_json:string}
      */
@@ -120,6 +121,10 @@ final class Storefront
                 'debounceMs'      => 200,
                 'labelSeeAll'     => $in['i18n']['seeAll'] ?? 'See all results',
                 'labelSearching'  => $in['i18n']['searching'] ?? 'Searching…',
+                // Quick through Quissly's full search is a search: quick.js reports it as one
+                // (trigger "quick"), when Shopping activity is on. Instant suggestions are not.
+                'eventUrl'        => ($in['quick_source'] ?? 'instant') === 'search' && $in['configured'] && !empty($on['enable_events'])
+                    ? ($in['urls']['event'] ?? '') : '',
             ], $flags) : '',
             'qchat_agent_id' => $agent,
             'qchat_script'   => self::QCHAT_SCRIPT,

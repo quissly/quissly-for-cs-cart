@@ -42,6 +42,9 @@ final class Features
      */
     public const QUICK_STYLES = ['rows', 'carousel'];
 
+    /** Quick's two sources: Quissly's quick suggestions, or its full search (Features::quickSource). */
+    public const QUICK_SOURCES = ['instant', 'search'];
+
     /**
      * Search overlay layout (setting overlay_layout), the Shopify app's two: wide (the default)
      * spans the screen from 750px of it, center is a compact 760px panel. Phones look the same.
@@ -112,6 +115,21 @@ final class Features
         $value = (string) $read('quick_style');
 
         return in_array($value, self::QUICK_STYLES, true) ? $value : self::QUICK_STYLES[0];
+    }
+
+    /**
+     * Where Quick Recommendations come from (setting quick_source): 'instant' (Quissly's quick
+     * suggestions, the default) or 'search' (Quissly's full search, its first page). The merchant sees
+     * the two by what they do, never by the endpoint's name.
+     *
+     * @param callable(string): mixed|null $read setting id -> stored value
+     */
+    public static function quickSource(?callable $read = null): string
+    {
+        $read = $read ?? static fn (string $id) => Registry::get('addons.quissly_search.' . $id);
+        $value = (string) $read('quick_source');
+
+        return in_array($value, self::QUICK_SOURCES, true) ? $value : self::QUICK_SOURCES[0];
     }
 
     private function __construct()

@@ -522,6 +522,22 @@ msgctxt "SettingsVariants::quissly_search::quick_style::carousel"
 msgid "Carousel - large cards you can scroll through"
 msgstr "კარუსელი - დიდი ბარათები, რომლებსაც გადაფურცლავთ"
 
+msgctxt "SettingsOptions::quissly_search::quick_source"
+msgid "Quick Recommendations source"
+msgstr "სწრაფი რეკომენდაციების წყარო"
+
+msgctxt "SettingsTooltips::quissly_search::quick_source"
+msgid "Instant suggestions are the fastest. Smart search shows what the full search would find, and each one counts as a search in your plan and in your analytics."
+msgstr "მყისიერი შეთავაზებები ყველაზე სწრაფია. ჭკვიანი ძიება აჩვენებს იმას, რასაც სრული ძიება იპოვიდა; თითოეული ძიებად ითვლება თქვენს ტარიფსა და ანალიტიკაში."
+
+msgctxt "SettingsVariants::quissly_search::quick_source::instant"
+msgid "Instant suggestions - fastest as the shopper types"
+msgstr "მყისიერი შეთავაზებები - ყველაზე სწრაფი ჩაწერისას"
+
+msgctxt "SettingsVariants::quissly_search::quick_source::search"
+msgid "Smart search - the full search's best matches"
+msgstr "ჭკვიანი ძიება - სრული ძიების საუკეთესო შედეგები"
+
 msgctxt "SettingsOptions::quissly_search::enable_voice"
 msgid "Voice search"
 msgstr "ხმოვანი ძიება"

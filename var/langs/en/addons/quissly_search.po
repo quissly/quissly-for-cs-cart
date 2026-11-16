@@ -522,6 +522,22 @@ msgctxt "SettingsVariants::quissly_search::quick_style::carousel"
 msgid "Carousel - large cards you can scroll through"
 msgstr "Carousel - large cards you can scroll through"
 
+msgctxt "SettingsOptions::quissly_search::quick_source"
+msgid "Quick Recommendations source"
+msgstr "Quick Recommendations source"
+
+msgctxt "SettingsTooltips::quissly_search::quick_source"
+msgid "Instant suggestions are the fastest. Smart search shows what the full search would find, and each one counts as a search in your plan and in your analytics."
+msgstr "Instant suggestions are the fastest. Smart search shows what the full search would find, and each one counts as a search in your plan and in your analytics."
+
+msgctxt "SettingsVariants::quissly_search::quick_source::instant"
+msgid "Instant suggestions - fastest as the shopper types"
+msgstr "Instant suggestions - fastest as the shopper types"
+
+msgctxt "SettingsVariants::quissly_search::quick_source::search"
+msgid "Smart search - the full search's best matches"
+msgstr "Smart search - the full search's best matches"
+
 msgctxt "SettingsOptions::quissly_search::enable_voice"
 msgid "Voice search"
 msgstr "Voice search"

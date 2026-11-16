@@ -111,7 +111,10 @@ try {
 
         $endpoint = new QuickEndpoint(
             new DbRateLimiter(),
-            static fn (string $query): array => (new Client($credentials))->quick($query, SearchInterceptor::resolveUserId()),
+            // Quissly's quick suggestions, or its full search (setting quick_source).
+            Features::quickSource() === 'search'
+                ? static fn (string $query): array => (new Client($credentials))->quickBySearch($query, SearchInterceptor::resolveUserId())
+                : static fn (string $query): array => (new Client($credentials))->quick($query, SearchInterceptor::resolveUserId()),
             'fn_quissly_search_quick_rows'
         );
         // REMOTE_ADDR only, as the media endpoints.
@@ -319,7 +322,8 @@ try {
         } elseif ($type === EventBody::SEARCH) {
             $metadata = EventBody::search(
                 is_string($event['query'] ?? null) ? $event['query'] : '',
-                is_string($event['modality'] ?? null) ? $event['modality'] : ''
+                is_string($event['modality'] ?? null) ? $event['modality'] : '',
+                is_string($event['trigger'] ?? null) ? $event['trigger'] : ''
             );
             if ($metadata !== null) {
                 fn_quissly_search_event_shopper(EventBody::SEARCH, $metadata);

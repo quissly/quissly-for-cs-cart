@@ -32,3 +32,10 @@ h4.subheader[data-q-section] + .collapse.in { padding-bottom: 12px; }
 /* A switch the store's plan leaves out (settings-sections.js lock()): greyed; the line under it says why. */
 [data-q-locked] .controls input, [data-q-locked] .controls select { opacity: .45; cursor: not-allowed; }
 [data-q-locked] .q-plan-note { margin-top: 6px; }
+
+/* A setting whose switch is off (settings-sections.js follow()): dimmed and out of reach, its value kept. */
+.q-dependent-off .controls,
+.q-dependent-off .control-label { opacity: .45; }
+.q-dependent-off .controls select,
+.q-dependent-off .controls input,
+.q-dependent-off .controls textarea { pointer-events: none; }
